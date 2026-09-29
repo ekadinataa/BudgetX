@@ -1,774 +1,515 @@
 # BudgetKu — Functional Specification Document
 
-**Version:** 1.0  
-**Last Updated:** July 2025  
-**Status:** Active Development  
+**Version:** 2.0
+**Last Updated:** September 2026
+**Status:** Production
 
 ---
 
-## 1. Executive Summary
+## 1. Ringkasan Eksekutif
 
-BudgetKu is a comprehensive personal finance management web application designed specifically for Indonesian users. It provides tools for expense tracking, budget planning, debt management, investment portfolio tracking, and long-term financial planning (FIRE — Financial Independence, Retire Early).
+BudgetKu adalah aplikasi web manajemen keuangan pribadi yang dirancang khusus untuk pengguna Indonesia. Aplikasi ini menyediakan alat untuk pelacakan pengeluaran, perencanaan anggaran, manajemen utang/piutang, pelacakan portofolio investasi, manajemen aset tetap, dan perencanaan keuangan jangka panjang (FIRE — Financial Independence, Retire Early).
 
-### Target Users
-- Indonesian millennials and Gen-Z professionals managing personal finances
-- Users who want a simple yet powerful budgeting tool in their native language
-- Individuals planning for financial independence
+### Target Pengguna
 
-### Problems Solved
-- Fragmented financial tracking across multiple apps and spreadsheets
-- Lack of Indonesian-language personal finance tools with comprehensive features
-- No integrated view of budgets, debts, investments, and recurring expenses
-- Difficulty planning for long-term financial goals (FIRE)
+- Profesional muda Indonesia (milenial dan Gen-Z) yang mengelola keuangan pribadi
+- Pengguna yang menginginkan alat budgeting lengkap dalam bahasa Indonesia
+- Individu yang merencanakan kemandirian finansial jangka panjang
 
----
+### Masalah yang Diselesaikan
 
-## 2. Product Overview
-
-| Attribute | Detail |
-|-----------|--------|
-| Product Name | BudgetKu — Money Tracker |
-| Platform | Web application (responsive — desktop + mobile) |
-| Deployment URL | https://budgetku-app-v1.web.app |
-| Language | Indonesian (Bahasa Indonesia) throughout |
-| Auth Modes | Firebase Authentication (email/password) or local-only (no account required) |
-
-BudgetKu operates as a client-side Single Page Application with optional cloud persistence. Users can use the app without creating an account (data stored in localStorage) or authenticate to sync data across devices via Firebase Firestore.
+- Pelacakan keuangan yang tersebar di banyak aplikasi dan spreadsheet
+- Kurangnya alat keuangan pribadi berbahasa Indonesia yang komprehensif
+- Tidak adanya tampilan terpadu untuk anggaran, utang, investasi, dan pengeluaran berulang
+- Kesulitan merencanakan tujuan keuangan jangka panjang (FIRE)
 
 ---
 
-## 3. User Roles
+## 2. Gambaran Produk
 
-### 3.1 Authenticated User
-- Full access to all features
-- Data persisted to Firebase Firestore (cloud-synced)
-- Login, register, and password reset capabilities
-- Data migration from local storage to cloud on first authentication
+| Atribut | Detail |
+|---------|--------|
+| Nama Produk | BudgetKu — Money Tracker |
+| Platform | Web application (responsif — desktop + mobile) |
+| URL Deployment | https://budgetku-app-v1.web.app |
+| Bahasa | Bahasa Indonesia |
+| Mode Auth | Firebase Authentication (email/password) atau local-only (tanpa akun) |
+| Mata Uang | Rupiah Indonesia (IDR) |
 
-### 3.2 Local-Only User
-- Full access to all features (identical functionality)
-- Data persisted to browser localStorage only
-- No account creation required
-- Data is device-specific and not synced
-
-The application automatically detects whether Firebase is configured. If not, it runs in local-only mode transparently.
+BudgetKu berjalan sebagai Single Page Application client-side dengan persistensi cloud opsional. Pengguna dapat menggunakan aplikasi tanpa membuat akun (data disimpan di localStorage) atau mengautentikasi untuk sinkronisasi data antar perangkat via Firebase Firestore.
 
 ---
 
-## 4. Feature Modules
+## 3. Peran Pengguna
 
-### 4.1 Authentication
+### 3.1 Pengguna Terautentikasi
+- Akses penuh ke semua fitur
+- Data disimpan ke Firebase Firestore (sinkronisasi cloud)
+- Kemampuan login, register, dan reset password
+- Migrasi data dari localStorage ke cloud saat autentikasi pertama
 
-#### 4.1.1 Login
-- Email and password authentication via Firebase Auth
-- Error messages displayed for invalid credentials
-- Navigation to Register and Forgot Password pages
+### 3.2 Pengguna Local-Only
+- Akses penuh ke semua fitur (fungsionalitas identik)
+- Data disimpan di localStorage browser saja
+- Tidak perlu membuat akun
 
-#### 4.1.2 Register
-- New account creation with email and password
-- Auto-initialization of default categories and preferences on first login
-- Navigation back to Login page
+---
 
-#### 4.1.3 Forgot Password
-- Password reset email sent via Firebase Auth
-- Confirmation message displayed after sending
+## 4. Modul Fitur
 
-#### 4.1.4 Local-Only Mode
-- Triggered automatically when Firebase environment variables are not configured
-- No authentication UI shown
-- All data operations use localStorage directly
-- Full feature parity with authenticated mode
+### 4.1 Autentikasi
 
-#### 4.1.5 Data Migration
-- On first authentication, if localStorage contains existing data, a migration prompt appears
-- User can choose to migrate local data to Firestore or skip
-- After migration, local storage data is preserved as backup
+**Deskripsi:** Sistem autentikasi berbasis Firebase Authentication dengan email/password.
+
+**Fungsionalitas:**
+- **Register:** Buat akun baru dengan email dan password (min. 8 karakter)
+- **Login:** Masuk dengan kredensial terdaftar
+- **Lupa Password:** Kirim email reset password ke alamat terdaftar
+- **Logout:** Keluar dari sesi aktif
+- **Migrasi Data:** Saat login pertama kali, tawarkan migrasi data localStorage ke Firestore
+
+**Alur Navigasi Auth:**
+```
+Tidak terautentikasi → Login Page
+                     ↔ Register Page
+                     ↔ Lupa Password Page
+Terautentikasi → Dashboard
+```
+
+**Validasi:**
+- Email: format valid (RFC 5322)
+- Password: minimum 8 karakter
+- Konfirmasi password: harus cocok dengan password
 
 ---
 
 ### 4.2 Dashboard
 
-The Dashboard is the primary landing page providing a comprehensive financial overview.
+**Deskripsi:** Halaman ringkasan yang menampilkan snapshot keuangan terkini pengguna.
 
-#### 4.2.1 Personalized Greeting
-- Time-of-day-based greeting in Indonesian:
-  - Before 11:00 → "Selamat Pagi 👋"
-  - 11:00–15:00 → "Selamat Siang ☀️"
-  - 15:00–18:00 → "Selamat Sore 🌅"
-  - After 18:00 → "Selamat Malam 🌙"
-- Displays username (extracted from email before @)
+**Komponen:**
 
-#### 4.2.2 Hero Card (Mobile)
-- Shows total saldo (balance across all wallets)
-- Current month label
-- Two sub-cards: Pemasukan (income) and Pengeluaran (expense) for the month
-- Abbreviated currency format (e.g., "1,5jt" for Rp1.500.000)
+| Komponen | Deskripsi |
+|----------|-----------|
+| Stat Cards | Budget Hari Ini, Pemasukan Bulan Ini, Pengeluaran Bulan Ini, Total Saldo |
+| Ringkasan Budget | Progress bar per seksi (Kebutuhan/Keinginan/Tabungan) dengan indikator overflow |
+| Kalender Interaktif | Kalender bulan dengan titik warna untuk hari bertransaksi; klik hari untuk lihat detail |
+| Ringkasan Dompet | Hingga 4 dompet teratas dengan saldo |
+| Transaksi Terbaru | 6 transaksi non-transfer terbaru |
+| Widget Utang/Piutang | Utang/piutang jatuh tempo dalam 7 hari dan yang sudah lewat jatuh tempo |
+| Widget Investasi | Total nilai portofolio, unrealized gain/loss, return percentage |
+| Tombol Tambah Transaksi | Akses cepat ke modal tambah transaksi dari mana saja |
 
-#### 4.2.3 Quick Menu (Mobile)
-- Grid of shortcut buttons for quick navigation:
-  - Budget, Berkala (Recurring), Utang (Debt), Investasi, Dompet (Wallet), Laporan (Report), FIRE
-- Each with a colored icon and label
-
-#### 4.2.4 Smart Insight Card
-- Automatically computed insight based on current month data
-- Example: "Pengeluaran terbesarmu bulan ini: Makanan & Minum (Rp1.500.000)"
-- Shows emoji icon and descriptive text
-
-#### 4.2.5 Stat Cards
-Four key metrics displayed in a grid:
-1. **Budget Hari Ini** — Daily budget (monthly income ÷ days in month), amount spent today, remaining
-2. **Pemasukan Bulan Ini** — Total income this month
-3. **Pengeluaran Bulan Ini** — Total expenses this month with percentage of income
-4. **Total Saldo** — Sum of all wallet balances with wallet count
-
-#### 4.2.6 Budget Summary
-- Per-section (Kebutuhan/Keinginan/Tabungan) progress bars
-- Shows spent vs allocated amounts
-- Overflow indicator when spending exceeds budget
-- "Lihat Detail" link to Budget page
-
-#### 4.2.7 Calendar Widget
-- Monthly calendar view
-- Transaction dots on dates that have transactions
-- Color-coded by transaction type (income/expense)
-- Navigate between months
-
-#### 4.2.8 Wallet Summary
-- Shows up to 4 wallets with name, type, icon, and balance
-- Color-coded wallet icons
-- Abbreviated balance format
-- "Lihat Semua" link to Wallet page
-
-#### 4.2.9 Restock Reminder Widget
-- Displays recurring items that need restocking within 7 days
-- Shows item name, category, and urgency status
-- Color-coded badges: "Terlambat" (red) or "Segera" (yellow)
-- "Lihat Semua" link to Recurring page
-- Only visible when there are items needing restock
-
-#### 4.2.10 Debt Due Date Widget
-- Shows upcoming debt payments and overdue debts
-- Displays person name, amount, and due date status
-- Links to Debt page
-
-#### 4.2.11 Investment Portfolio Widget
-- Summarizes total portfolio value and performance
-- Shows profit/loss with percentage return
-- Links to Investment page
-
-#### 4.2.12 Recent Transactions
-- Last 6 non-transfer transactions
-- Each shows: emoji icon (from category), note, date, category name, and amount
-- Color-coded amount: green for income, red for expense
-- "Lihat Semua" link to Transactions page
+**Kalkulasi Budget Hari Ini:**
+```
+Budget Harian = Pendapatan Bulanan ÷ Jumlah Hari dalam Bulan
+Sisa Hari Ini = Budget Harian − Total Pengeluaran Hari Ini
+```
 
 ---
 
-### 4.3 Wallet Management
+### 4.3 Dompet (Wallet)
 
-#### 4.3.1 Wallet Types
-- **Bank** — Traditional bank accounts
-- **E-Wallet** — Digital wallets (GoPay, OVO, DANA, etc.)
-- **Kartu Kredit** — Credit cards
-- **PayLater** — Buy-now-pay-later services (Kredivo, etc.)
-- **Tunai/Cash** — Physical cash
+**Deskripsi:** Manajemen akun keuangan pengguna lintas tipe.
 
-#### 4.3.2 Wallet Properties
-- Name (required)
-- Type (required — one of the 5 types above)
-- Balance (numeric, can be negative for credit/PayLater)
-- Color (for visual identification)
-- Note (optional — e.g., last 4 digits of account number)
+**Tipe Dompet yang Didukung:**
+- Bank
+- E-Wallet
+- Kartu Kredit
+- PayLater
+- Tunai/Cash
 
-#### 4.3.3 Operations
-- **Create** — Add new wallet with initial balance
-- **Update** — Edit wallet name, type, color, note, and manually adjust balance
-- **Delete** — Remove wallet (no cascade delete of transactions)
-- **Auto-balance update** — Wallet balances automatically adjust when transactions are created, updated, or deleted
+**Fungsionalitas:**
 
-#### 4.3.4 Display
-- List view with wallet icon, name, type label, and balance
-- Aggregate summary: total assets, total debt, net balance
-- Color-coded balances (red for negative)
+| Aksi | Deskripsi |
+|------|-----------|
+| Tambah Dompet | Form dengan nama, tipe, saldo awal, warna, dan catatan opsional |
+| Edit Dompet | Ubah nama, tipe, saldo, warna, dan catatan |
+| Hapus Dompet | Konfirmasi sebelum penghapusan |
+| Transfer | Pindahkan saldo antar dompet; otomatis buat transaksi transfer |
+| Ringkasan | Total Saldo Bersih, Total Aset (saldo positif), Total Hutang (saldo negatif) |
+
+**Tampilan Kartu Dompet:** Nama, tipe, saldo, pemasukan/pengeluaran bulan ini dengan warna header sesuai pilihan pengguna.
 
 ---
 
-### 4.4 Transactions
+### 4.4 Transaksi
 
-#### 4.4.1 Transaction Types
-- **Income (Pemasukan)** — Money received; increases wallet balance
-- **Expense (Pengeluaran)** — Money spent; decreases wallet balance
-- **Transfer** — Money moved between wallets; decreases source, increases destination
+**Deskripsi:** Pencatatan, tampilan, filter, edit, dan hapus transaksi keuangan.
 
-#### 4.4.2 Transaction Properties
-- Date (YYYY-MM-DD format)
-- Wallet (source wallet)
-- Type (income/expense/transfer)
-- Category (assigned from user's category list; filtered by type)
-- Amount (numeric, positive)
-- Note (free-text description)
-- Tags (array of strings for flexible labeling)
-- To Wallet (destination wallet — only for transfers)
+**Tipe Transaksi:**
+- **Pemasukan** — Menambah saldo dompet
+- **Pengeluaran** — Mengurangi saldo dompet
+- **Transfer** — Pindah saldo antar dompet (tidak mempengaruhi total saldo)
 
-#### 4.4.3 Category Assignment
-- Categories filtered by transaction type:
-  - Income → shows only "income" section categories
-  - Expense → shows only "needs", "wants", "savings" section categories
-  - Transfer → no category required
-- Each category has an emoji icon for visual identification
+**Filter yang Tersedia:**
+- Cari berdasarkan catatan (teks bebas)
+- Periode (bulan/range kustom)
+- Dompet
+- Tipe transaksi
+- Kategori
+- Tag
 
-#### 4.4.4 Quick Amount Buttons
-- Pre-set amount buttons for fast entry: 10rb, 20rb, 25rb, 50rb, 100rb, 200rb, 500rb
-- Tapping sets the amount field instantly
+**Tampilan List:** Dikelompokkan per tanggal, dengan header tanggal menampilkan total pemasukan dan pengeluaran hari tersebut.
 
-#### 4.4.5 Filtering
-Multi-filter support with chip-based selection:
-- **Wallet** — Filter by one or more wallets
-- **Type** — Filter by income, expense, transfer
-- **Category** — Filter by one or more categories
-- **Tags** — Filter by one or more tags
-- **Date Range** — Three modes:
-  - "Per Bulan" — Select specific month
-  - "Custom Range" — Start and end date pickers
-  - "Semua Waktu" — No date filter
-- **Search** — Free-text search within transaction notes
+**Summary Bar:** Total pemasukan, total pengeluaran, dan net cashflow untuk filter aktif.
 
-#### 4.4.6 Display
-- Grouped by date (descending)
-- Date headers with daily income/expense totals
-- Each row: category emoji, note, badges (type, category name, wallet), amount
-- Expandable action buttons (edit, delete) on row tap
-- Summary bar: total income, total expense, net for filtered set
-
-#### 4.4.7 Auto Wallet Balance Adjustment
-- Creating a transaction: adjusts source wallet balance (and destination for transfers)
-- Updating a transaction: reverses old effect, applies new effect
-- Deleting a transaction: reverses the balance effect
-- All adjustments use atomic batch writes (Firestore mode)
+**Validasi Transaksi:**
+- Tanggal: wajib, format YYYY-MM-DD
+- Dompet: wajib dipilih
+- Tipe: income/expense/transfer
+- Kategori: wajib untuk income/expense; tidak berlaku untuk transfer
+- Nominal: angka positif
+- Transfer: wajib pilih dompet tujuan yang berbeda dari sumber
 
 ---
 
-### 4.5 Budget Planning
+### 4.5 Budget
 
-#### 4.5.1 Overview
-Monthly income allocation using the 50/30/20 rule as guidance:
-- **Kebutuhan (Needs)** — 50% guideline
-- **Keinginan (Wants)** — 30% guideline
-- **Tabungan (Savings)** — 20% guideline
+**Deskripsi:** Perencanaan anggaran bulanan berbasis aturan 50/30/20.
 
-#### 4.5.2 Period Modes
-Three configurable period modes:
-1. **Per Bulan** — Standard calendar month (1st to last day)
-2. **Custom Siklus** — Billing cycle based on salary date (e.g., 25th to 24th)
-   - Configurable cycle start day (1–28)
-   - Optional salary date adjustment (shifts to nearest preceding weekday)
-3. **Custom Rentang** — User-defined start and end dates
-   - Create arbitrary date ranges for budget periods
-   - Period transition prompts when a range expires
-   - Option to copy budget allocation from previous period
+**Seksi Budget:**
+| Seksi | Label | Pedoman |
+|-------|-------|---------|
+| needs | Kebutuhan | 50% |
+| wants | Keinginan | 30% |
+| savings | Tabungan | 20% |
 
-#### 4.5.3 Income Configuration
-- Set total monthly income for the period
-- Serves as the basis for section allocation percentages
+**Mode Periode:**
 
-#### 4.5.4 Section Allocation
-- Each section (Kebutuhan/Keinginan/Tabungan) has a total allocation
-- Per-category budget amounts within each section
-- Distribution visualization bar showing allocation percentages
-- Warning when total allocation exceeds income
-- "Belum Dialokasikan" indicator for unallocated funds
+| Mode | Deskripsi |
+|------|-----------|
+| Per Bulan | Periode kalender bulanan standar (YYYY-MM) |
+| Custom Siklus | Siklus mulai dari hari tertentu (misal: gajian tanggal 25); mendukung penyesuaian hari libur nasional Indonesia |
+| Custom Rentang | Tentukan tanggal mulai dan akhir sendiri; transisi antar periode dengan opsi salin alokasi sebelumnya |
 
-#### 4.5.5 Budget Tracking
-- Per-section progress bars (spent vs allocated)
-- Per-category progress bars
-- Overflow indicators when spending exceeds allocation
-- "OVER" badges on categories exceeding their budget
-- Percentage-based color coding (green < 80%, yellow 80-100%, red > 100%)
+**Penyesuaian Hari Libur (Custom Siklus):**
+Jika tanggal gajian jatuh pada hari Sabtu, Minggu, atau hari libur nasional Indonesia, sistem menggeser tanggal mulai mundur ke hari kerja sebelumnya (maksimal 7 hari ke belakang).
 
-#### 4.5.6 Salary Date Adjustment
-- When enabled and cycle start > 1, adjusts the cycle start date to the nearest preceding business day
-- Accounts for weekends (Saturday/Sunday)
-- Aligns budget periods with actual salary receipt dates
+**Fungsionalitas:**
+- Atur total pendapatan per periode
+- Alokasikan anggaran per seksi dan per kategori
+- Visualisasi distribusi aktual vs pedoman 50/30/20
+- Indikator overflow jika pengeluaran melebihi alokasi
+- Buat dan kelola kategori kustom per seksi
 
-#### 4.5.7 Recurring Items Integration
-- Displays amortized monthly cost of recurring items per section
-- Shows total periodic cost as a separate card
-- Helps users understand their "true" monthly costs beyond visible transactions
+**Kalkulasi:**
+```
+Total Dialokasikan = Σ Alokasi semua seksi
+Belum Dialokasikan = Total Pendapatan − Total Dialokasikan
+Total Terpakai = Σ Pengeluaran sesuai kategori dalam periode aktif
+```
 
 ---
 
-### 4.6 Recurring Items (Barang Berkala)
+### 4.6 Berkala (Recurring)
 
-#### 4.6.1 Purpose
-Track items purchased on a periodic schedule (skincare, shampoo, toiletries, supplements, etc.) and calculate their true monthly cost through amortization.
+**Deskripsi:** Pelacakan pengeluaran atau pemasukan yang berulang secara berkala.
 
-#### 4.6.2 Item Properties
-- Name (required)
-- Category (links to expense categories)
-- Wallet (default wallet for purchases)
-- Amount/Price (purchase price)
-- Duration in days (how long the item lasts)
-- Last purchase date
-- Next estimated purchase date (auto-calculated)
-- Note (optional)
-- Tags (optional array)
-- Active/Inactive status
-- Created date
-
-#### 4.6.3 Duration Shortcuts
-Quick-set buttons for common durations:
-- 2 minggu (14 days)
-- 1 bulan (30 days)
-- 1.5 bulan (45 days)
-- 2 bulan (60 days)
-- 3 bulan (90 days)
-- 6 bulan (180 days)
-- 1 tahun (365 days)
-
-#### 4.6.4 Amortized Monthly Cost
-- Formula: `(amount / durationDays) × 30`
-- Represents the daily cost spread over a 30-day month
-- Aggregated by category and by budget section
-- Displayed in Budget page and Reports page
-
-#### 4.6.5 Restock Reminder
-- Items are flagged when their next estimated purchase date is within 7 days
-- Grouped into three status categories:
-  - 🔴 **Perlu Restock** — Within 7 days or overdue
-  - ✅ **Masih Tersedia** — More than 7 days remaining
-  - ⏸️ **Non-aktif** — Deactivated items
-- Status displayed in both Recurring page and Dashboard widget
-
-#### 4.6.6 Repurchase Flow
-- "Sudah Beli" button triggers repurchase modal
-- Captures: purchase date, new price (can be updated), wallet selection
-- Option to auto-create expense transaction
-- Updates item's lastPurchaseDate and recalculates nextEstimateDate
-- Transaction auto-tagged with "berkala"
-
-#### 4.6.7 Active/Inactive Grouping
-- Items can be toggled between active and inactive status
-- Inactive items are excluded from amortization calculations
-- Inactive items are hidden from restock reminders
+**Fungsionalitas:**
+- Catat item berkala (nama, nominal, frekuensi, dompet, kategori)
+- Lihat ringkasan total kewajiban berkala per bulan
+- Repurchase: tandai item sebagai sudah dibayar dan catat transaksi baru secara otomatis
+- Tampilan durasi dan frekuensi item
 
 ---
 
-### 4.7 Debt Management (Utang/Piutang)
+### 4.7 Langganan (Subscription)
 
-#### 4.7.1 Debt Types
-- **Utang** — Money you owe (borrowed from someone)
-- **Piutang** — Money owed to you (lent to someone)
+**Deskripsi:** Manajemen biaya berlangganan layanan digital dan lainnya.
 
-#### 4.7.2 Debt Properties
-- Type (utang/piutang)
-- Person name (who you owe / who owes you)
-- Total amount (original principal)
-- Remaining amount (outstanding balance)
-- Wallet (associated wallet for payments)
-- Due date (optional)
-- Description (optional)
-- Status (active/settled)
-- Payment history (array of payment records)
-- Transaction ID (linked auto-generated transaction)
-- Interest fields (for annuity debts):
-  - Interest enabled flag
-  - Annual interest rate (percentage)
-  - Tenor in months
-  - Start date
-  - Monthly installment amount
-
-#### 4.7.3 Annuity Interest Support (Bunga Anuitas)
-- Enable interest calculation for debts with fixed-rate loans
-- Auto-calculates monthly installment using standard annuity formula:
-  `M = P × [r(1+r)^n] / [(1+r)^n - 1]`
-- Generates full amortization schedule showing:
-  - Month number
-  - Principal portion
-  - Interest portion
-  - Total payment
-  - Remaining principal
-- Schedule displayed as expandable table in debt card
-- Marks paid installments with checkmark
-
-#### 4.7.4 Auto-Transaction Generation
-- **Creating a debt:**
-  - Utang → creates income transaction (money received)
-  - Piutang → creates expense transaction (money lent out)
-- **Recording a payment:**
-  - Utang → creates expense transaction (money paid back)
-  - Piutang → creates income transaction (money received back)
-- All auto-transactions tagged with "utang-piutang"
-
-#### 4.7.5 Partial Payments (Cicilan)
-- Record partial payments against a debt
-- Payment history tracked with date, amount, note, and linked transaction
-- For annuity debts: payment split into principal and interest portions
-- Only principal portion reduces remaining balance
-- Debt auto-marked as "settled" when remaining reaches 0
-
-#### 4.7.6 Due Date Tracking
-- Optional due date per debt record
-- Days-until-due calculation
-- Overdue detection (red badge when past due)
-- Dashboard widget shows upcoming and overdue debts
-
-#### 4.7.7 Summary
-Three key metrics on the Debt page:
-- **Total Utang** — Sum of remaining amounts for active utang records
-- **Total Piutang** — Sum of remaining amounts for active piutang records
-- **Posisi Bersih** — Net position (piutang − utang)
-
-#### 4.7.8 Filtering
-- Semua (All)
-- Utang only
-- Piutang only
-- Active only
-- Settled (Lunas) only
+**Fungsionalitas:**
+- Tambah, edit, hapus langganan
+- Setiap langganan memiliki: nama, nominal, siklus tagihan, dompet, tanggal jatuh tempo berikutnya
+- Bayar langganan: otomatis buat transaksi pengeluaran dan perbarui tanggal jatuh tempo berikutnya
+- Identifikasi langganan yang segera jatuh tempo
 
 ---
 
-### 4.8 Investment Portfolio
+### 4.8 Utang/Piutang (Debt)
 
-#### 4.8.1 Asset Types (8 types)
-1. **Deposito** — Fixed deposits with interest rate and maturity date
-2. **Saham** — Stocks/equities
-3. **Crypto** — Cryptocurrency
-4. **Emas** — Gold/precious metals
-5. **Reksadana** — Mutual funds
-6. **Obligasi** — Bonds
-7. **P2P Lending** — Peer-to-peer lending
-8. **Lainnya** — Other investments
+**Deskripsi:** Pencatatan dan pelacakan utang (uang yang dipinjam) dan piutang (uang yang dipinjamkan).
 
-#### 4.8.2 Investment Properties
-- Name (required)
-- Asset type (required)
-- Notes (optional)
-- Current value (manually updated or auto-calculated for deposito)
-- Transaction history (buy/sell records)
-- Type-specific fields:
-  - Interest rate (deposito, P2P)
-  - Maturity date (deposito, obligasi)
-  - Bank name (deposito)
-  - Ticker symbol (saham)
-  - Coin name (crypto)
-  - Fund name (reksadana)
-  - Manager name (reksadana)
-  - Unit (generic)
+**Tipe Record:**
+- **Utang** — Uang yang dipinjam pengguna dari pihak lain
+- **Piutang** — Uang yang dipinjamkan pengguna ke pihak lain
 
-#### 4.8.3 Buy/Sell Tracking
-- **Buy** — Records purchase with: date, units, price per unit, total amount, wallet
-  - Creates expense transaction from selected wallet
-  - Tagged with "investasi"
-- **Sell** — Records sale with: date, units, price per unit, total amount, wallet
-  - Creates income transaction to selected wallet
-  - Tagged with "investasi"
-- Transaction history viewable per investment
+**Fungsionalitas:**
 
-#### 4.8.4 Current Value Update
-- Manual update for most asset types
-- Auto-calculated for Deposito (accrued interest based on days since deposit)
-- Deposito formula: `principal + principal × (rate/100) × (days/365)`
+| Aksi | Efek Otomatis |
+|------|---------------|
+| Buat utang baru | Transaksi pemasukan di dompet terkait (menerima pinjaman) |
+| Buat piutang baru | Transaksi pengeluaran di dompet terkait (memberikan pinjaman) |
+| Catat pembayaran utang | Transaksi pengeluaran di dompet terkait (membayar) |
+| Catat pembayaran piutang | Transaksi pemasukan di dompet terkait (menerima pengembalian) |
 
-#### 4.8.5 Profit/Loss Calculation
-Per investment:
-- **Cost Basis** — Total units × weighted average buy price
-- **Current Value** — Latest value (manual or auto-calculated)
-- **Unrealized Gain** — Current value − Cost basis
-- **Return %** — (Unrealized gain / Cost basis) × 100
+**Kalkulasi:**
+```
+Net Position = Total Piutang Aktif − Total Utang Aktif
+```
 
-Portfolio-wide:
-- Total value, total cost basis, total unrealized gain, total return %
+**Status Record:** active → settled (otomatis saat remainingAmount = 0)
 
-#### 4.8.6 Deposito Features
-- Auto interest calculation based on deposit date and annual rate
-- Maturity date tracking with days-until-maturity display
-- Projected return at maturity calculation
-- "Jatuh Tempo" badge when matured
+**Filter:** Tipe (utang/piutang), status (active/settled)
 
-#### 4.8.7 Portfolio Summary
-- Summary cards: Total Value, Total Cost Basis, Profit/Loss, Return %
-- Allocation by asset type
-- Filter by asset type
+**Dashboard Integration:** Widget menampilkan record jatuh tempo dalam 7 hari dan yang sudah melewati jatuh tempo.
 
 ---
 
-### 4.9 FIRE Calculator
+### 4.9 Investasi (Investment)
 
-#### 4.9.1 Purpose
-Financial Independence, Retire Early planning tool that projects portfolio growth and retirement sustainability.
+**Deskripsi:** Pencatatan dan pelacakan portofolio investasi di berbagai jenis aset.
 
-#### 4.9.2 FI Readiness Score
-- Score from 0% to 100%
-- Formula: `(currentAssets / inflationAdjustedFireNumber) × 100`
-- Color-coded: Red (<25%), Yellow (25-50%), Amber (50-75%), Green (>75%)
-- Progress bar visualization
-- Congratulations message at 100%
+**Tipe Aset yang Didukung:**
+deposito, saham, crypto, emas, reksadana, obligasi, p2p, lainnya
 
-#### 4.9.3 FIRE Number Calculation
-- Base FIRE Number: `monthlyExpenses × 12 × 25` (4% rule)
-- Inflation-adjusted: `baseFireNumber × (1 + inflation/100)^yearsToRetirement`
-- Displays both current and retirement-adjusted values
+**Fungsionalitas:**
 
-#### 4.9.4 Financial Data Inputs
-- Current age (15–80)
-- Target retirement age
-- Monthly income
-- Monthly expenses
-- Current FIRE assets
-- Validation: age range, retirement > current age, income > 0, expenses < income warning
+| Aksi | Efek Otomatis |
+|------|---------------|
+| Beli (buy) | Transaksi pengeluaran di dompet terkait + tag "investasi" |
+| Jual (sell) | Transaksi pemasukan di dompet terkait + tag "investasi" |
+| Update nilai terkini | Perbarui currentValue (tidak membuat transaksi) |
 
-#### 4.9.5 Income Allocation Configuration
-Four allocation buckets:
-- Pokok (Basic needs)
-- Hiburan (Entertainment)
-- FIRE (Investment for FI)
-- Emas (Gold/precious metals)
+**Kalkulasi Portfolio:**
+```
+Cost Basis = Σ Pembelian − Σ Biaya beli yang dijual
+Unrealized Gain = Current Value − Cost Basis
+Return % = (Unrealized Gain / Cost Basis) × 100
+Average Buy Price = Total Biaya Tersisa / Total Unit Tersisa
+```
 
-Must total 100%. Displays nominal amounts and warns on over/under allocation.
+**Fitur Khusus Deposito:**
+- Simpan bunga, tenor, dan tanggal jatuh tempo
+- Hitung proyeksi return: `Pokok × (Bunga% / 100) × (Hari / 365)`
+- Auto-update currentValue berdasarkan bunga yang sudah berjalan
+- Badge "Jatuh Tempo" jika maturityDate sudah terlewat
 
-#### 4.9.6 Market Assumptions (Sliders)
-- Pre-retirement investment return (1–20%)
-- Annual salary growth (0–15%)
-- Inflation estimate (1–12%)
-- Post-retirement conservative return (1–12%)
-
-#### 4.9.7 Projection Chart
-- Line chart showing portfolio growth over time
-- Three scenarios: Optimis (+2% return), Moderat (base), Pesimis (-2% return)
-- Reference line at inflation-adjusted FIRE Number
-- X-axis: Age, Y-axis: Portfolio value
-
-#### 4.9.8 Results Tabs
-
-**Saran (Recommendations)**
-- Personalized advice based on:
-  - Savings rate (warning if <20%, success if ≥40%)
-  - Expense ratio (warning if >50% of income)
-  - Readiness score milestones
-  - Emergency fund check (6 months expenses)
-  - Time horizon considerations
-
-**Akumulasi (Accumulation Table)**
-- Year-by-year breakdown showing:
-  - Year, Age, Annual savings, Portfolio value, Growth percentage
-
-**Pensiun (Retirement Sustainability)**
-- How many years the portfolio lasts after retirement
-- Year-by-year: withdrawal, remaining balance, investment return
-- Accounts for inflation on expenses and conservative returns
-
-#### 4.9.9 Auto-Fill from App Data
-- "Auto" buttons to populate from actual transaction data:
-  - Monthly income: average of last 3 months' income transactions
-  - Monthly expenses: average of last 3 months' expense transactions
-  - Current assets: sum of all investment portfolio values
-
-#### 4.9.10 Settings Persistence
-- All FIRE settings auto-saved with 500ms debounce
-- Stored in Firestore at `users/{uid}/preferences/fire`
-- Restored on page load
+**Dashboard Integration:** Widget menampilkan total nilai portofolio, unrealized gain/loss, dan return %.
 
 ---
 
-### 4.10 Reports
+### 4.10 Aset (Asset / Net Worth)
 
-#### 4.10.1 Period Selection
-- Month dropdown (auto-populated from transaction dates)
-- Cycle date configuration (adjustable via modal)
+**Deskripsi:** Tampilan kekayaan bersih (net worth) yang menggabungkan semua aset dan kewajiban, termasuk aset tetap.
 
-#### 4.10.2 Cashflow Summary
-Three metric cards:
-- Total Pemasukan (Income) — green
-- Total Pengeluaran (Expense) — red, with % change vs previous month
-- Net Cashflow — blue/red based on positive/negative
+**Komponen Net Worth:**
+```
+Net Worth = Total Saldo Dompet − Total Utang Aktif + Total Piutang Aktif
+          + Total Nilai Investasi + Total Nilai Aset Tetap − Total Utang Aset Tetap
+```
 
-#### 4.10.3 Category Pie Chart
-- Visual breakdown of expenses by category
-- Shows top 6 categories with color-coded legend
-- Displays amount and percentage per category
-
-#### 4.10.4 Income vs Expense Comparison
-- Bar chart comparing income and expense
-- Previous month comparison bar
-- Month-over-month comparison with current vs previous period
-
-#### 4.10.5 Daily Expense Bar Chart
-- Bar for each day of the billing cycle period
-- Shows daily expense totals
-- Helps identify spending patterns
-
-#### 4.10.6 Budget Performance
-Per-section (Kebutuhan/Keinginan/Tabungan):
-- Section header with spent/allocated and percentage
-- Progress bar with overflow indicator
-- Per-category rows with individual progress bars
-- "OVER" badge for categories exceeding budget
-- "Melebihi!" warning for sections over budget
-
-#### 4.10.7 Recurring Items Amortized Analysis
-- Shows amortized monthly cost breakdown by section
-- Total amortized cost per month
-- Per-category breakdown with amounts
-- Comparison: actual spending vs amortized periodic costs
-- "True monthly cost" calculation (actual + unaccounted periodic costs)
-
-#### 4.10.8 Cycle Date Configuration
-- Modal to change billing cycle start date (1–28)
-- Immediately updates period calculations across the Reports page
+**Aset Tetap (Fixed Assets):**
+- Catat aset fisik (properti, kendaraan, dll.)
+- Field: nama, nilai pembelian, nilai terkini, tanggal pembelian, catatan
+- Tambah, edit, hapus aset tetap
 
 ---
 
-### 4.11 Settings
+### 4.11 Laporan (Reports)
 
-#### 4.11.1 FIRE Calculator Access
-- Quick link button to FIRE Calculator page (🔥 Kalkulator FIRE)
+**Deskripsi:** Laporan dan visualisasi keuangan berdasarkan periode aktif.
 
-#### 4.11.2 Data Export
-- **JSON format** — Complete BudgetKu backup file
-- **CSV format** — ZIP archive containing separate CSV files for wallets, transactions, budgets
-- Downloads to user's device
+**Komponen Laporan:**
 
-#### 4.11.3 Data Import
-**Backup Restore (JSON/ZIP):**
-- Upload BudgetKu JSON backup or CSV ZIP
-- Preview import summary (wallet count, transaction count, budget periods, categories)
-- Choose mode: Replace (overwrite all) or Append (add new, skip existing)
-- Validation before import
-
-**Multi-file CSV Import:**
-- Separate file slots for: Transactions, Budget, Wallets
-- Format examples provided with toggle:
-  - Transactions: `Tanggal,Tipe,Jumlah,Kategori,Sub Kategori,Dompet,Ke Dompet,Catatan`
-  - Budget: `Periode,Total Pemasukan,Bagian,Kategori,Alokasi`
-  - Wallet: `Nama,Tipe,Saldo,Catatan`
-- Per-slot file selection with row count preview
-- Deduplication: skips wallets that already exist by name
-- Auto-creates new categories found in import data
-
-#### 4.11.4 Data Reset
-- Confirmation modal with text-based verification ("RESET")
-- Deletes all user data (wallets, transactions, budgets, categories, preferences, recurring items, debts, investments)
-- Re-initializes default categories and preferences after reset
-
-#### 4.11.5 Category Management
-- Grouped by section (Kebutuhan, Keinginan, Tabungan, Pemasukan)
-- Collapsible sections with count
-- Per-category operations:
-  - **Edit** — Change name and color
-  - **Delete** — Only if not used in transactions or budget allocations (shows error message if in use)
-  - **Add** — Create new category in any section with name and color picker
-- Color palette with 20 predefined colors
-
-#### 4.11.6 Dark/Light Theme Toggle
-- Available in sidebar (desktop) and mobile dropdown menu
-- Toggles between dark and light theme
-- Persisted to preferences (Firestore or localStorage)
+| Komponen | Deskripsi |
+|----------|-----------|
+| Cashflow Summary | Total pemasukan, total pengeluaran (+ % perubahan vs bulan lalu), net cashflow |
+| Pie Chart Pengeluaran | Breakdown pengeluaran per kategori dengan legenda |
+| Bar Chart Perbandingan | Perbandingan pemasukan/pengeluaran bulan ini vs bulan lalu |
+| Bar Chart Harian | Pengeluaran per hari dalam periode; warna berbeda untuk hari ini, tinggi, sedang, rendah |
+| Performa Budget | Spent vs allocated per seksi dan per kategori dengan progress bar |
 
 ---
 
-## 5. Navigation Structure
+### 4.12 FIRE Calculator
 
-### 5.1 Desktop — Sidebar
-Persistent left sidebar with:
-- BudgetKu logo and brand text
-- Collapse/expand toggle
-- Navigation items (9 pages):
-  1. Dashboard
-  2. Dompet (Wallet)
-  3. Transaksi (Transactions)
-  4. Budget
-  5. Berkala (Recurring)
-  6. Utang/Piutang (Debt)
-  7. Investasi (Investment)
-  8. Laporan (Report)
-  9. Pengaturan (Settings)
-- Active item highlighting
-- Bottom section: user email, logout button, theme toggle, active period label
+**Deskripsi:** Kalkulator dan simulator perjalanan menuju kemandirian finansial (Financial Independence, Retire Early).
 
-### 5.2 Mobile — Bottom Navigation + FAB
-- Bottom nav bar with 5 items:
-  1. Dashboard
-  2. Transaksi
-  3. **FAB (Floating Action Button)** — "+" button for quick transaction creation
-  4. Laporan
-  5. Pengaturan
-- Top bar: BudgetKu logo, user avatar with dropdown menu
-- Dropdown menu provides access to: Dompet, Budget, Berkala, Utang/Piutang, Investasi, Theme toggle, Logout
+**Input Data Finansial:**
+- Usia saat ini
+- Target usia pensiun
+- Pendapatan bulanan (bisa auto-fill dari rata-rata 3 bulan terakhir)
+- Pengeluaran bulanan (bisa auto-fill dari rata-rata 3 bulan terakhir)
+- Aset FIRE saat ini (bisa auto-fill dari total nilai investasi)
 
----
+**Konfigurasi Alokasi Pendapatan:**
+- Pokok (essentials), Hiburan, FIRE/Investasi, Emas — total harus 100%
 
-## 6. Data Persistence
+**Asumsi Pasar (slider):**
+- Return investasi pra-pensiun: 1%–20% (default 10%)
+- Kenaikan gaji tahunan: 0%–15% (default 5%)
+- Estimasi inflasi: 1%–12% (default 4%)
+- Return konservatif pasca-pensiun: 1%–12% (default 6%)
 
-### 6.1 Dual-Mode Architecture
+**Kalkulasi:**
+```
+FIRE Number = Pengeluaran Bulanan × 12 × 25
+FIRE Number (inflation-adjusted) = FIRE Number × (1 + inflasi)^tahun_tersisa
+FI Readiness Score = (Aset FIRE Saat Ini / FIRE Number Adjusted) × 100%
+```
 
-| Mode | Storage | Trigger |
-|------|---------|---------|
-| Authenticated | Firebase Firestore | Firebase env vars configured + user logged in |
-| Local-only | Browser localStorage | Firebase env vars missing OR no login |
+**Proyeksi Pertumbuhan Portfolio:**
+Tiga skenario (Optimis +2%, Moderat, Pesimis −2%) ditampilkan sebagai line chart dari usia saat ini hingga target pensiun.
 
-### 6.2 Firestore Mode
-- All data stored under `users/{uid}/` subcollections
-- Atomic batch writes for transaction + wallet balance updates
-- Data fetched on authentication (all collections loaded in parallel)
-- Preferences auto-saved with 300ms debounce
+**Tab Hasil:**
+1. **Saran** — Rekomendasi personal berdasarkan savings rate dan FI Readiness Score
+2. **Akumulasi** — Tabel breakdown tahunan (tabungan, nilai portfolio, pertumbuhan kumulatif)
+3. **Pensiun** — Simulasi drawdown: berapa tahun portfolio bertahan di fase pensiun
 
-### 6.3 Local-Only Mode
-- Single localStorage key stores entire app state as JSON
-- State persisted on every change (React useEffect)
-- No network requests
-- Data limited to current browser/device
-
-### 6.4 Data Migration
-- One-time migration from localStorage to Firestore on first authentication
-- Handles wallets, transactions, budgets, categories, and preferences
-- Batch writes respecting Firestore's 500-operation limit
+**Persistensi:** FIRE settings disimpan otomatis ke Firestore/localStorage setelah 500ms debounce.
 
 ---
 
-## 7. Internationalization
+### 4.13 Pengaturan (Settings)
 
-The entire application uses Indonesian language (Bahasa Indonesia):
-- All UI labels, buttons, and messages
-- Date formatting (Indonesian locale: "19 Apr 2026", "Senin, 19 April 2026")
-- Currency formatting (IDR: "Rp1.500.000")
-- Number abbreviations ("1,5jt" for millions, "500rb" for thousands)
-- Month names ("Januari", "Februari", etc.)
-- Day names ("Senin", "Selasa", etc.)
-- Error messages and validation feedback
-- Feature names preserved in Indonesian (Utang/Piutang, Barang Berkala, etc.)
+**Deskripsi:** Halaman manajemen akun, data, dan preferensi aplikasi.
 
----
+**Fitur:**
 
-## 8. Responsive Design
+| Fitur | Deskripsi |
+|-------|-----------|
+| Manajemen Kategori | Tambah, edit, hapus kategori kustom per seksi |
+| Ekspor Data (JSON) | Export semua data ke file JSON berformat `budgetku-export-YYYY-MM-DD.json` |
+| Ekspor Data (CSV) | Export semua data ke ZIP berisi file CSV per koleksi |
+| Impor Data | Import dari file JSON BudgetKu; pilih mode Replace atau Append |
+| Reset Data | Hapus semua data dan mulai dari awal; dilindungi safety input "Delete" |
 
-### 8.1 Desktop (≥768px)
-- Fixed sidebar navigation (collapsible)
-- Multi-column layouts for dashboard and reports
-- Full-width data tables
-- Modal dialogs for forms
-- Wider stat card grids (4 columns)
-
-### 8.2 Mobile (<768px)
-- Bottom navigation bar with FAB
-- Top bar with logo and user menu
-- Hero card with financial summary
-- Quick menu grid for navigation shortcuts
-- Single-column layouts
-- Full-screen modals
-- Touch-friendly tap targets
-- Swipe-friendly card interactions
-- Hidden sidebar (replaced by bottom nav + dropdown)
+**Mode Impor:**
+- **Replace:** Hapus semua data existing, ganti dengan data dari file
+- **Append:** Tambahkan data dari file; skip item dengan ID yang sudah ada
 
 ---
 
-## Appendix: Feature Summary Matrix
+### 4.14 Bantuan (Help)
 
-| Feature | Create | Read | Update | Delete | Auto-Transaction |
-|---------|--------|------|--------|--------|-----------------|
-| Wallet | ✓ | ✓ | ✓ | ✓ | Balance auto-adjusted |
-| Transaction | ✓ | ✓ | ✓ | ✓ | — |
-| Budget | — | ✓ | ✓ | — | — |
-| Category | ✓ | ✓ | ✓ | ✓ | — |
-| Recurring Item | ✓ | ✓ | ✓ | ✓ | On repurchase |
-| Debt | ✓ | ✓ | ✓ | ✓ | On create + payment |
-| Investment | ✓ | ✓ | ✓ | ✓ | On buy + sell |
+**Deskripsi:** Halaman FAQ dan panduan penggunaan aplikasi.
+
+---
+
+## 5. Navigasi & Routing
+
+Aplikasi menggunakan state-based navigation (tanpa React Router). Halaman ditentukan oleh nilai variabel `page`:
+
+| Nilai `page` | Halaman | Ikon Sidebar |
+|---|---|---|
+| `dashboard` | Dashboard | Dashboard |
+| `wallet` | Dompet | Wallet |
+| `tx` | Transaksi | Transaction |
+| `budget` | Budget | Budget |
+| `recurring` | Berkala | Recurring |
+| `subscription` | Langganan | Subscription |
+| `debt` | Utang/Piutang | Debt |
+| `invest` | Investasi | Investment |
+| `asset` | Aset & Net Worth | Asset |
+| `report` | Laporan | Report |
+| `fire` | FIRE Calculator | Fire |
+| `settings` | Pengaturan | Settings |
+| `help` | Bantuan | Help |
+
+**Auth Routes (saat belum login):**
+
+| Nilai `authPage` | Halaman |
+|---|---|
+| `login` | Halaman Login |
+| `register` | Halaman Register |
+| `forgot` | Halaman Lupa Password |
+
+---
+
+## 6. Sistem Kategori
+
+### Kategori Default
+
+| Seksi | Kategori |
+|-------|----------|
+| Kebutuhan (needs) | Makanan & Minum, Transport, Utilitas, Kesehatan, Pendidikan, Belanja Bulanan |
+| Keinginan (wants) | Hiburan, Makan di Luar, Fashion, Langganan, Hobi |
+| Tabungan (savings) | Dana Darurat, Investasi, Dana Pensiun |
+| Pemasukan (income) | Gaji, Freelance, Hasil Investasi, Lainnya |
+
+### Aturan Pemfilteran Kategori
+- Transaksi **Pemasukan** → hanya tampilkan kategori seksi `income`
+- Transaksi **Pengeluaran** → tampilkan kategori seksi `needs`, `wants`, `savings`
+- Transaksi **Transfer** → tidak memerlukan kategori
+
+---
+
+## 7. Sistem Tema
+
+Aplikasi mendukung mode **Light** dan **Dark** menggunakan CSS custom properties.
+
+| CSS Variable | Fungsi |
+|---|---|
+| `--bg` | Background utama halaman |
+| `--bg-card` | Background kartu/panel |
+| `--bg-2`, `--bg-3` | Background sekunder/tersier |
+| `--border`, `--border-2` | Warna border |
+| `--text-1` hingga `--text-6` | Hierarki warna teks |
+| `--sidebar-bg` | Background sidebar |
+
+Preferensi tema disimpan bersama state aplikasi dan diterapkan sebelum React mount untuk mencegah FOUC (Flash of Unstyled Content).
+
+---
+
+## 8. Persistensi Data
+
+### Mode Lokal (Tanpa Akun)
+Seluruh state aplikasi disimpan ke `localStorage` di bawah key `budgetku_state` sebagai JSON. State diperbarui setiap ada perubahan.
+
+### Mode Terautentikasi (Firebase Firestore)
+Data disimpan per-user di Firestore dengan struktur path:
+
+```
+users/{userId}/
+  wallets/{walletId}
+  transactions/{transactionId}
+  budgets/{monthKey}
+  categories/{categoryId}
+  debts/{debtId}
+  investments/{investmentId}
+  fixedAssets/{assetId}
+  subscriptions/{subscriptionId}
+  recurringItems/{itemId}
+  preferences/prefs
+```
+
+**Security Rules:** Hanya `request.auth.uid == userId` yang diizinkan membaca dan menulis.
+
+---
+
+## 9. Format & Lokalisasi
+
+| Format | Implementasi |
+|--------|-------------|
+| Mata Uang (penuh) | `Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })` |
+| Mata Uang (singkat) | Jutaan → "jt", Ribuan → "rb" |
+| Tanggal | `Intl.DateTimeFormat('id-ID', ...)` |
+| Kunci Bulan | `YYYY-MM` |
+
+---
+
+## 10. Keamanan & Batasan
+
+| Batasan | Nilai |
+|---------|-------|
+| Ukuran file impor maksimum | 10 MB |
+| String input maksimum | 1000 karakter |
+| Panjang password minimum | 8 karakter |
+| Hari mundur maks (salary adjustment) | 7 hari |
+| Debounce FIRE settings save | 500ms |
+
+---
+
+## 11. Riwayat Versi
+
+| Versi | Tanggal | Perubahan |
+|-------|---------|-----------|
+| 1.0 | Jul 2025 | Rilis awal: Dashboard, Dompet, Transaksi, Budget, Laporan |
+| 1.1 | Jul 2025 | Tambah: Autentikasi Firebase, migrasi localStorage → Firestore |
+| 1.2 | Aug 2025 | Tambah: Utang/Piutang, Investasi |
+| 1.3 | Aug 2025 | Tambah: FIRE Calculator |
+| 1.4 | Aug 2025 | Tambah: Berkala, Langganan, Aset/Net Worth |
+| 1.5 | Aug 2025 | Tambah: Import/Export, Reset Data |
+| 1.6 | Aug 2025 | Tambah: Custom period range, salary adjustment hari libur |
+| 2.0 | Sep 2026 | Konsolidasi dokumentasi; hapus prototype HTML; hapus backend Express (full client-side Firestore) |

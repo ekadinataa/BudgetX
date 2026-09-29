@@ -84,9 +84,8 @@ firebase deploy --only hosting:budgetx
 |---------|-----------|
 | [Functional Specification](docs/FUNCTIONAL_SPECIFICATION.md) | Spesifikasi fungsional lengkap |
 | [Technical Specification](docs/TECHNICAL_SPECIFICATION.md) | Arsitektur teknis, data model, algoritma |
-| [Development Playbook](docs/PLAYBOOK.md) | Panduan development & deployment |
 | [User Guide](docs/USER_GUIDE.md) | Panduan pengguna (Bahasa Indonesia) |
-| [Operating Model](docs/OPERATING_MODEL.md) | Model operasional & kapasitas |
+| [AGENTS.md](AGENTS.md) | Konteks untuk AI agent: arsitektur, aturan, temuan teknis |
 
 ---
 
