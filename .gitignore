@@ -13,9 +13,13 @@ dist-ssr
 *.local
 
 # Environment files
-.env
-.env.local
-.env.*.local
+# Ignore every .env* variant by default, then re-allow the two that are
+# intentionally tracked. .env.production MUST stay tracked: Vite reads it during
+# `npm run build`, and if it is missing the production build silently falls back
+# to local-only mode (no Firebase, no cloud sync).
+.env*
+!.env.example
+!.env.production
 
 # Firebase
 .firebase/
