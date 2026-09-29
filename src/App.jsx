@@ -13,6 +13,7 @@ import RecurringPage from './pages/Recurring/RecurringPage';
 import DebtPage from './pages/Debt/DebtPage';
 import InvestmentPage from './pages/Investment/InvestmentPage';
 import AssetPage from './pages/Asset/AssetPage';
+import SubscriptionPage from './pages/Subscription/SubscriptionPage';
 import ReportsPage from './pages/Reports/ReportsPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import FirePage from './pages/Fire/FirePage';
@@ -24,10 +25,11 @@ import RegisterPage from './pages/Auth/RegisterPage';
 import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
 import { STORAGE_KEY } from './utils/constants';
 import { WALLETS_INIT, TRANSACTIONS_INIT, BUDGETS_INIT, CATEGORIES } from './data/defaults';
-import { buildDebtTransaction, applyPayment } from './utils/debtHelpers';
+import { buildDebtTransaction } from './utils/debtHelpers';
 import { DEFAULT_FIRE_SETTINGS } from './utils/fireCalculator';
 import { validateDebt, validatePayment } from './services/debtValidator';
 import { buildInvestmentTransaction, computeTotalUnits } from './utils/investmentHelpers';
+import { advanceDueDate, buildSubscriptionTransaction } from './utils/subscriptionHelpers';
 import { validateInvestment, validateInvestmentTransaction, validateCurrentValue } from './services/investmentValidator';
 import * as api from './services/firestoreService';
 import { computeAppend } from './services/importService';
@@ -67,6 +69,7 @@ function App() {
   const [debts, setDebts] = useState(savedLocal?.debts || []);
   const [investments, setInvestments] = useState(savedLocal?.investments || []);
   const [fixedAssets, setFixedAssets] = useState(savedLocal?.fixedAssets || []);
+  const [subscriptions, setSubscriptions] = useState(savedLocal?.subscriptions || []);
   const [fireSettings, setFireSettings] = useState(savedLocal?.fireSettings || DEFAULT_FIRE_SETTINGS);
 
   // Loading & error states
@@ -75,8 +78,14 @@ function App() {
   const [toast, setToast] = useState('');
 
   // Migration state
-  const [showMigrator, setShowMigrator] = useState(false);
   const [migrationChecked, setMigrationChecked] = useState(false);
+
+  // Derived, not stored: once the user resolves the migration prompt
+  // (`migrationChecked`) the prompt is done for the session.
+  const showMigrator = Boolean(
+    !IS_LOCAL_MODE && user && !authLoading && !migrationChecked
+    && localStorage.getItem(STORAGE_KEY),
+  );
 
   // Global "Add Transaction" modal state
   const [showAddTx, setShowAddTx] = useState(false);
@@ -85,9 +94,9 @@ function App() {
   useEffect(() => {
     if (!IS_LOCAL_MODE) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      page, wallets, transactions, budgets, categories, darkMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, fireSettings,
+      page, wallets, transactions, budgets, categories, darkMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, subscriptions, fireSettings,
     }));
-  }, [page, wallets, transactions, budgets, categories, darkMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, fireSettings]);
+  }, [page, wallets, transactions, budgets, categories, darkMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, subscriptions, fireSettings]);
 
   // Show toast notification
   const showToast = useCallback((msg) => {
@@ -103,7 +112,7 @@ function App() {
       // Initialize default data for new users (no-op if already initialized)
       await api.initUser();
 
-      const [walletsData, txData, budgetsData, catsData, prefsData, recurringData, debtsData, investmentsData, fixedAssetsData] = await Promise.all([
+      const [walletsData, txData, budgetsData, catsData, prefsData, recurringData, debtsData, investmentsData, fixedAssetsData, subscriptionsData] = await Promise.all([
         api.getWallets(),
         api.getTransactions(),
         api.getBudgets(),
@@ -113,6 +122,7 @@ function App() {
         api.getDebts(),
         api.getInvestments(),
         api.getFixedAssets(),
+        api.getSubscriptions(),
       ]);
       setWallets(walletsData);
       setTransactions(txData);
@@ -120,6 +130,7 @@ function App() {
       setDebts(debtsData);
       setInvestments(investmentsData);
       setFixedAssets(fixedAssetsData);
+      setSubscriptions(subscriptionsData);
       // budgets come as array from API, convert to object keyed by monthKey
       if (Array.isArray(budgetsData)) {
         const budgetMap = {};
@@ -154,7 +165,7 @@ function App() {
           }
         }
       } catch { /* silent — fire settings are optional */ }
-    } catch (err) {
+    } catch {
       setDataError('Gagal memuat data. Periksa koneksi Anda.');
       showToast('Gagal memuat data dari server.');
     } finally {
@@ -162,18 +173,18 @@ function App() {
     }
   }, [showToast]);
 
-  // When user becomes authenticated, check for migration then fetch data
+  // When user becomes authenticated, fetch data unless the migration prompt
+  // is currently being shown.
   useEffect(() => {
-    if (user && !authLoading) {
-      // Check if localStorage has data to migrate
-      const hasLocalData = localStorage.getItem(STORAGE_KEY);
-      if (hasLocalData && !migrationChecked) {
-        setShowMigrator(true);
-      } else {
-        fetchAllData();
-      }
+    if (user && !authLoading && !showMigrator) {
+      // Fetching keyed on Firebase auth state is a legitimate use of an effect:
+      // the trigger is an external system, not state derived from render. The
+      // rule flags the synchronous setDataLoading(true) at the top of
+      // fetchAllData(), which is what drives the loading spinner.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchAllData();
     }
-  }, [user, authLoading, migrationChecked, fetchAllData]);
+  }, [user, authLoading, showMigrator, fetchAllData]);
 
   // Save preferences to API when they change (debounced via user interaction)
   const savePreferences = useCallback(async (prefs) => {
@@ -249,7 +260,7 @@ function App() {
   }
 
   // ── Migration prompt ───────────────────────────────────────────────
-  if (!IS_LOCAL_MODE && showMigrator && !migrationChecked) {
+  if (showMigrator) {
     return (
       <ThemeProvider darkMode={darkMode} setDarkMode={handleSetDarkMode}>
         <div style={{
@@ -258,7 +269,6 @@ function App() {
         }}>
           <DataMigrator
             onComplete={() => {
-              setShowMigrator(false);
               setMigrationChecked(true);
               fetchAllData();
             }}
@@ -969,6 +979,89 @@ function App() {
     }
   };
 
+  // ── Subscription handlers ────────────────────────────────────────
+
+  /** Create a subscription record */
+  const handleCreateSubscription = async (data) => {
+    if (IS_LOCAL_MODE) {
+      const created = { id: 'sub_' + Date.now(), ...data, createdAt: new Date().toISOString().slice(0, 10), lastPaidDate: '' };
+      setSubscriptions((items) => [...items, created]);
+      showToast('Langganan berhasil ditambahkan.');
+      return created;
+    }
+    try {
+      const created = await api.createSubscription(data);
+      setSubscriptions((items) => [...items, created]);
+      showToast('Langganan berhasil ditambahkan.');
+      return created;
+    } catch (err) {
+      showToast(err.message || 'Gagal membuat langganan.');
+      throw err;
+    }
+  };
+
+  /** Update a subscription record */
+  const handleUpdateSubscription = async (id, data) => {
+    if (IS_LOCAL_MODE) {
+      setSubscriptions((items) => items.map((i) => (i.id === id ? { ...i, ...data } : i)));
+      showToast('Langganan berhasil diubah.');
+      return { id, ...data };
+    }
+    try {
+      await api.updateSubscription(id, data);
+      setSubscriptions((items) => items.map((i) => (i.id === id ? { ...i, ...data } : i)));
+      showToast('Langganan berhasil diubah.');
+      return { id, ...data };
+    } catch (err) {
+      showToast(err.message || 'Gagal mengubah langganan.');
+      throw err;
+    }
+  };
+
+  /** Delete a subscription record */
+  const handleDeleteSubscription = async (id) => {
+    if (IS_LOCAL_MODE) {
+      setSubscriptions((items) => items.filter((i) => i.id !== id));
+      showToast('Langganan berhasil dihapus.');
+      return;
+    }
+    try {
+      await api.deleteSubscription(id);
+      setSubscriptions((items) => items.filter((i) => i.id !== id));
+      showToast('Langganan berhasil dihapus.');
+    } catch (err) {
+      showToast(err.message || 'Gagal menghapus langganan.');
+      throw err;
+    }
+  };
+
+  /** Pay a subscription: create expense transaction + advance due date */
+  const handlePaySubscription = async (id, payData) => {
+    const subscription = subscriptions.find((s) => s.id === id);
+    if (!subscription) {
+      showToast('Langganan tidak ditemukan.');
+      return;
+    }
+
+    // Build and create the expense transaction
+    const txData = buildSubscriptionTransaction(subscription, payData.date, payData.walletId);
+    try {
+      await handleCreateTransaction(txData);
+    } catch (err) {
+      showToast('Gagal membuat transaksi pembayaran.');
+      throw err;
+    }
+
+    // Update subscription: advance due date + record last paid
+    const updateData = { lastPaidDate: payData.date };
+    if (payData.advanceDueDate) {
+      updateData.nextDueDate = advanceDueDate(subscription.nextDueDate, subscription.billingCycle);
+    }
+
+    await handleUpdateSubscription(id, updateData);
+    showToast('Pembayaran langganan berhasil dicatat.');
+  };
+
   // ── Fixed Asset handlers ───────────────────────────────────────────
 
   /** Create a fixed asset record */
@@ -1251,6 +1344,7 @@ function App() {
             recurringItems={recurringItems}
             debts={debts}
             investments={investments}
+            subscriptions={subscriptions}
           />
         );
       case 'wallet':
@@ -1260,7 +1354,6 @@ function App() {
             setWallets={apiSetWallets}
             transactions={transactions}
             setTransactions={apiSetTransactions}
-            categories={categories}
             onCreateWallet={handleCreateWallet}
             onUpdateWallet={handleUpdateWallet}
             onDeleteWallet={handleDeleteWallet}
@@ -1314,6 +1407,17 @@ function App() {
             onRepurchase={handleRepurchaseItem}
           />
         );
+      case 'subscription':
+        return (
+          <SubscriptionPage
+            subscriptions={subscriptions}
+            wallets={wallets}
+            onCreateSubscription={handleCreateSubscription}
+            onUpdateSubscription={handleUpdateSubscription}
+            onDeleteSubscription={handleDeleteSubscription}
+            onPaySubscription={handlePaySubscription}
+          />
+        );
       case 'debt':
         return (
           <DebtPage
@@ -1349,7 +1453,6 @@ function App() {
             onCreateFixedAsset={handleCreateFixedAsset}
             onUpdateFixedAsset={handleUpdateFixedAsset}
             onDeleteFixedAsset={handleDeleteFixedAsset}
-            setPage={setPage}
           />
         );
       case 'report':
@@ -1357,7 +1460,6 @@ function App() {
           <ReportsPage
             transactions={transactions}
             budgets={budgets}
-            wallets={wallets}
             cycleStart={cycleStart}
             setCycleStart={handleSetCycleStart}
             salaryAdjust={salaryAdjust}

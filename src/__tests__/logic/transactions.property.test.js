@@ -9,7 +9,6 @@ import {
 // ── Arbitraries ──────────────────────────────────────────────────────────────
 
 const txTypeArb = fc.constantFrom('income', 'expense', 'transfer');
-const sectionArb = fc.constantFrom('needs', 'wants', 'savings', 'income');
 
 const dateArb = fc
   .tuple(

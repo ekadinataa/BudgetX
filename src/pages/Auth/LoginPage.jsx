@@ -33,7 +33,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
     <div className={styles.authWrapper}>
       <div className={styles.authCard}>
         <div className={styles.logo}>
-          <img src="/logo.svg" alt="BudgetX" className={styles.logoImg} />
+          <img src="/logo.png" alt="BudgetX" className={styles.logoImg} />
           <span className={styles.logoText}>BudgetX</span>
         </div>
         <h1 className={styles.title}>Masuk</h1>

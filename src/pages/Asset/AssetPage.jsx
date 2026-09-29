@@ -36,7 +36,6 @@ export default function AssetPage({
   onCreateFixedAsset,
   onUpdateFixedAsset,
   onDeleteFixedAsset,
-  setPage,
 }) {
   const [showAssetForm, setShowAssetForm] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);

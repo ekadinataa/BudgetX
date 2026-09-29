@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { id: 'tx', label: 'Transaksi', icon: 'tx' },
   { id: 'budget', label: 'Budget', icon: 'budget' },
   { id: 'recurring', label: 'Berkala', icon: 'recurring' },
+  { id: 'subscription', label: 'Langganan', icon: 'subscription' },
   { id: 'debt', label: 'Utang/Piutang', icon: 'debt' },
   { id: 'invest', label: 'Investasi', icon: 'invest' },
   { id: 'asset', label: 'Aset', icon: 'asset' },
@@ -51,7 +52,7 @@ export default function Sidebar({ page, setPage, darkMode, setDarkMode, user, on
       {/* Branding + collapse toggle */}
       <div className={styles.logo}>
         <div className={styles.logoMark}>
-          <img src="/logo.svg" alt="BudgetX" width="34" height="34" style={{ objectFit: 'contain' }} />
+          <img src="/logo.png" alt="BudgetX" width="34" height="34" style={{ objectFit: 'contain' }} />
         </div>
         {!collapsed && (
           <div className={styles.brandText}>
@@ -198,7 +199,7 @@ export default function Sidebar({ page, setPage, darkMode, setDarkMode, user, on
     {user && (
       <div className={styles.mobileTopBar}>
         <div className={styles.mobileTopLeft}>
-          <img src="/logo.svg" alt="BudgetX" width="28" height="28" style={{ objectFit: 'contain' }} />
+          <img src="/logo.png" alt="BudgetX" width="28" height="28" style={{ objectFit: 'contain' }} />
           <span className={styles.mobileTopBrand}>BudgetX</span>
         </div>
         <button className={styles.mobileUserBtn} onClick={() => setShowMobileMenu((v) => !v)}>
@@ -222,6 +223,10 @@ export default function Sidebar({ page, setPage, darkMode, setDarkMode, user, on
             <button className={styles.mobileDropdownItem} onClick={() => { setPage('recurring'); setShowMobileMenu(false); }}>
               <NavIcon name="recurring" size={16} />
               Berkala
+            </button>
+            <button className={styles.mobileDropdownItem} onClick={() => { setPage('subscription'); setShowMobileMenu(false); }}>
+              <NavIcon name="subscription" size={16} />
+              Langganan
             </button>
             <button className={styles.mobileDropdownItem} onClick={() => { setPage('debt'); setShowMobileMenu(false); }}>
               <NavIcon name="debt" size={16} />

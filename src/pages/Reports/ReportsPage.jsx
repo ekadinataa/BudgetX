@@ -31,7 +31,6 @@ import styles from './ReportsPage.module.css';
  * @param {Object} props
  * @param {Array} props.transactions
  * @param {Object} props.budgets
- * @param {Array} props.wallets
  * @param {number} props.cycleStart
  * @param {Function} props.setCycleStart
  * @param {Array} props.categories
@@ -41,7 +40,6 @@ import styles from './ReportsPage.module.css';
 export default function ReportsPage({
   transactions,
   budgets,
-  wallets,
   cycleStart,
   setCycleStart,
   categories,
@@ -73,7 +71,6 @@ export default function ReportsPage({
 
   const [period, setPeriod] = useState(allPeriods[0]?.value || currentMk);
   const [showCycleDlg, setShowCycleDlg] = useState(false);
-  const [viewMode, setViewMode] = useState('actual'); // 'actual' | 'amortized'
 
   // Current period range
   const range = getPeriodRange(period, cycleStart);

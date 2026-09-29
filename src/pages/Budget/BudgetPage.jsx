@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import NavIcon from '../../components/icons/NavIcon';
 import ProgressBar from '../../components/ui/ProgressBar';
 import Select from '../../components/ui/Select';
@@ -61,17 +61,19 @@ export default function BudgetPage({
   const [showIncome, setShowIncome] = useState(false);
   const [showPeriodModal, setShowPeriodModal] = useState(false);
 
-  // Range mode internal state
-  const [selectedRangeId, setSelectedRangeId] = useState(null);
+  // Range mode internal state. `rangeOverride` only holds an explicit user pick;
+  // when it is empty the active range is derived instead of stored, so no effect
+  // (and no cascading render) is needed to pick the default.
+  const [rangeOverride, setRangeOverride] = useState(null);
   const [showTransition, setShowTransition] = useState(false);
 
-  // Auto-select active range on load or when switching to range mode
-  useEffect(() => {
-    if (periodMode === 'range' && customRanges.length > 0 && !selectedRangeId) {
-      const active = findActiveRange(customRanges, TODAY);
-      if (active) setSelectedRangeId(active.id);
+  const selectedRangeId = useMemo(() => {
+    if (periodMode !== 'range') return rangeOverride;
+    if (rangeOverride && customRanges.some((r) => r.id === rangeOverride)) {
+      return rangeOverride;
     }
-  }, [periodMode, customRanges, selectedRangeId]);
+    return findActiveRange(customRanges, TODAY)?.id ?? null;
+  }, [periodMode, rangeOverride, customRanges]);
 
   // Build available month options from budgets + transactions (for month/cycle modes)
   const monthOptions = useMemo(() => {
@@ -195,7 +197,7 @@ export default function BudgetPage({
       const updatedRanges = exists ? customRanges : [...customRanges, newRange];
       setCustomRanges(updatedRanges);
       setPeriodMode('range');
-      setSelectedRangeId(newRangeId);
+      setRangeOverride(newRangeId);
     } else if (mode === 'cycle') {
       setPeriodMode('cycle');
       setCycleStart(cs);
@@ -227,7 +229,7 @@ export default function BudgetPage({
     }
 
     // Select the new range
-    setSelectedRangeId(newRangeId);
+    setRangeOverride(newRangeId);
     setShowTransition(false);
   };
 
@@ -272,7 +274,7 @@ export default function BudgetPage({
           {periodMode === 'range' ? (
             <Select
               value={selectedRangeId || ''}
-              onChange={(e) => setSelectedRangeId(e.target.value)}
+              onChange={(e) => setRangeOverride(e.target.value)}
               style={{ width: 'auto' }}
             >
               {rangeOptions.length === 0 && (

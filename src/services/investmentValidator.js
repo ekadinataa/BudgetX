@@ -6,11 +6,16 @@ const VALID_ASSET_TYPES = ['deposito', 'saham', 'crypto', 'emas', 'reksadana', '
 
 /**
  * Validate investment record data.
+ *
+ * Note: this does NOT check whether `assetType` is allowed to change once the
+ * record has transactions. That guard lives only in the UI (InvestmentFormModal
+ * disables the select when `initial.transactions.length > 0`). Callers that
+ * update an investment outside that form get no such protection.
+ *
  * @param {Object} data
- * @param {boolean} hasTransactions - Whether the record has existing transactions
  * @returns {string|null} Error message or null if valid
  */
-export function validateInvestment(data, hasTransactions = false) {
+export function validateInvestment(data) {
   if (!data.name || typeof data.name !== 'string' || data.name.trim() === '') {
     return 'Nama investasi wajib diisi';
   }

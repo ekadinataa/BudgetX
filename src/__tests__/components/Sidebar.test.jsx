@@ -17,15 +17,25 @@ describe('Sidebar', () => {
     expect(screen.getByText('Money Tracker')).toBeInTheDocument();
   });
 
-  it('renders all navigation items in both sidebar and bottom nav', () => {
+  it('renders the full navigation list in the desktop sidebar', () => {
     render(<Sidebar {...defaultProps} />);
-    // Each label appears twice: once in sidebar nav, once in bottom nav
-    expect(screen.getAllByText('Dashboard')).toHaveLength(2);
-    expect(screen.getAllByText('Dompet')).toHaveLength(2);
-    expect(screen.getAllByText('Transaksi')).toHaveLength(2);
-    expect(screen.getAllByText('Budget')).toHaveLength(2);
-    expect(screen.getAllByText('Laporan')).toHaveLength(2);
-    expect(screen.getAllByText('Pengaturan')).toHaveLength(2);
+    // Pages that also appear in the mobile bottom nav are rendered twice
+    for (const label of ['Dashboard', 'Transaksi', 'Laporan', 'Pengaturan']) {
+      expect(screen.getAllByText(label)).toHaveLength(2);
+    }
+    // Sidebar-only pages are rendered once
+    for (const label of [
+      'Dompet', 'Budget', 'Berkala', 'Langganan',
+      'Utang/Piutang', 'Investasi', 'Aset',
+    ]) {
+      expect(screen.getAllByText(label)).toHaveLength(1);
+    }
+  });
+
+  it('renders a 5-slot mobile bottom nav with a center FAB', () => {
+    render(<Sidebar {...defaultProps} />);
+    // The FAB occupies the middle slot and carries no text label
+    expect(screen.getAllByLabelText('Tambah Transaksi')).toHaveLength(1);
   });
 
   it('highlights the active navigation item', () => {

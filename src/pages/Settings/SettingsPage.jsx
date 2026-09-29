@@ -99,7 +99,7 @@ export default function SettingsPage({
         downloadCsvZip(data);
       }
       if (showToast) showToast('Data berhasil diekspor');
-    } catch (err) {
+    } catch {
       if (showToast) showToast(exportFormat === 'csv' ? 'Gagal membuat file CSV' : 'Gagal mengunduh file');
     } finally {
       setExporting(false);
@@ -263,12 +263,6 @@ export default function SettingsPage({
         const walletsToAdd = newWallets.filter((w) => !existingNames.has(w.name.toLowerCase()));
 
         if (walletsToAdd.length > 0) {
-          const walletImportData = {
-            _csvImport: true,
-            transactions: [],
-            newCategories: [],
-            _walletsToAdd: walletsToAdd,
-          };
           // Use append mode to add wallets
           await onImportData({
             wallets: walletsToAdd,

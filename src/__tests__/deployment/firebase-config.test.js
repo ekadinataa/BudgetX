@@ -31,25 +31,35 @@ describe('.firebaserc', () => {
 describe('firebase.json', () => {
   const config = readJsonConfig('firebase.json');
 
-  it('has hosting.public set to "dist"', () => {
-    expect(config.hosting.public).toBe('dist');
+  // `hosting` is an array: the primary site ("budgetx" target) plus a legacy site
+  // ("budgetku-app-v1" site) that only 301-redirects to the primary.
+  const primary = config.hosting.find((h) => h.target === 'budgetx');
+  const legacy = config.hosting.find((h) => h.site === 'budgetku-app-v1');
+
+  it('declares hosting as an array of site configs', () => {
+    expect(Array.isArray(config.hosting)).toBe(true);
+    expect(primary).toBeDefined();
+    expect(legacy).toBeDefined();
+  });
+
+  it('has hosting.public set to "dist" on the primary site', () => {
+    expect(primary.public).toBe('dist');
   });
 
   it('does NOT have a functions key (Spark plan compliance)', () => {
     expect(config).not.toHaveProperty('functions');
   });
 
-  it('has the SPA rewrite rule (** → /index.html)', () => {
-    const rewrites = config.hosting.rewrites;
-    expect(rewrites).toEqual(
+  it('has the SPA rewrite rule (** → /index.html) on the primary site', () => {
+    expect(primary.rewrites).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ source: '**', destination: '/index.html' }),
       ]),
     );
   });
 
-  it('has immutable cache headers for /assets/**', () => {
-    const headers = config.hosting.headers;
+  it('has immutable cache headers for /assets/** on the primary site', () => {
+    const headers = primary.headers;
     const assetsRule = headers.find((h) => h.source === '/assets/**');
     expect(assetsRule).toBeDefined();
 
@@ -59,6 +69,18 @@ describe('firebase.json', () => {
     expect(cacheHeader).toBeDefined();
     expect(cacheHeader.value).toContain('immutable');
     expect(cacheHeader.value).toContain('max-age=31536000');
+  });
+
+  it('redirects the legacy site to the primary URL with 301', () => {
+    expect(legacy.redirects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: '**',
+          destination: 'https://budgetx.web.app',
+          type: 301,
+        }),
+      ]),
+    );
   });
 });
 

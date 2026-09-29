@@ -19,7 +19,6 @@ import styles from './WalletPage.module.css';
  * @param {Function} props.setWallets
  * @param {Array} props.transactions
  * @param {Function} props.setTransactions
- * @param {Array} props.categories
  *
  * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8
  */
@@ -28,7 +27,6 @@ export default function WalletPage({
   setWallets,
   transactions,
   setTransactions,
-  categories,
   onCreateWallet,
   onUpdateWallet,
   onDeleteWallet,

@@ -2,13 +2,13 @@ import { fmtFull, fmt, fmtDate, monthKey } from '../../utils/formatters';
 import {
   getCatById,
   getCatIcon,
-  getWalletById,
   sectionLabel,
   sectionColor,
   walletTypeLabel,
   getRecentTransactions,
 } from '../../utils/helpers';
 import { groupByStatus, formatDaysRemaining } from '../../utils/recurring';
+import { getUpcomingSubscriptions, getSubscriptionCategoryInfo } from '../../utils/subscriptionHelpers';
 import { useAuth } from '../../context/AuthContext';
 import ProgressBar from '../../components/ui/ProgressBar';
 import AmountText from '../../components/ui/AmountText';
@@ -46,6 +46,7 @@ export default function Dashboard({
   recurringItems = [],
   debts = [],
   investments = [],
+  subscriptions = [],
 }) {
   const today = new Date();
   const mk = monthKey(today);
@@ -194,6 +195,12 @@ export default function Dashboard({
               <NavIcon name="recurring" size={20} />
             </span>
             <span className={styles.quickMenuLabel}>Berkala</span>
+          </button>
+          <button className={styles.quickMenuItem} onClick={() => setPage('subscription')}>
+            <span className={styles.quickMenuIcon} style={{ background: 'rgba(168,85,247,0.12)', color: '#A855F7' }}>
+              <NavIcon name="subscription" size={20} />
+            </span>
+            <span className={styles.quickMenuLabel}>Langganan</span>
           </button>
           <button className={styles.quickMenuItem} onClick={() => setPage('debt')}>
             <span className={styles.quickMenuIcon} style={{ background: 'rgba(245,158,11,0.12)', color: '#F59E0B' }}>
@@ -401,6 +408,56 @@ export default function Dashboard({
 
           {/* Debt widget */}
           <DebtWidget debts={debts} setPage={setPage} />
+
+          {/* Subscription widget — upcoming payments */}
+          {subscriptions.length > 0 && (() => {
+            const upcomingSubs = getUpcomingSubscriptions(subscriptions);
+            if (upcomingSubs.length === 0) return null;
+            return (
+              <div className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <h3 className={styles.cardTitle}>💳 Tagihan Segera ({upcomingSubs.length})</h3>
+                  <button className={styles.linkBtn} onClick={() => setPage('subscription')}>
+                    Lihat Semua
+                  </button>
+                </div>
+                {upcomingSubs.slice(0, 4).map((sub) => {
+                  const catInfo = getSubscriptionCategoryInfo(sub.category);
+                  const days = sub._daysUntilDue;
+                  return (
+                    <div key={sub.id} className={styles.recentRow}>
+                      <div
+                        className={styles.recentIcon}
+                        style={{
+                          background: 'rgba(168,85,247,0.12)',
+                          color: '#A855F7',
+                          fontSize: 16,
+                        }}
+                      >
+                        {catInfo.emoji}
+                      </div>
+                      <div className={styles.recentInfo}>
+                        <div className={styles.recentNote}>{sub.name}</div>
+                        <div className={styles.recentMeta}>
+                          {fmtFull(sub.amount)}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        background: days <= 0 ? 'rgba(220, 38, 38, 0.1)' : 'rgba(217, 119, 6, 0.1)',
+                        color: days <= 0 ? '#F87171' : '#FBBF24',
+                      }}>
+                        {days <= 0 ? 'Terlambat' : days === 0 ? 'Hari ini' : `${days} hari`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* Investment widget */}
           <InvestmentWidget investments={investments} onNavigate={() => setPage('invest')} />

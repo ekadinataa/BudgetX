@@ -64,31 +64,29 @@ export default function TransactionsPage({ wallets, setWallets, transactions, se
   const activeFilterCount = (fWallets.size > 0 ? 1 : 0) + (fTypes.size > 0 ? 1 : 0)
     + (fCats.size > 0 ? 1 : 0) + (fTags.size > 0 ? 1 : 0);
 
-  // Date filter function
-  const matchesDate = (t) => {
-    if (dateMode === 'all') return true;
-    if (dateMode === 'custom') {
-      if (customStart && t.date < customStart) return false;
-      if (customEnd && t.date > customEnd) return false;
-      return true;
-    }
-    // month mode
-    return !fPeriod || t.date.startsWith(fPeriod);
-  };
-
   // Filtered & sorted transactions
+  // The date predicate is inlined here so the dependency list below stays
+  // honest and exhaustive (no function reference to track).
   const filtered = useMemo(() => {
     return transactions
       .filter((t) => {
         if (fWallets.size > 0 && !fWallets.has(t.walletId) && !(t.toWalletId && fWallets.has(t.toWalletId))) return false;
         if (fTypes.size > 0 && !fTypes.has(t.type)) return false;
         if (fCats.size > 0 && !fCats.has(t.categoryId)) return false;
-        if (!matchesDate(t)) return false;
+        if (dateMode !== 'all') {
+          if (dateMode === 'custom') {
+            if (customStart && t.date < customStart) return false;
+            if (customEnd && t.date > customEnd) return false;
+          } else if (fPeriod && !t.date.startsWith(fPeriod)) {
+            // month mode
+            return false;
+          }
+        }
         if (fTags.size > 0 && !(t.tags || []).some((tag) => fTags.has(tag))) return false;
         if (search && !t.note.toLowerCase().includes(search.toLowerCase())) return false;
         return true;
       })
-      .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+      .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
   }, [transactions, fWallets, fTypes, fCats, fPeriod, fTags, search, dateMode, customStart, customEnd]);
 
   const totalIn = filtered.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);

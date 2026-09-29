@@ -53,8 +53,11 @@ describe('Input', () => {
   it('merges custom style with base styles', () => {
     render(<Input style={{ width: 200 }} data-testid="inp" />);
     const inp = screen.getByTestId('inp');
+    // Custom style wins over the base
     expect(inp.style.width).toBe('200px');
-    expect(inp.style.borderRadius).toBe('8px');
+    // Base styles survive the merge
+    expect(inp.style.fontSize).toBe('14px');
+    expect(inp.style.background).toContain('var(--bg-2)');
   });
 });
 
@@ -79,7 +82,9 @@ describe('Select', () => {
     );
     const sel = screen.getByTestId('sel');
     expect(sel.style.width).toBe('300px');
-    expect(sel.style.borderRadius).toBe('8px');
+    // Base styles survive the merge
+    expect(sel.style.fontSize).toBe('14px');
+    expect(sel.style.background).toContain('var(--bg-2)');
   });
 });
 

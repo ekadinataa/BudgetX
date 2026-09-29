@@ -23,7 +23,22 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // `ignoreRestSiblings` allows the idiomatic omit pattern
+      // `const { dropped, ...rest } = obj`, which this codebase uses in
+      // App.jsx (budget map) and in tests that drop a field before validating.
+      'no-unused-vars': [
+        'error',
+        { varsIgnorePattern: '^[A-Z_]', ignoreRestSiblings: true },
+      ],
+    },
+  },
+  {
+    // Context files intentionally export both a Provider component and its
+    // `use*` hook. Fast Refresh only complains about the non-component export;
+    // splitting them into separate files would be churn for no benefit.
+    files: ['src/context/*.jsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 ])

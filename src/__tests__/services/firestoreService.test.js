@@ -83,7 +83,6 @@ import {
   deleteDoc as fsDeleteDoc,
   setDoc,
   writeBatch,
-  increment,
   doc,
   collection,
   query,

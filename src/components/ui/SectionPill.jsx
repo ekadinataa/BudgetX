@@ -1,4 +1,4 @@
-import { sectionLabel, sectionColor } from '../../utils/helpers';
+import { sectionLabel } from '../../utils/helpers';
 
 /**
  * SectionPill — Colored pill with budget section label.

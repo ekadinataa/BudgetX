@@ -13,7 +13,7 @@ import styles from './Dashboard.module.css';
  *
  * Requirements: 6.1
  */
-export default function StatCard({ label, value, sub, accent, icon, detail }) {
+export default function StatCard({ label, value, sub, accent, detail }) {
   return (
     <div className={styles.card} style={{ position: 'relative', overflow: 'hidden' }}>
       <div

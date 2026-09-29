@@ -7,10 +7,12 @@
 }
 
 .pageTitle {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-1);
   margin: 0;
+  flex: 1;
+  text-align: center;
 }
 
 .pageSubtitle {
@@ -49,9 +51,9 @@
 
 .summaryCard {
   background: var(--bg-card);
-  border-radius: 14px;
-  padding: 18px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: none;
   border: 1px solid var(--border-2);
   transition: background 0.2s, border-color 0.2s;
 }
@@ -86,12 +88,12 @@
 }
 
 .filterBtn {
-  padding: 6px 14px;
-  border-radius: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
   border: 1px solid var(--border);
-  background: var(--bg-2);
+  background: transparent;
   color: var(--text-3);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   font-family: inherit;
@@ -104,17 +106,17 @@
 }
 
 .filterBtnActive {
-  background: #4F6EF7;
-  color: #fff;
-  border-color: #4F6EF7;
+  background: var(--bg-3);
+  color: var(--text-1);
+  border-color: transparent;
 }
 
 /* ── Debt Card ─────────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 16px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: none;
   border: 1px solid var(--border-2);
   transition: background 0.2s, border-color 0.2s;
   margin-bottom: 10px;

@@ -22,26 +22,32 @@ export default function PieChart({ slices, size = 180 }) {
     );
   }
 
-  let angle = -Math.PI / 2;
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - 8;
   const inner = r * 0.55;
+  const TAU = Math.PI * 2;
 
-  const paths = slices.map((s) => {
-    const a = (s.value / total) * Math.PI * 2;
-    const x1 = cx + r * Math.cos(angle);
-    const y1 = cy + r * Math.sin(angle);
-    const x2 = cx + r * Math.cos(angle + a);
-    const y2 = cy + r * Math.sin(angle + a);
-    const xi1 = cx + inner * Math.cos(angle);
-    const yi1 = cy + inner * Math.sin(angle);
-    const xi2 = cx + inner * Math.cos(angle + a);
-    const yi2 = cy + inner * Math.sin(angle + a);
+  // Accumulate start angles without mutating a render-scope variable.
+  const segments = slices.reduce((acc, s) => {
+    const prev = acc[acc.length - 1];
+    const startAngle = prev ? prev.startAngle + prev.sweep : -Math.PI / 2;
+    acc.push({ color: s.color, startAngle, sweep: (s.value / total) * TAU });
+    return acc;
+  }, []);
+
+  const paths = segments.map(({ color, startAngle, sweep: a }) => {
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy + r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(startAngle + a);
+    const y2 = cy + r * Math.sin(startAngle + a);
+    const xi1 = cx + inner * Math.cos(startAngle);
+    const yi1 = cy + inner * Math.sin(startAngle);
+    const xi2 = cx + inner * Math.cos(startAngle + a);
+    const yi2 = cy + inner * Math.sin(startAngle + a);
     const large = a > Math.PI ? 1 : 0;
     const d = `M${xi1},${yi1} L${x1},${y1} A${r},${r},0,${large},1,${x2},${y2} L${xi2},${yi2} A${inner},${inner},0,${large},0,${xi1},${yi1}Z`;
-    angle += a;
-    return { d, color: s.color };
+    return { d, color };
   });
 
   return (

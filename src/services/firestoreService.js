@@ -514,7 +514,7 @@ const BATCH_LIMIT = 500;
 export async function resetUserData() {
   try {
     const uid = getUid();
-    const subcollections = ['wallets', 'transactions', 'budgets', 'categories', 'preferences', 'recurringItems', 'debts', 'investments', 'fixedAssets'];
+    const subcollections = ['wallets', 'transactions', 'budgets', 'categories', 'preferences', 'recurringItems', 'debts', 'investments', 'fixedAssets', 'subscriptions'];
 
     // Collect all document references for deletion
     const allRefs = [];
@@ -684,8 +684,7 @@ export async function createInvestment(data) {
   const trimmed = trimStrings(data);
   const {
     name, assetType, notes, currentValue, transactions, createdAt, lastUpdated,
-    // Type-specific fields
-    interestRate, maturityDate, bankName, tickerSymbol, coinName, fundName, managerName, unit,
+    // Type-specific fields are read straight off `data` below (see note there)
   } = trimmed;
 
   const investmentData = {
@@ -733,6 +732,66 @@ export async function deleteInvestment(id) {
     return { success: true };
   } catch (err) {
     throw new Error(`Failed to delete investment: ${err.message}`);
+  }
+}
+
+// ── Subscriptions ─────────────────────────────────────────────────
+
+export async function getSubscriptions() {
+  try {
+    const snapshot = await getDocs(userCol('subscriptions'));
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    throw new Error(`Failed to read subscriptions: ${err.message}`);
+  }
+}
+
+export async function createSubscription(data) {
+  const trimmed = trimStrings(data);
+  const { name, category, amount, billingCycle, nextDueDate, walletId, note, isActive } = trimmed;
+
+  if (!name || !name.trim()) throw new Error('Nama langganan wajib diisi');
+  if (!amount || Number(amount) <= 0) throw new Error('Jumlah harus lebih dari 0');
+  if (!nextDueDate) throw new Error('Tanggal jatuh tempo wajib diisi');
+
+  const subscriptionData = {
+    name: name.trim(),
+    category: category || 'lainnya',
+    amount: Number(amount),
+    billingCycle: billingCycle || 'bulanan',
+    nextDueDate: nextDueDate || '',
+    walletId: walletId || '',
+    note: note || '',
+    isActive: isActive !== undefined ? isActive : true,
+    createdAt: new Date().toISOString().slice(0, 10),
+    lastPaidDate: '',
+  };
+
+  try {
+    const docRef = await addDoc(userCol('subscriptions'), subscriptionData);
+    return { id: docRef.id, ...subscriptionData };
+  } catch (err) {
+    throw new Error(`Failed to create subscription: ${err.message}`);
+  }
+}
+
+export async function updateSubscription(id, data) {
+  try {
+    const updateData = { ...data };
+    if (updateData.amount !== undefined) updateData.amount = Number(updateData.amount);
+    await updateDoc(userDoc('subscriptions', id), updateData);
+    return { id, ...updateData };
+  } catch (err) {
+    throw new Error(`Failed to update subscription: ${err.message}`);
+  }
+}
+
+export async function deleteSubscription(id) {
+  try {
+    await deleteDoc(userDoc('subscriptions', id));
+    return { success: true };
+  } catch (err) {
+    throw new Error(`Failed to delete subscription: ${err.message}`);
   }
 }
 

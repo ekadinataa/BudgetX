@@ -19,22 +19,22 @@ const AuthContext = createContext(null);
  */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [authResolved, setAuthResolved] = useState(!auth);
 
   useEffect(() => {
-    // If Firebase is not configured, skip auth entirely and run in local-only mode
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
+    // Local-only mode: `auth` is null, so there is no session to resolve.
+    if (!auth) return;
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser || null);
-      setLoading(false);
+      setAuthResolved(true);
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Derived rather than stored: in local-only mode we are never "loading".
+  const loading = auth ? !authResolved : false;
 
   const login = async (email, password) => {
     const cred = await signInWithEmailAndPassword(auth, email, password);

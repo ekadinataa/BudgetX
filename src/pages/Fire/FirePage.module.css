@@ -47,9 +47,9 @@
 /* ── Card ─────────────────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: none;
   border: 1px solid var(--border-2);
   transition: background 0.2s, border-color 0.2s;
   min-width: 0;
@@ -101,9 +101,9 @@
 
 .projCard {
   background: var(--bg-card);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: none;
   border: 1px solid var(--border-2);
   min-width: 0;
   box-sizing: border-box;

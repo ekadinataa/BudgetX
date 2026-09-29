@@ -7,10 +7,12 @@
 }
 
 .pageTitle {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-1);
   margin: 0;
+  flex: 1;
+  text-align: center;
 }
 
 .periodLabel {
@@ -36,9 +38,9 @@
 /* ── Cash Card ─────────────────────────────────────────────────── */
 .cashCard {
   background: var(--bg-card);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 18px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: none;
   border: 1px solid var(--border-2);
   transition: background 0.2s, border-color 0.2s;
 }
@@ -85,9 +87,9 @@
 /* ── Card ──────────────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: none;
   border: 1px solid var(--border-2);
   transition: background 0.2s, border-color 0.2s;
 }

@@ -86,7 +86,6 @@ export function generateProjection(params) {
   if (years <= 0) return [];
 
   const annualSavingsBase = monthlyIncome * 12 * (fireAllocationPct / 100);
-  const baseFireNumber = calcFireNumber(params.monthlyExpenses || monthlyIncome * 0.5);
 
   const moderatRate = returnRate / 100;
   const optimisRate = (returnRate + 2) / 100;
@@ -182,7 +181,6 @@ export function calcRetirementSustainability(portfolioAtRetirement, annualExpens
  * @param {number} params.monthlyExpenses
  * @param {number} params.monthlyIncome
  * @param {number} params.currentAssets
- * @param {number} params.fireNumber - Inflation-adjusted FIRE Number
  * @returns {Array<{type: string, text: string}>}
  */
 export function generateRecommendations(params) {
@@ -193,7 +191,6 @@ export function generateRecommendations(params) {
     monthlyExpenses,
     monthlyIncome,
     currentAssets,
-    fireNumber,
   } = params;
 
   const recommendations = [];

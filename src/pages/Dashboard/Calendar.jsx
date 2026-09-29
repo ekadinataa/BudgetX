@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { monthKey, fmtDate } from '../../utils/formatters';
+import { monthKey } from '../../utils/formatters';
 import { getCatById } from '../../utils/helpers';
 import AmountText from '../../components/ui/AmountText';
 import styles from './Dashboard.module.css';
@@ -14,13 +14,13 @@ const DAY_HEADERS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
  *
  * @param {Object} props
  * @param {Array} props.transactions - All transactions
- * @param {Array} props.wallets - All wallets
+ * @param {Array} props.transactions - All transactions
  * @param {Array} props.categories - All categories
  * @param {Date} props.today - Today's date object
  *
  * Requirements: 6.3, 6.4
  */
-export default function Calendar({ transactions, wallets, categories, today }) {
+export default function Calendar({ transactions, categories, today }) {
   const [calMonth, setCalMonth] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1)
   );

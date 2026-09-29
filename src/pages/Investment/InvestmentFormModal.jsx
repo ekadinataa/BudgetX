@@ -44,7 +44,7 @@ export default function InvestmentFormModal({ initial, onClose, onSave, onDelete
 
   const handleSubmit = () => {
     const data = { ...form };
-    const error = validateInvestment(data, hasTransactions);
+    const error = validateInvestment(data);
     if (error) {
       if (error.includes('Nama')) setErrors({ name: error });
       else if (error.includes('aset')) setErrors({ assetType: error });
