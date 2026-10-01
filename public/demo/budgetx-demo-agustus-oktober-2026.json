@@ -1,0 +1,196 @@
+{
+  "budgetku": true,
+  "version": "1.0",
+  "exportedAt": "2026-10-01T08:00:00.000Z",
+  "demo": {
+    "name": "BudgetX — Demo Agustus–Oktober 2026",
+    "description": "Semua nama dan nominal fiktif. Oktober adalah contoh skenario satu bulan penuh.",
+    "period": { "start": "2026-08-01", "end": "2026-10-31" },
+    "snapshotDate": "2026-10-31",
+    "openingBalances": { "demo-w-bank": 8000000, "demo-w-saving": 4000000, "demo-w-ewallet": 150000, "demo-w-cash": 300000 }
+  },
+  "data": {
+    "wallets": [
+      { "id": "demo-w-bank", "name": "BCA Utama", "type": "bank", "balance": 18458000, "color": "#2563EB", "note": "Rekening gaji dan belanja — data demo" },
+      { "id": "demo-w-saving", "name": "Jago Dana Darurat", "type": "bank", "balance": 7000000, "color": "#16A34A", "note": "Tabungan terpisah — data demo" },
+      { "id": "demo-w-ewallet", "name": "GoPay", "type": "ewallet", "balance": 333000, "color": "#06B6D4", "note": "Transport dan langganan — data demo" },
+      { "id": "demo-w-cash", "name": "Tunai", "type": "cash", "balance": 855000, "color": "#F97316", "note": "Uang belanja harian — data demo" }
+    ],
+    "categories": [
+      { "id": "c1", "name": "Makanan & Minum", "section": "needs", "color": "#F59E0B", "icon": "🍔" },
+      { "id": "c2", "name": "Transport", "section": "needs", "color": "#3B82F6", "icon": "🚗" },
+      { "id": "c3", "name": "Tempat Tinggal & Utilitas", "section": "needs", "color": "#8B5CF6", "icon": "🏠" },
+      { "id": "c4", "name": "Kesehatan", "section": "needs", "color": "#EF4444", "icon": "💊" },
+      { "id": "c5", "name": "Pendidikan", "section": "needs", "color": "#06B6D4", "icon": "📚" },
+      { "id": "c6", "name": "Belanja Bulanan", "section": "needs", "color": "#EC4899", "icon": "🛒" },
+      { "id": "c7", "name": "Hiburan", "section": "wants", "color": "#F97316", "icon": "🎮" },
+      { "id": "c8", "name": "Makan di Luar", "section": "wants", "color": "#EAB308", "icon": "🍽️" },
+      { "id": "c9", "name": "Fashion", "section": "wants", "color": "#A855F7", "icon": "👕" },
+      { "id": "c10", "name": "Langganan", "section": "wants", "color": "#14B8A6", "icon": "📱" },
+      { "id": "c11", "name": "Hobi", "section": "wants", "color": "#64748B", "icon": "🎨" },
+      { "id": "c12", "name": "Dana Darurat", "section": "savings", "color": "#22C55E", "icon": "🛡️" },
+      { "id": "c13", "name": "Investasi", "section": "savings", "color": "#10B981", "icon": "📈" },
+      { "id": "c14", "name": "Dana Pensiun", "section": "savings", "color": "#059669", "icon": "🏖️" },
+      { "id": "c15", "name": "Gaji", "section": "income", "color": "#6366F1", "icon": "💰" },
+      { "id": "c16", "name": "Freelance", "section": "income", "color": "#8B5CF6", "icon": "💻" },
+      { "id": "c17", "name": "Hasil Investasi", "section": "income", "color": "#10B981", "icon": "💵" },
+      { "id": "c18", "name": "Lainnya", "section": "income", "color": "#94A3B8", "icon": "📦" }
+    ],
+    "transactions": [
+      { "id": "demo-tx-aug-salary", "date": "2026-08-01", "walletId": "demo-w-bank", "type": "income", "categoryId": "c15", "amount": 12000000, "note": "Gaji Agustus", "tags": ["demo", "rutin"] },
+      { "id": "demo-tx-aug-saving", "date": "2026-08-01", "walletId": "demo-w-bank", "toWalletId": "demo-w-saving", "type": "transfer", "categoryId": null, "amount": 1000000, "note": "Sisihkan dana darurat", "tags": ["demo", "tabungan"] },
+      { "id": "demo-tx-aug-topup", "date": "2026-08-01", "walletId": "demo-w-bank", "toWalletId": "demo-w-ewallet", "type": "transfer", "categoryId": null, "amount": 300000, "note": "Top up GoPay", "tags": ["demo"] },
+      { "id": "demo-tx-aug-cash", "date": "2026-08-01", "walletId": "demo-w-bank", "toWalletId": "demo-w-cash", "type": "transfer", "categoryId": null, "amount": 500000, "note": "Tarik tunai", "tags": ["demo"] },
+      { "id": "demo-tx-aug-rent", "date": "2026-08-02", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c3", "amount": 1500000, "note": "Sewa kos Agustus", "tags": ["demo", "rutin"] },
+      { "id": "demo-tx-aug-grocery", "date": "2026-08-03", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c1", "amount": 600000, "note": "Belanja bahan makanan", "tags": ["demo", "makan"] },
+      { "id": "demo-tx-aug-breakfast", "date": "2026-08-04", "walletId": "demo-w-cash", "type": "expense", "categoryId": "c1", "amount": 45000, "note": "Sarapan dan makan siang", "tags": ["demo", "makan"] },
+      { "id": "demo-tx-aug-utilities", "date": "2026-08-05", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c3", "amount": 350000, "note": "Listrik dan air Agustus", "tags": ["demo", "rutin"] },
+      { "id": "demo-tx-aug-cloud", "date": "2026-08-05", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c10", "amount": 15000, "note": "Bayar iCloud+", "tags": ["demo", "langganan"] },
+      { "id": "demo-tx-aug-ride", "date": "2026-08-06", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c2", "amount": 35000, "note": "Ojek online ke kantor", "tags": ["demo", "transport"] },
+      { "id": "demo-tx-aug-music", "date": "2026-08-07", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c10", "amount": 59000, "note": "Bayar Spotify", "tags": ["demo", "langganan"] },
+      { "id": "demo-tx-aug-fund", "date": "2026-08-08", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c13", "amount": 1000000, "note": "Beli Reksa Dana Demo", "tags": ["demo", "investasi"] },
+      { "id": "demo-tx-debt-create", "date": "2026-08-09", "walletId": "demo-w-bank", "type": "income", "categoryId": null, "amount": 3000000, "note": "Utang dari Dina (demo)", "tags": ["demo", "utang-piutang"] },
+      { "id": "demo-tx-aug-internet", "date": "2026-08-10", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c10", "amount": 299000, "note": "Bayar Internet Rumah", "tags": ["demo", "langganan"] },
+      { "id": "demo-tx-aug-recurring", "date": "2026-08-12", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c6", "amount": 85000, "note": "Beli ulang Sabun & deterjen", "tags": ["demo", "berkala"] },
+      { "id": "demo-tx-aug-dining", "date": "2026-08-14", "walletId": "demo-w-cash", "type": "expense", "categoryId": "c8", "amount": 150000, "note": "Makan bersama teman", "tags": ["demo", "hangout"] },
+      { "id": "demo-tx-aug-freelance", "date": "2026-08-15", "walletId": "demo-w-bank", "type": "income", "categoryId": "c16", "amount": 1000000, "note": "Freelance desain Agustus", "tags": ["demo", "freelance"] },
+      { "id": "demo-tx-receivable-create", "date": "2026-08-16", "walletId": "demo-w-bank", "type": "expense", "categoryId": null, "amount": 800000, "note": "Piutang ke Rafi (demo)", "tags": ["demo", "utang-piutang"] },
+      { "id": "demo-tx-aug-course", "date": "2026-08-18", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c5", "amount": 200000, "note": "Kursus desain online", "tags": ["demo", "edukasi"] },
+      { "id": "demo-tx-laptop", "date": "2026-08-18", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c5", "amount": 8000000, "note": "Laptop kerja (aset tetap demo)", "tags": ["demo", "aset"] },
+      { "id": "demo-tx-aug-vitamin", "date": "2026-08-20", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c4", "amount": 180000, "note": "Beli ulang Vitamin bulanan", "tags": ["demo", "berkala"] },
+      { "id": "demo-tx-aug-cinema", "date": "2026-08-22", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c7", "amount": 130000, "note": "Bioskop akhir pekan", "tags": ["demo", "hiburan"] },
+      { "id": "demo-tx-aug-hobby", "date": "2026-08-24", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c11", "amount": 200000, "note": "Buku dan alat gambar", "tags": ["demo", "hobi"] },
+      { "id": "demo-tx-aug-fashion", "date": "2026-08-26", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c9", "amount": 300000, "note": "Pakaian kerja", "tags": ["demo", "fashion"] },
+      { "id": "demo-tx-aug-food", "date": "2026-08-28", "walletId": "demo-w-cash", "type": "expense", "categoryId": "c1", "amount": 120000, "note": "Belanja pasar", "tags": ["demo", "makan"] },
+      { "id": "demo-tx-aug-fuel", "date": "2026-08-30", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c2", "amount": 400000, "note": "Bensin dan transport bulanan", "tags": ["demo", "transport"] },
+      { "id": "demo-tx-sep-salary", "date": "2026-09-01", "walletId": "demo-w-bank", "type": "income", "categoryId": "c15", "amount": 12000000, "note": "Gaji September", "tags": ["demo", "rutin"] },
+      { "id": "demo-tx-sep-saving", "date": "2026-09-01", "walletId": "demo-w-bank", "toWalletId": "demo-w-saving", "type": "transfer", "categoryId": null, "amount": 1000000, "note": "Sisihkan dana darurat", "tags": ["demo", "tabungan"] },
+      { "id": "demo-tx-sep-topup", "date": "2026-09-01", "walletId": "demo-w-bank", "toWalletId": "demo-w-ewallet", "type": "transfer", "categoryId": null, "amount": 300000, "note": "Top up GoPay", "tags": ["demo"] },
+      { "id": "demo-tx-sep-cash", "date": "2026-09-01", "walletId": "demo-w-bank", "toWalletId": "demo-w-cash", "type": "transfer", "categoryId": null, "amount": 500000, "note": "Tarik tunai", "tags": ["demo"] },
+      { "id": "demo-tx-sep-rent", "date": "2026-09-02", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c3", "amount": 1500000, "note": "Sewa kos September", "tags": ["demo", "rutin"] },
+      { "id": "demo-tx-sep-grocery", "date": "2026-09-03", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c1", "amount": 600000, "note": "Belanja bahan makanan", "tags": ["demo", "makan"] },
+      { "id": "demo-tx-sep-breakfast", "date": "2026-09-04", "walletId": "demo-w-cash", "type": "expense", "categoryId": "c1", "amount": 45000, "note": "Sarapan dan makan siang", "tags": ["demo", "makan"] },
+      { "id": "demo-tx-sep-utilities", "date": "2026-09-05", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c3", "amount": 350000, "note": "Listrik dan air September", "tags": ["demo", "rutin"] },
+      { "id": "demo-tx-sep-cloud", "date": "2026-09-05", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c10", "amount": 15000, "note": "Bayar iCloud+", "tags": ["demo", "langganan"] },
+      { "id": "demo-tx-sep-ride", "date": "2026-09-06", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c2", "amount": 35000, "note": "Ojek online ke kantor", "tags": ["demo", "transport"] },
+      { "id": "demo-tx-sep-music", "date": "2026-09-07", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c10", "amount": 59000, "note": "Bayar Spotify", "tags": ["demo", "langganan"] },
+      { "id": "demo-tx-sep-fund", "date": "2026-09-08", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c13", "amount": 1000000, "note": "Beli Reksa Dana Demo", "tags": ["demo", "investasi"] },
+      { "id": "demo-tx-debt-sep-payment", "date": "2026-09-09", "walletId": "demo-w-bank", "type": "expense", "categoryId": null, "amount": 1000000, "note": "Bayar utang ke Dina (demo)", "tags": ["demo", "utang-piutang"] },
+      { "id": "demo-tx-sep-internet", "date": "2026-09-10", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c10", "amount": 299000, "note": "Bayar Internet Rumah", "tags": ["demo", "langganan"] },
+      { "id": "demo-tx-sep-recurring", "date": "2026-09-12", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c6", "amount": 85000, "note": "Beli ulang Sabun & deterjen", "tags": ["demo", "berkala"] },
+      { "id": "demo-tx-sep-dining", "date": "2026-09-14", "walletId": "demo-w-cash", "type": "expense", "categoryId": "c8", "amount": 150000, "note": "Makan bersama teman", "tags": ["demo", "hangout"] },
+      { "id": "demo-tx-sep-freelance", "date": "2026-09-15", "walletId": "demo-w-bank", "type": "income", "categoryId": "c16", "amount": 1250000, "note": "Freelance desain September", "tags": ["demo", "freelance"] },
+      { "id": "demo-tx-receivable-sep-payment", "date": "2026-09-16", "walletId": "demo-w-bank", "type": "income", "categoryId": null, "amount": 400000, "note": "Terima piutang dari Rafi (demo)", "tags": ["demo", "utang-piutang"] },
+      { "id": "demo-tx-sep-course", "date": "2026-09-18", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c5", "amount": 200000, "note": "Kursus desain online", "tags": ["demo", "edukasi"] },
+      { "id": "demo-tx-sep-vitamin", "date": "2026-09-20", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c4", "amount": 180000, "note": "Beli ulang Vitamin bulanan", "tags": ["demo", "berkala"] },
+      { "id": "demo-tx-gold-buy", "date": "2026-09-21", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c13", "amount": 1350000, "note": "Beli Emas Demo", "tags": ["demo", "investasi"] },
+      { "id": "demo-tx-sep-cinema", "date": "2026-09-22", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c7", "amount": 130000, "note": "Bioskop akhir pekan", "tags": ["demo", "hiburan"] },
+      { "id": "demo-tx-sep-hobby", "date": "2026-09-24", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c11", "amount": 200000, "note": "Buku dan alat gambar", "tags": ["demo", "hobi"] },
+      { "id": "demo-tx-sep-fashion", "date": "2026-09-26", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c9", "amount": 300000, "note": "Pakaian kerja", "tags": ["demo", "fashion"] },
+      { "id": "demo-tx-sep-food", "date": "2026-09-28", "walletId": "demo-w-cash", "type": "expense", "categoryId": "c1", "amount": 120000, "note": "Belanja pasar", "tags": ["demo", "makan"] },
+      { "id": "demo-tx-sep-fuel", "date": "2026-09-30", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c2", "amount": 400000, "note": "Bensin dan transport bulanan", "tags": ["demo", "transport"] },
+      { "id": "demo-tx-oct-salary", "date": "2026-10-01", "walletId": "demo-w-bank", "type": "income", "categoryId": "c15", "amount": 12000000, "note": "Gaji Oktober", "tags": ["demo", "rutin"] },
+      { "id": "demo-tx-oct-saving", "date": "2026-10-01", "walletId": "demo-w-bank", "toWalletId": "demo-w-saving", "type": "transfer", "categoryId": null, "amount": 1000000, "note": "Sisihkan dana darurat", "tags": ["demo", "tabungan"] },
+      { "id": "demo-tx-oct-topup", "date": "2026-10-01", "walletId": "demo-w-bank", "toWalletId": "demo-w-ewallet", "type": "transfer", "categoryId": null, "amount": 300000, "note": "Top up GoPay", "tags": ["demo"] },
+      { "id": "demo-tx-oct-cash", "date": "2026-10-01", "walletId": "demo-w-bank", "toWalletId": "demo-w-cash", "type": "transfer", "categoryId": null, "amount": 500000, "note": "Tarik tunai", "tags": ["demo"] },
+      { "id": "demo-tx-oct-rent", "date": "2026-10-02", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c3", "amount": 1500000, "note": "Sewa kos Oktober", "tags": ["demo", "rutin"] },
+      { "id": "demo-tx-oct-grocery", "date": "2026-10-03", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c1", "amount": 600000, "note": "Belanja bahan makanan", "tags": ["demo", "makan"] },
+      { "id": "demo-tx-oct-breakfast", "date": "2026-10-04", "walletId": "demo-w-cash", "type": "expense", "categoryId": "c1", "amount": 45000, "note": "Sarapan dan makan siang", "tags": ["demo", "makan"] },
+      { "id": "demo-tx-oct-utilities", "date": "2026-10-05", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c3", "amount": 350000, "note": "Listrik dan air Oktober", "tags": ["demo", "rutin"] },
+      { "id": "demo-tx-oct-cloud", "date": "2026-10-05", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c10", "amount": 15000, "note": "Bayar iCloud+", "tags": ["demo", "langganan"] },
+      { "id": "demo-tx-oct-ride", "date": "2026-10-06", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c2", "amount": 35000, "note": "Ojek online ke kantor", "tags": ["demo", "transport"] },
+      { "id": "demo-tx-oct-music", "date": "2026-10-07", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c10", "amount": 59000, "note": "Bayar Spotify", "tags": ["demo", "langganan"] },
+      { "id": "demo-tx-oct-fund", "date": "2026-10-08", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c13", "amount": 1000000, "note": "Beli Reksa Dana Demo", "tags": ["demo", "investasi"] },
+      { "id": "demo-tx-debt-oct-payment", "date": "2026-10-09", "walletId": "demo-w-bank", "type": "expense", "categoryId": null, "amount": 1000000, "note": "Bayar utang ke Dina (demo)", "tags": ["demo", "utang-piutang"] },
+      { "id": "demo-tx-oct-internet", "date": "2026-10-10", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c10", "amount": 299000, "note": "Bayar Internet Rumah", "tags": ["demo", "langganan"] },
+      { "id": "demo-tx-oct-recurring", "date": "2026-10-12", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c6", "amount": 85000, "note": "Beli ulang Sabun & deterjen", "tags": ["demo", "berkala"] },
+      { "id": "demo-tx-oct-dining", "date": "2026-10-14", "walletId": "demo-w-cash", "type": "expense", "categoryId": "c8", "amount": 150000, "note": "Makan bersama teman", "tags": ["demo", "hangout"] },
+      { "id": "demo-tx-oct-freelance", "date": "2026-10-15", "walletId": "demo-w-bank", "type": "income", "categoryId": "c16", "amount": 1500000, "note": "Freelance desain Oktober", "tags": ["demo", "freelance"] },
+      { "id": "demo-tx-receivable-oct-payment", "date": "2026-10-16", "walletId": "demo-w-bank", "type": "income", "categoryId": null, "amount": 200000, "note": "Terima piutang dari Rafi (demo)", "tags": ["demo", "utang-piutang"] },
+      { "id": "demo-tx-oct-course", "date": "2026-10-18", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c5", "amount": 200000, "note": "Kursus desain online", "tags": ["demo", "edukasi"] },
+      { "id": "demo-tx-oct-vitamin", "date": "2026-10-20", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c4", "amount": 180000, "note": "Beli ulang Vitamin bulanan", "tags": ["demo", "berkala"] },
+      { "id": "demo-tx-oct-cinema", "date": "2026-10-22", "walletId": "demo-w-ewallet", "type": "expense", "categoryId": "c7", "amount": 130000, "note": "Bioskop akhir pekan", "tags": ["demo", "hiburan"] },
+      { "id": "demo-tx-oct-hobby", "date": "2026-10-24", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c11", "amount": 200000, "note": "Buku dan alat gambar", "tags": ["demo", "hobi"] },
+      { "id": "demo-tx-oct-fashion", "date": "2026-10-26", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c9", "amount": 300000, "note": "Pakaian kerja", "tags": ["demo", "fashion"] },
+      { "id": "demo-tx-oct-food", "date": "2026-10-28", "walletId": "demo-w-cash", "type": "expense", "categoryId": "c1", "amount": 120000, "note": "Belanja pasar", "tags": ["demo", "makan"] },
+      { "id": "demo-tx-oct-fuel", "date": "2026-10-30", "walletId": "demo-w-bank", "type": "expense", "categoryId": "c2", "amount": 400000, "note": "Bensin dan transport bulanan", "tags": ["demo", "transport"] }
+    ],
+    "budgets": {
+      "2026-08": {
+        "totalIncome": 12000000,
+        "sections": {
+          "needs": { "total": 6000000, "cats": [{ "id": "c1", "amt": 2000000 }, { "id": "c2", "amt": 800000 }, { "id": "c3", "amt": 2000000 }, { "id": "c4", "amt": 300000 }, { "id": "c5", "amt": 300000 }, { "id": "c6", "amt": 600000 }] },
+          "wants": { "total": 3600000, "cats": [{ "id": "c7", "amt": 800000 }, { "id": "c8", "amt": 1000000 }, { "id": "c9", "amt": 800000 }, { "id": "c10", "amt": 300000 }, { "id": "c11", "amt": 700000 }] },
+          "savings": { "total": 2400000, "cats": [{ "id": "c12", "amt": 1000000 }, { "id": "c13", "amt": 1000000 }, { "id": "c14", "amt": 400000 }] }
+        }
+      },
+      "2026-09": {
+        "totalIncome": 12000000,
+        "sections": {
+          "needs": { "total": 6000000, "cats": [{ "id": "c1", "amt": 2000000 }, { "id": "c2", "amt": 800000 }, { "id": "c3", "amt": 2000000 }, { "id": "c4", "amt": 300000 }, { "id": "c5", "amt": 300000 }, { "id": "c6", "amt": 600000 }] },
+          "wants": { "total": 3600000, "cats": [{ "id": "c7", "amt": 800000 }, { "id": "c8", "amt": 1000000 }, { "id": "c9", "amt": 800000 }, { "id": "c10", "amt": 300000 }, { "id": "c11", "amt": 700000 }] },
+          "savings": { "total": 2400000, "cats": [{ "id": "c12", "amt": 1000000 }, { "id": "c13", "amt": 1000000 }, { "id": "c14", "amt": 400000 }] }
+        }
+      },
+      "2026-10": {
+        "totalIncome": 12000000,
+        "sections": {
+          "needs": { "total": 6000000, "cats": [{ "id": "c1", "amt": 2000000 }, { "id": "c2", "amt": 800000 }, { "id": "c3", "amt": 2000000 }, { "id": "c4", "amt": 300000 }, { "id": "c5", "amt": 300000 }, { "id": "c6", "amt": 600000 }] },
+          "wants": { "total": 3600000, "cats": [{ "id": "c7", "amt": 800000 }, { "id": "c8", "amt": 1000000 }, { "id": "c9", "amt": 800000 }, { "id": "c10", "amt": 300000 }, { "id": "c11", "amt": 700000 }] },
+          "savings": { "total": 2400000, "cats": [{ "id": "c12", "amt": 1000000 }, { "id": "c13", "amt": 1000000 }, { "id": "c14", "amt": 400000 }] }
+        }
+      }
+    },
+    "recurringItems": [
+      { "id": "demo-r-soap", "name": "Sabun & deterjen", "amount": 85000, "durationDays": 30, "lastPurchaseDate": "2026-10-12", "nextEstimateDate": "2026-11-11", "walletId": "demo-w-bank", "categoryId": "c6", "isActive": true, "note": "Perlengkapan rumah — data demo", "tags": ["demo", "berkala"], "createdAt": "2026-08-12" },
+      { "id": "demo-r-vitamin", "name": "Vitamin bulanan", "amount": 180000, "durationDays": 30, "lastPurchaseDate": "2026-10-20", "nextEstimateDate": "2026-11-19", "walletId": "demo-w-bank", "categoryId": "c4", "isActive": true, "note": "Suplemen kesehatan — data demo", "tags": ["demo", "berkala"], "createdAt": "2026-08-20" }
+    ],
+    "subscriptions": [
+      { "id": "demo-s-music", "name": "Spotify", "category": "streaming", "amount": 59000, "billingCycle": "bulanan", "nextDueDate": "2026-11-07", "lastPaidDate": "2026-10-07", "walletId": "demo-w-ewallet", "isActive": true, "note": "Langganan musik — data demo", "createdAt": "2026-08-07" },
+      { "id": "demo-s-internet", "name": "Internet Rumah", "category": "internet", "amount": 299000, "billingCycle": "bulanan", "nextDueDate": "2026-11-10", "lastPaidDate": "2026-10-10", "walletId": "demo-w-bank", "isActive": true, "note": "Tagihan internet — data demo", "createdAt": "2026-08-10" },
+      { "id": "demo-s-cloud", "name": "iCloud+", "category": "cloud", "amount": 15000, "billingCycle": "bulanan", "nextDueDate": "2026-11-05", "lastPaidDate": "2026-10-05", "walletId": "demo-w-ewallet", "isActive": true, "note": "Penyimpanan cloud — data demo", "createdAt": "2026-08-05" }
+    ],
+    "debts": [
+      {
+        "id": "demo-d-loan", "type": "utang", "personName": "Dina (demo)", "totalAmount": 3000000, "remainingAmount": 1000000, "walletId": "demo-w-bank", "dueDate": "2026-11-09", "description": "Pinjaman tanpa bunga, dicicil Rp1 juta — data demo", "status": "active", "transactionId": "demo-tx-debt-create", "createdAt": "2026-08-09", "interestEnabled": false, "interestRate": 0, "tenorMonths": 0, "startDate": "2026-08-09", "monthlyInstallment": 0,
+        "payments": [
+          { "amount": 1000000, "principalPart": 1000000, "interestPart": 0, "date": "2026-09-09", "walletId": "demo-w-bank", "transactionId": "demo-tx-debt-sep-payment", "note": "Cicilan pertama" },
+          { "amount": 1000000, "principalPart": 1000000, "interestPart": 0, "date": "2026-10-09", "walletId": "demo-w-bank", "transactionId": "demo-tx-debt-oct-payment", "note": "Cicilan kedua" }
+        ]
+      },
+      {
+        "id": "demo-d-receivable", "type": "piutang", "personName": "Rafi (demo)", "totalAmount": 800000, "remainingAmount": 200000, "walletId": "demo-w-bank", "dueDate": "2026-11-16", "description": "Pinjaman ke teman tanpa bunga — data demo", "status": "active", "transactionId": "demo-tx-receivable-create", "createdAt": "2026-08-16", "interestEnabled": false, "interestRate": 0, "tenorMonths": 0, "startDate": "2026-08-16", "monthlyInstallment": 0,
+        "payments": [
+          { "amount": 400000, "principalPart": 400000, "interestPart": 0, "date": "2026-09-16", "walletId": "demo-w-bank", "transactionId": "demo-tx-receivable-sep-payment", "note": "Pengembalian pertama" },
+          { "amount": 200000, "principalPart": 200000, "interestPart": 0, "date": "2026-10-16", "walletId": "demo-w-bank", "transactionId": "demo-tx-receivable-oct-payment", "note": "Pengembalian kedua" }
+        ]
+      }
+    ],
+    "investments": [
+      {
+        "id": "demo-i-fund", "name": "Reksa Dana Demo", "assetType": "reksadana", "notes": "Investasi rutin Rp1 juta per bulan — data demo", "currentValue": 3180000, "fundName": "Dana Seimbang Demo", "managerName": "Manajer Investasi Demo", "unit": "unit", "interestRate": 0, "maturityDate": "", "bankName": "", "tickerSymbol": "", "coinName": "", "createdAt": "2026-08-08", "lastUpdated": "2026-10-31",
+        "transactions": [
+          { "id": "demo-itx-fund-aug", "type": "buy", "date": "2026-08-08", "units": 1000, "pricePerUnit": 1000, "totalAmount": 1000000, "walletId": "demo-w-bank", "walletTxId": "demo-tx-aug-fund", "note": "Pembelian Agustus" },
+          { "id": "demo-itx-fund-sep", "type": "buy", "date": "2026-09-08", "units": 1000, "pricePerUnit": 1000, "totalAmount": 1000000, "walletId": "demo-w-bank", "walletTxId": "demo-tx-sep-fund", "note": "Pembelian September" },
+          { "id": "demo-itx-fund-oct", "type": "buy", "date": "2026-10-08", "units": 1000, "pricePerUnit": 1000, "totalAmount": 1000000, "walletId": "demo-w-bank", "walletTxId": "demo-tx-oct-fund", "note": "Pembelian Oktober" }
+        ]
+      },
+      {
+        "id": "demo-i-gold", "name": "Emas Demo", "assetType": "emas", "notes": "Emas 1 gram — data demo", "currentValue": 1450000, "unit": "gram", "interestRate": 0, "maturityDate": "", "bankName": "", "tickerSymbol": "", "coinName": "", "fundName": "", "managerName": "", "createdAt": "2026-09-21", "lastUpdated": "2026-10-31",
+        "transactions": [
+          { "id": "demo-itx-gold-buy", "type": "buy", "date": "2026-09-21", "units": 1, "pricePerUnit": 1350000, "totalAmount": 1350000, "walletId": "demo-w-bank", "walletTxId": "demo-tx-gold-buy", "note": "Pembelian pertama" }
+        ]
+      }
+    ],
+    "fixedAssets": [
+      { "id": "demo-a-laptop", "name": "Laptop kerja", "category": "elektronik", "purchasePrice": 8000000, "currentValue": 7200000, "purchaseDate": "2026-08-18", "note": "Pembelian tercatat di transaksi Agustus — data demo", "createdAt": "2026-08-18" },
+      { "id": "demo-a-motor", "name": "Sepeda motor", "category": "kendaraan", "purchasePrice": 18000000, "currentValue": 15000000, "purchaseDate": "2026-06-15", "note": "Aset yang sudah dimiliki sebelum periode demo", "createdAt": "2026-08-01" }
+    ],
+    "preferences": {
+      "darkMode": false, "cycleStart": 1, "salaryAdjust": false, "page": "dashboard", "periodMode": "month", "customRanges": [], "density": "standard", "radius": "soft", "collapsed": false, "yearMode": false
+    },
+    "fireSettings": {
+      "currentAge": 28, "retirementAge": 45, "monthlyIncome": 12000000, "monthlyExpenses": 6000000, "currentAssets": 4630000, "allocation": { "pokok": 50, "hiburan": 20, "fire": 25, "emas": 5 }, "returnRate": 8, "salaryGrowth": 5, "inflation": 4, "postRetirementReturn": 6
+    }
+  }
+}

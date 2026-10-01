@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal/Modal';
+import { BACKUP_COLLECTION_LABELS } from '../../utils/backupHelpers';
 
 /**
  * ImportConfirmModal — Displays import summary and lets user choose
@@ -25,10 +26,10 @@ export default function ImportConfirmModal({ importSummary, onConfirm, onClose, 
   };
 
   const summaryText = [
-    importSummary.wallets > 0 && `${importSummary.wallets} dompet`,
-    importSummary.transactions > 0 && `${importSummary.transactions} transaksi`,
-    importSummary.budgets > 0 && `${importSummary.budgets} anggaran`,
-    importSummary.categories > 0 && `${importSummary.categories} kategori`,
+    ...Object.entries(BACKUP_COLLECTION_LABELS).map(([key, label]) =>
+      importSummary[key] > 0 && `${importSummary[key]} ${label}`),
+    importSummary.preferences && 'preferensi',
+    importSummary.fireSettings && 'setelan FIRE',
   ].filter(Boolean).join(', ');
 
   return (
@@ -189,7 +190,7 @@ export default function ImportConfirmModal({ importSummary, onConfirm, onClose, 
                 Gabungkan (Append)
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-4)', fontWeight: 500 }}>
-                Data baru akan ditambahkan, data yang sudah ada tidak berubah
+                Data baru akan ditambahkan. Data, preferensi, dan setelan FIRE yang sudah ada tidak berubah.
               </div>
             </button>
           </div>

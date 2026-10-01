@@ -73,6 +73,7 @@ import {
   updatePreferences,
   migrateData,
   initUser,
+  resetUserData,
 } from '../../services/firestoreService.js';
 
 import {
@@ -89,6 +90,7 @@ import {
   where,
   limit,
 } from 'firebase/firestore';
+import { BACKUP_ARRAY_KEYS, BACKUP_EXTRA_KEYS, normalizeBackupData } from '../../utils/backupHelpers';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -684,6 +686,12 @@ describe('Preferences', () => {
       .rejects.toThrow();
     expect(setDoc).not.toHaveBeenCalled();
   });
+
+  it('persists appearance and dashboard preferences with merge semantics', async () => {
+    const data = normalizeBackupData({ preferences: { density: 'compact', radius: 'round', collapsed: true, yearMode: true } }).preferences;
+    await updatePreferences(data);
+    expect(setDoc).toHaveBeenCalledWith(expect.objectContaining({ _path: 'users/test-user-123/preferences/prefs' }), data, { merge: true });
+  });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -706,6 +714,7 @@ describe('initUser', () => {
 
   it('creates 18 default categories + preferences when empty', async () => {
     getDocs.mockResolvedValueOnce(makeDocsSnapshot([]));
+    getDoc.mockResolvedValueOnce(makeDocSnapshot(null, false));
 
     const result = await initUser();
 
@@ -718,11 +727,19 @@ describe('initUser', () => {
 
   it('uses limit(1) query to check for existing categories', async () => {
     getDocs.mockResolvedValueOnce(makeDocsSnapshot([]));
+    getDoc.mockResolvedValueOnce(makeDocSnapshot(null, false));
 
     await initUser();
 
     expect(limit).toHaveBeenCalledWith(1);
     expect(query).toHaveBeenCalled();
+  });
+
+  it('does not re-seed an intentionally empty snapshot after a backup restore', async () => {
+    getDocs.mockResolvedValueOnce(makeDocsSnapshot([]));
+    getDoc.mockResolvedValueOnce(makeDocSnapshot(normalizeBackupData({}).preferences));
+    expect((await initUser()).initialized).toBe(false);
+    expect(writeBatch).not.toHaveBeenCalled();
   });
 });
 
@@ -732,6 +749,43 @@ describe('initUser', () => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('migrateData', () => {
+  it('restores every collection, nested histories, preferences and FIRE at the original paths', async () => {
+    const data = normalizeBackupData({
+      wallets: [{ id: 'w_demo', balance: 900000 }],
+      transactions: [{ id: 't_demo', amount: 100000, type: 'expense', walletId: 'w_demo' }],
+      ...Object.fromEntries(BACKUP_EXTRA_KEYS.map(key => [key, [{ id: `${key}_demo`, history: [{ transactionId: 't_demo' }] }]])),
+      preferences: { darkMode: true, density: 'compact' },
+      fireSettings: { currentAssets: 2000000 },
+    });
+    const result = await migrateData(data);
+    expect(result.imported).toBe(9);
+    for (const key of BACKUP_EXTRA_KEYS) {
+      expect(mockBatch.set).toHaveBeenCalledWith(
+        expect.objectContaining({ _path: `users/test-user-123/${key}/${key}_demo` }),
+        { history: [{ transactionId: 't_demo' }] },
+      );
+    }
+    expect(mockBatch.set).toHaveBeenCalledWith(expect.objectContaining({ _path: 'users/test-user-123/preferences/prefs' }), data.preferences);
+    expect(mockBatch.set).toHaveBeenCalledWith(expect.objectContaining({ _path: 'users/test-user-123/preferences/fire' }), data.fireSettings);
+    expect(mockBatch.set).toHaveBeenCalledWith(expect.objectContaining({ _path: 'users/test-user-123/wallets/w_demo' }), { balance: 900000 });
+    expect(mockBatch.update).not.toHaveBeenCalled();
+    expect(getDoc).not.toHaveBeenCalled();
+  });
+
+  it('chunks additional menu records and settings at the same 500-write boundary', async () => {
+    mockBatch.commit.mockImplementationOnce(async () => {
+      expect(mockBatch.set).toHaveBeenCalledTimes(500);
+    });
+    const data = normalizeBackupData({
+      recurringItems: Array.from({ length: 300 }, (_, i) => ({ id: `r${i}` })),
+      subscriptions: Array.from({ length: 300 }, (_, i) => ({ id: `s${i}` })),
+    });
+    expect((await migrateData(data)).imported).toBe(602);
+    expect(writeBatch).toHaveBeenCalledTimes(2);
+    expect(mockBatch.commit).toHaveBeenCalledTimes(2);
+    expect(mockBatch.set).toHaveBeenCalledTimes(602);
+  });
+
   it('preserves original IDs as document IDs', async () => {
     // Mock getDoc for preferences check
     getDoc.mockResolvedValueOnce(makeDocSnapshot(null, false));
@@ -803,6 +857,26 @@ describe('migrateData', () => {
 
     // Only 1 wallet, no preferences
     expect(result.imported).toBe(1);
+  });
+});
+
+describe('Backup replacement reset', () => {
+  it('deletes all collections without injecting default records before a restore', async () => {
+    const keys = [...BACKUP_ARRAY_KEYS, 'preferences', 'budgets'];
+    for (let i = 0; i < keys.length; i++) {
+      getDocs.mockResolvedValueOnce({ docs: [{ ref: { _path: `users/test-user-123/${keys[i]}/old` } }] });
+    }
+    await resetUserData({ initializeDefaults: false });
+    expect(getDocs).toHaveBeenCalledTimes(10);
+    expect(mockBatch.delete).toHaveBeenCalledTimes(10);
+    expect(mockBatch.set).not.toHaveBeenCalled();
+  });
+
+  it('keeps the normal reset behavior of recreating default categories', async () => {
+    for (let i = 0; i < 11; i++) getDocs.mockResolvedValueOnce(makeDocsSnapshot([]));
+    getDoc.mockResolvedValueOnce(makeDocSnapshot(null, false));
+    await resetUserData();
+    expect(mockBatch.set).toHaveBeenCalledTimes(19);
   });
 });
 

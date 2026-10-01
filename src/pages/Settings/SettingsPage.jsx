@@ -4,6 +4,7 @@ import ImportConfirmModal from './ImportConfirmModal';
 import NavIcon from '../../components/icons/NavIcon';
 import { buildBudgetXJson, downloadJson, downloadCsvZip } from '../../services/exportService';
 import { parseAndValidate, validateEntities, parseCsvZip, parseTransactionCsv, parseWalletCsv, parseBudgetCsv, parseCsv } from '../../services/importService';
+import { normalizeBackupData, summarizeBackupData } from '../../utils/backupHelpers';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -57,6 +58,12 @@ export default function SettingsPage({
   budgets = {},
   categories = [],
   preferences = {},
+  recurringItems = [],
+  subscriptions = [],
+  debts = [],
+  investments = [],
+  fixedAssets = [],
+  fireSettings,
   onImportData,
   showToast,
   onCreateCategory,
@@ -103,7 +110,7 @@ export default function SettingsPage({
   const handleExport = async () => {
     setExporting(true);
     try {
-      const data = { wallets, transactions, budgets, categories, preferences };
+      const data = normalizeBackupData({ wallets, transactions, budgets, categories, preferences, recurringItems, subscriptions, debts, investments, fixedAssets, fireSettings });
       if (exportFormat === 'json') {
         const budgetkuJson = buildBudgetXJson(data);
         downloadJson(budgetkuJson);
@@ -147,12 +154,7 @@ export default function SettingsPage({
             return;
           }
 
-          const summary = {
-            wallets: (data.wallets || []).length,
-            transactions: (data.transactions || []).length,
-            budgets: Object.keys(data.budgets || {}).length,
-            categories: (data.categories || []).length,
-          };
+          const summary = summarizeBackupData(data);
 
           setImportData(data);
           setImportSummary(summary);
@@ -178,12 +180,7 @@ export default function SettingsPage({
             return;
           }
 
-          const summary = {
-            wallets: (result.data.wallets || []).length,
-            transactions: (result.data.transactions || []).length,
-            budgets: Object.keys(result.data.budgets || {}).length,
-            categories: (result.data.categories || []).length,
-          };
+          const summary = summarizeBackupData(result.data);
 
           setImportData(result.data);
           setImportSummary(summary);
@@ -586,8 +583,8 @@ export default function SettingsPage({
         <div className="card">
           <h2 className="cardTitle settingsTitle">Ekspor Data</h2>
           <p className="settingsDesc">
-            Unduh semua data Anda (dompet, transaksi, anggaran, kategori, dan preferensi)
-            sebagai file cadangan.
+            Unduh cadangan lengkap semua menu, termasuk preferensi dan setelan FIRE.
+            ZIP berisi tabel CSV dan cadangan JSON lengkap.
           </p>
 
           {/* Format selector */}

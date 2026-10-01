@@ -1,7 +1,7 @@
 # BudgetX — Panduan Pengguna
 
 **Versi:** 1.0  
-**Terakhir Diperbarui:** Juli 2025  
+**Terakhir Diperbarui:** 1 Oktober 2026
 
 ---
 
@@ -642,23 +642,33 @@ Performa per bagian (Kebutuhan/Keinginan/Tabungan):
 
 **Format JSON:**
 1. Buka **Pengaturan**
-2. Klik **"Export JSON"**
+2. Pada **Ekspor Data**, pilih **JSON**, lalu klik **Ekspor**
 3. File `.json` otomatis terdownload
 
+Cadangan mencakup dompet, transaksi, anggaran, kategori, barang berkala,
+langganan, utang/piutang, investasi, aset tetap, preferensi tampilan/periode,
+dan setelan FIRE, termasuk riwayat pembayaran dan pembelian.
+
 **Format CSV:**
-1. Klik **"Export CSV"**
-2. File `.zip` berisi beberapa file CSV terdownload
+1. Pada **Ekspor Data**, pilih **CSV (ZIP)**, lalu klik **Ekspor**
+2. File `.zip` berisi empat tabel CSV dan `backup.json` lengkap terdownload
 
 ### 13.2 Import Data
 
 **Restore Backup:**
-1. Klik **"Import"**
+1. Pada **Impor Cadangan**, klik **Pilih File**
 2. Pilih file JSON atau ZIP backup
 3. Preview ringkasan (jumlah dompet, transaksi, dll)
 4. Pilih mode:
-   - **Replace** — Timpa semua data yang ada
-   - **Append** — Tambahkan data baru, skip yang sudah ada
-5. Konfirmasi
+   - **Ganti Semua (Replace)** — Timpa seluruh data, preferensi, dan setelan FIRE. Data optional yang tidak ada di cadangan lama kembali kosong/default.
+   - **Gabungkan (Append)** — Tambahkan ID baru, lewati yang sudah ada. Data dan preferensi existing tetap dipertahankan.
+5. Klik metode yang dipilih untuk menerapkan impor
+
+Cadangan JSON v1 dan ZIP CSV-only lama tetap didukung. Saldo akhir dompet
+dipulihkan apa adanya; transaksi cadangan tidak diterapkan ulang ke saldo.
+
+Untuk mencoba semua menu, unduh [data demo Agustus–Oktober 2026](https://budgetx.web.app/demo/budgetx-demo-agustus-oktober-2026.json)
+dan ikuti [panduan akun demo](DEMO_DATA.md).
 
 **Import CSV Multi-file:**
 1. Klik **"Import CSV"**

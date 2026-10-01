@@ -175,6 +175,11 @@ function preferenceSchema(body) {
   if (body.customRanges !== undefined && !Array.isArray(body.customRanges)) {
     return 'customRanges must be an array';
   }
+  if (body.density !== undefined && !['compact', 'standard', 'relaxed'].includes(body.density)) return 'density tidak valid';
+  if (body.radius !== undefined && !['sharp', 'soft', 'round'].includes(body.radius)) return 'radius tidak valid';
+  for (const key of ['collapsed', 'yearMode']) {
+    if (body[key] !== undefined && typeof body[key] !== 'boolean') return `${key} harus boolean`;
+  }
   return null;
 }
 

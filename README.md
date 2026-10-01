@@ -50,6 +50,12 @@ npm run dev
 
 Buka http://localhost:5173 — app berjalan full tanpa akun (data di localStorage).
 
+### Data demo siap impor
+
+[Unduh demo Agustus–Oktober 2026](https://budgetx.web.app/demo/budgetx-demo-agustus-oktober-2026.json)
+untuk mengisi semua menu. Pada akun khusus demo, buka **Pengaturan → Impor Cadangan → Pilih File**,
+lalu pilih **Ganti Semua (Replace)**. Panduan dan rincian dataset ada di [Data Demo](docs/DEMO_DATA.md).
+
 ### Dengan Firebase
 
 ```bash

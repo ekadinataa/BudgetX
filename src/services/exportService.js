@@ -11,7 +11,7 @@ import { zipSync } from 'fflate';
 
 /**
  * Build a BudgetX_Format v1 JSON envelope from app data.
- * @param {{ wallets: Array, transactions: Array, budgets: Object, categories: Array, preferences: Object }} data
+ * @param {Object} data - Complete snapshot, including optional collections and settings
  * @returns {{ budgetku: true, version: string, exportedAt: string, data: Object }}
  */
 export function buildBudgetXJson(data) {
@@ -158,17 +158,19 @@ export function buildCsvStrings(data) {
 }
 
 /**
- * Package CSV strings into a ZIP Uint8Array using fflate.zipSync.
+ * Package CSV tables and an optional complete JSON snapshot into a ZIP.
  * @param {{ wallets: string, transactions: string, budgets: string, categories: string }} csvStrings
+ * @param {Object} [backupData] - Complete snapshot for lossless backup restoration
  * @returns {Uint8Array} ZIP file bytes
  */
-export function buildCsvZip(csvStrings) {
+export function buildCsvZip(csvStrings, backupData) {
   const encoder = new TextEncoder();
   return zipSync({
     'wallets.csv': encoder.encode(csvStrings.wallets),
     'transactions.csv': encoder.encode(csvStrings.transactions),
     'budgets.csv': encoder.encode(csvStrings.budgets),
     'categories.csv': encoder.encode(csvStrings.categories),
+    ...(backupData ? { 'backup.json': encoder.encode(JSON.stringify(buildBudgetXJson(backupData))) } : {}),
   });
 }
 
@@ -179,7 +181,7 @@ export function buildCsvZip(csvStrings) {
  */
 export function downloadCsvZip(data) {
   const csvStrings = buildCsvStrings(data);
-  const zipBytes = buildCsvZip(csvStrings);
+  const zipBytes = buildCsvZip(csvStrings, data);
   const blob = new Blob([zipBytes], { type: 'application/zip' });
   const date = new Date().toISOString().slice(0, 10);
   triggerDownload(blob, `budgetku-export-${date}.csv.zip`);

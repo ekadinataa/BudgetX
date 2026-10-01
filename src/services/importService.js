@@ -10,8 +10,31 @@ import {
   validateTransaction,
   validateBudget,
   validateCategory,
+  validatePreference,
+  validateCustomRange,
 } from './validator.js';
 import { unzipSync } from 'fflate';
+import { validateDebt } from './debtValidator.js';
+import { validateInvestment, validateInvestmentTransaction } from './investmentValidator.js';
+import { validateFixedAsset } from './fixedAssetValidator.js';
+import { BACKUP_ARRAY_KEYS, BACKUP_EXTRA_KEYS, BACKUP_COLLECTION_LABELS, normalizeBackupData } from '../utils/backupHelpers.js';
+
+const isRecord = value => Boolean(value && typeof value === 'object' && !Array.isArray(value));
+const isBackupId = id => typeof id === 'string' && id.trim() !== '' && !id.includes('/') && id !== '.' && id !== '..';
+const isDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+// Imported nested histories must also respect Firestore's finite numbers and text limits.
+function validateBackupValues(value) {
+  if (typeof value === 'number' && !Number.isFinite(value)) return 'Angka harus terhingga';
+  if (typeof value === 'string' && value.length > 1000) return 'Teks melebihi 1000 karakter';
+  if (value && typeof value === 'object') {
+    for (const item of Object.values(value)) {
+      const error = validateBackupValues(item);
+      if (error) return error;
+    }
+  }
+  return null;
+}
 
 /**
  * Parse a JSON string and validate it as BudgetX_Format v1.
@@ -37,7 +60,7 @@ export function parseAndValidate(jsonString) {
   }
 
   // Step 2: Check BudgetX marker
-  if (obj.budgetku !== true) {
+  if (!obj || typeof obj !== 'object' || obj.budgetku !== true) {
     throw new Error('Bukan file ekspor BudgetX');
   }
 
@@ -51,10 +74,12 @@ export function parseAndValidate(jsonString) {
   if (
     !data ||
     typeof data !== 'object' ||
+    Array.isArray(data) ||
     !Array.isArray(data.wallets) ||
     !Array.isArray(data.transactions) ||
     !data.budgets ||
     typeof data.budgets !== 'object' ||
+    Array.isArray(data.budgets) ||
     !Array.isArray(data.categories)
   ) {
     throw new Error('Struktur data tidak valid');
@@ -76,6 +101,32 @@ export function parseAndValidate(jsonString) {
  */
 export function validateEntities(data) {
   const errors = [];
+  if (!isRecord(data)) return { valid: false, errors: ['Struktur data tidak valid'] };
+
+  for (const key of BACKUP_ARRAY_KEYS) {
+    if (data[key] === undefined) continue;
+    const label = BACKUP_COLLECTION_LABELS[key];
+    if (!Array.isArray(data[key])) {
+      errors.push(`${label}: harus berupa daftar`);
+      continue;
+    }
+    const ids = new Set();
+    data[key].forEach((record, i) => {
+      if (!isRecord(record) || !isBackupId(record.id)) errors.push(`${label} #${i + 1}: ID tidak valid`);
+      else if (ids.has(record.id)) errors.push(`${label} #${i + 1}: ID duplikat`);
+      ids.add(record?.id);
+    });
+  }
+  if (data.budgets !== undefined) {
+    if (!isRecord(data.budgets)) errors.push('Anggaran harus berupa objek');
+    else for (const [key, budget] of Object.entries(data.budgets)) {
+      if (!isBackupId(key) || !isRecord(budget)) errors.push(`Anggaran ${key}: struktur tidak valid`);
+    }
+  }
+  const valueError = validateBackupValues(data);
+  if (valueError) errors.push(valueError);
+  // Do not pass malformed records to the form validators below.
+  if (errors.length) return { valid: false, errors };
 
   // Validate wallets
   if (Array.isArray(data.wallets)) {
@@ -107,6 +158,62 @@ export function validateEntities(data) {
       const err = validateCategory(cat);
       if (err) errors.push(`Kategori #${i + 1}: ${err}`);
     });
+  }
+
+  const checkOptionalRecord = (key, record) => {
+    if (record.isActive !== undefined && typeof record.isActive !== 'boolean') return 'Status aktif harus boolean';
+    if (record.tags !== undefined && (!Array.isArray(record.tags) || record.tags.some(tag => typeof tag !== 'string'))) return 'Tag harus berupa daftar teks';
+    if (key === 'debts') {
+      const err = validateDebt(record);
+      if (err) return err;
+      if (!Number.isFinite(record.remainingAmount) || record.remainingAmount < 0 || record.remainingAmount > record.totalAmount) return 'Sisa utang/piutang tidak valid';
+      if (record.payments !== undefined && (!Array.isArray(record.payments) || record.payments.some(payment => !isRecord(payment) || !Number.isFinite(payment.amount) || payment.amount <= 0 || !isDate(payment.date)))) return 'Riwayat pembayaran tidak valid';
+      return null;
+    }
+    if (typeof record.name !== 'string' || !record.name.trim()) return 'Nama wajib diisi';
+    if (key === 'investments') {
+      const err = validateInvestment(record);
+      if (err) return err;
+      if (record.currentValue !== undefined && (!Number.isFinite(record.currentValue) || record.currentValue < 0)) return 'Nilai investasi tidak valid';
+      if (record.transactions !== undefined && (!Array.isArray(record.transactions) || record.transactions.some(tx => !isRecord(tx) || !['buy', 'sell'].includes(tx.type) || !isDate(tx.date) || validateInvestmentTransaction(tx, tx.type) || !Number.isFinite(tx.totalAmount) || tx.totalAmount <= 0))) return 'Riwayat investasi tidak valid';
+      return null;
+    }
+    if (key === 'fixedAssets') {
+      if (!Number.isFinite(record.purchasePrice) || !Number.isFinite(record.currentValue)) return 'Nilai aset harus berupa angka';
+      return validateFixedAsset(record);
+    }
+    if (!Number.isFinite(record.amount) || record.amount <= 0) return 'Jumlah harus lebih dari 0';
+    if (key === 'recurringItems' && (!Number.isFinite(record.durationDays) || record.durationDays <= 0)) return 'Durasi harus lebih dari 0';
+    if (key === 'recurringItems' && record.lastPurchaseDate && !isDate(record.lastPurchaseDate)) return 'Tanggal pembelian tidak valid';
+    if (key === 'subscriptions' && (!['bulanan', 'tahunan', 'mingguan'].includes(record.billingCycle) || !isDate(record.nextDueDate))) return 'Siklus atau tanggal tagihan tidak valid';
+    return null;
+  };
+  for (const key of BACKUP_EXTRA_KEYS) {
+    if (data[key] === undefined) continue;
+    data[key].forEach((record, i) => {
+      const err = checkOptionalRecord(key, record);
+      if (err) errors.push(`${BACKUP_COLLECTION_LABELS[key]} #${i + 1}: ${err}`);
+    });
+  }
+  if (data.preferences !== undefined) {
+    if (!data.preferences || typeof data.preferences !== 'object' || Array.isArray(data.preferences)) errors.push('Preferensi tidak valid');
+    else {
+      const err = validatePreference(normalizeBackupData(data).preferences);
+      if (err) errors.push(`Preferensi: ${err}`);
+      else for (const range of data.preferences.customRanges || []) {
+        if (!isRecord(range) || !isBackupId(range.id) || validateCustomRange(range)) errors.push('Preferensi: periode khusus tidak valid');
+      }
+    }
+  }
+  if (data.fireSettings !== undefined) {
+    const settings = data.fireSettings;
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) errors.push('Setelan FIRE tidak valid');
+    else {
+      for (const key of ['currentAge', 'retirementAge', 'monthlyIncome', 'monthlyExpenses', 'currentAssets', 'returnRate', 'salaryGrowth', 'inflation', 'postRetirementReturn']) {
+        if (settings[key] !== undefined && (!Number.isFinite(settings[key]) || settings[key] < 0)) errors.push(`FIRE: ${key} tidak valid`);
+      }
+      if (settings.allocation !== undefined && (!settings.allocation || typeof settings.allocation !== 'object' || Array.isArray(settings.allocation) || Object.values(settings.allocation).some(v => !Number.isFinite(v) || v < 0 || v > 100))) errors.push('FIRE: alokasi tidak valid');
+    }
   }
 
   if (errors.length > 0) {
@@ -157,14 +264,26 @@ export function computeAppend(importData, existingData) {
 
   const skipped = totalImport - added;
 
+  const extraToAdd = {};
+  let extraAdded = 0;
+  let extraSkipped = 0;
+  for (const key of BACKUP_EXTRA_KEYS) {
+    if (importData[key] === undefined) continue;
+    const ids = new Set((existingData[key] || []).map(item => item.id));
+    extraToAdd[key] = importData[key].filter(item => !ids.has(item.id));
+    extraAdded += extraToAdd[key].length;
+    extraSkipped += importData[key].length - extraToAdd[key].length;
+  }
+
   return {
     toAdd: {
       wallets: newWallets,
       transactions: newTransactions,
       categories: newCategories,
       budgets: newBudgets,
+      ...extraToAdd,
     },
-    counts: { added, skipped },
+    counts: { added: added + extraAdded, skipped: skipped + extraSkipped },
   };
 }
 
@@ -619,7 +738,7 @@ function parseRow(line) {
 
 /**
  * Parse a CSV ZIP file (Uint8Array) and reconstruct BudgetX data objects.
- * Expects the ZIP to contain: wallets.csv, transactions.csv, budgets.csv, categories.csv
+ * Prefers backup.json when present; legacy ZIPs contain four CSV tables.
  *
  * @param {Uint8Array} zipBytes - The ZIP file content
  * @returns {{ wallets: Array, transactions: Array, budgets: Object, categories: Array }}
@@ -634,6 +753,9 @@ export function parseCsvZip(zipBytes) {
   }
 
   const decoder = new TextDecoder('utf-8');
+  // New ZIP exports include the complete snapshot alongside readable CSV tables.
+  // Older CSV-only backups continue to use the reconstruction below.
+  if (files['backup.json']) return parseAndValidate(decoder.decode(files['backup.json'])).data;
   const requiredFiles = ['wallets.csv', 'transactions.csv', 'budgets.csv', 'categories.csv'];
 
   for (const f of requiredFiles) {

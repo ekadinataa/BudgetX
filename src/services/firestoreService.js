@@ -30,6 +30,7 @@ import {
   trimStrings,
 } from './validator';
 import { CATEGORIES } from '../data/defaults';
+import { BACKUP_EXTRA_KEYS, normalizeBackupData } from '../utils/backupHelpers.js';
 
 // ── Internal helpers ─────────────────────────────────────────────────
 
@@ -458,11 +459,14 @@ export async function updatePreferences(data) {
     periodMode: periodMode ?? 'month',
     customRanges: customRanges ?? [],
   };
+  for (const key of ['density', 'radius', 'collapsed', 'yearMode']) {
+    if (data[key] !== undefined) prefsData[key] = data[key];
+  }
 
   try {
     const uid = getUid();
     const docRef = doc(db, 'users', uid, 'preferences', 'prefs');
-    await setDoc(docRef, prefsData);
+    await setDoc(docRef, prefsData, { merge: true });
     return prefsData;
   } catch (err) {
     throw new Error(`Failed to update preferences: ${err.message}`);
@@ -486,6 +490,14 @@ export async function initUser() {
       return { initialized: false, message: 'User already has data' };
     }
 
+    // An empty category collection can be intentional, including an empty backup.
+    // Its restored preferences distinguish that snapshot from a brand-new user.
+    const prefsRef = doc(db, 'users', uid, 'preferences', 'prefs');
+    const prefsSnapshot = await getDoc(prefsRef);
+    if (prefsSnapshot.exists()) {
+      return { initialized: false, message: 'User already has data' };
+    }
+
     // Write default categories and preferences in a batch
     const batch = writeBatch(db);
 
@@ -496,7 +508,6 @@ export async function initUser() {
     }
 
     // Create default preferences
-    const prefsRef = doc(db, 'users', uid, 'preferences', 'prefs');
     batch.set(prefsRef, { ...DEFAULT_PREFERENCES });
 
     await batch.commit();
@@ -511,7 +522,7 @@ export async function initUser() {
 
 const BATCH_LIMIT = 500;
 
-export async function resetUserData() {
+export async function resetUserData({ initializeDefaults = true } = {}) {
   try {
     const uid = getUid();
     const subcollections = ['wallets', 'transactions', 'budgets', 'categories', 'preferences', 'recurringItems', 'debts', 'investments', 'fixedAssets', 'subscriptions'];
@@ -533,8 +544,8 @@ export async function resetUserData() {
       await batch.commit();
     }
 
-    // Re-create default categories and preferences
-    await initUser();
+    // A backup replacement supplies its own categories and preferences.
+    if (initializeDefaults) await initUser();
 
     return { success: true };
   } catch (err) {
@@ -897,11 +908,23 @@ export async function migrateData(data) {
       }
     }
 
-    // Create default preferences if they don't exist
+    // Restore the remaining collections without replaying their wallet transactions.
+    for (const key of BACKUP_EXTRA_KEYS) {
+      for (const item of data[key] || []) {
+        const { id, ...rest } = item;
+        if (id) operations.push({ ref: doc(db, 'users', uid, key, id), data: rest });
+      }
+    }
+
     const prefsRef = doc(db, 'users', uid, 'preferences', 'prefs');
-    const prefsDoc = await getDoc(prefsRef);
-    if (!prefsDoc.exists()) {
-      operations.push({ ref: prefsRef, data: { ...DEFAULT_PREFERENCES } });
+    if (data.preferences !== undefined) {
+      operations.push({ ref: prefsRef, data: normalizeBackupData(data).preferences });
+    } else {
+      const prefsDoc = await getDoc(prefsRef);
+      if (!prefsDoc.exists()) operations.push({ ref: prefsRef, data: { ...DEFAULT_PREFERENCES } });
+    }
+    if (data.fireSettings !== undefined) {
+      operations.push({ ref: doc(db, 'users', uid, 'preferences', 'fire'), data: normalizeBackupData(data).fireSettings });
     }
 
     // Write in batches of BATCH_LIMIT

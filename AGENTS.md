@@ -79,6 +79,16 @@ users/{uid}/
   recurringItems/{id}  preferences/prefs   preferences/fire
 ```
 
+### Cadangan lengkap (1 Okt 2026)
+- JSON v1 mencakup seluruh koleksi di atas, `preferences`, dan `fireSettings`.
+- `src/utils/backupHelpers.js` menentukan koleksi, default, normalisasi cadangan lama, dan ringkasan impor.
+- Replace memulihkan saldo akhir tanpa menjalankan transaksi ulang; koleksi optional yang hilang kembali kosong dan setelan kembali default.
+- Append membandingkan ID/monthKey seluruh koleksi; saldo existing, preferensi, dan FIRE tidak diganti.
+- ZIP ekspor berisi empat CSV + `backup.json` lengkap. ZIP CSV-only lama tetap didukung.
+- Cloud Replace memakai `resetUserData({ initializeDefaults: false })`; `initUser` juga memeriksa dokumen preferensi agar snapshot kosong tidak diisi ulang saat reload.
+- Demo siap impor: `public/demo/budgetx-demo-agustus-oktober-2026.json`; panduan `docs/DEMO_DATA.md`.
+- Integrasi App cloud diuji dengan mock, impor/ekspor lokal diuji di Chrome desktop/mobile; tanpa menulis data demo ke akun produksi.
+
 **KeXA transaksi** (`firestoreService.js:175-337`): `createTransaction` / `updateTransaction` /
 `deleteTransaction` WAJIB `writeBatch` + `increment()`.
 Update = reverse efek lama (2-3 `batch.update`) lalu apply efek baru.
@@ -264,7 +274,7 @@ lulus sebelum commit:
 npm run dev         # Vite dev server :5173
 npm run build       # → dist/  (butuh @rolldown/binding-<platform>!)
 npm run build:single # build + inline dist/ → ../budgetx.html (1 file mandiri)
-npm test            # vitest --run (23 file; browser checks optional)
+npm test            # vitest --run (26 file; browser checks optional)
 npm run lint        # ESLint flat config
 npm run preview     # serve build
 ```
@@ -305,13 +315,14 @@ Hindari `--force` / `rm -rf node_modules` (npm optional-deps bug, bisa bikin loc
 
 ## 6. Test Suite
 
-23 file, **412 test termasuk browser — semua hijau** (per 1 Okt 2026). `setup.js` hanya berisi
+26 file, **475 test termasuk browser — semua hijau** (per 1 Okt 2026). `setup.js` hanya berisi
 `import '@testing-library/jest-dom'`.
 
 | Kategori | File | Catatan |
 |---|---|---|
 | Property-based (fast-check) | 6 file, `numRuns: 100` | helpers, formatters, wallet, transactions, budget, persistence |
-| Unit | validator (104), firestoreService (51), helpers (41) | |
+| Unit | validator (104), firestoreService (57), helpers (41), backup (45), demo data (8) | |
+| Integrasi App | backup-cloud (4) | Replace/Append, legacy, ekspor semua menu; mock cloud, tanpa network writes |
 | Komponen | ui (23), Sidebar (10), ThemeContext (8) | |
 | Deployment | firebase-config (9), single-html-build (6) | Baca `firebase.json`/`.firebaserc`/`firestore.rules` dari disk; single-html-build skip kalau `dist/` belum ada |
 
@@ -344,7 +355,7 @@ Semuanya gagal karena test usang vs. perubahan WIP — testnya yang salah, bukan
 | Cek | Hasil |
 |---|---|
 | `npm run build` | ✅ sukses |
-| `npm test` dengan Playwright | ✅ **412/412 pass**, 23/23 file (1 Okt 2026) |
+| `npm test` dengan Playwright | ✅ **475/475 pass**, 26/26 file (1 Okt 2026) |
 | `npm run lint` | ✅ **0 error, 0 warning** |
 
 ### ✅ Sudah diperbaiki

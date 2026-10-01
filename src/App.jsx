@@ -34,6 +34,7 @@ import { advanceDueDate, buildSubscriptionTransaction } from './utils/subscripti
 import { validateInvestment, validateInvestmentTransaction, validateCurrentValue } from './services/investmentValidator';
 import * as api from './services/firestoreService';
 import { computeAppend } from './services/importService';
+import { normalizeBackupData } from './utils/backupHelpers';
 import './App.css';
 
 // Detect if Firebase is configured — if not, run in local-only mode
@@ -146,12 +147,12 @@ function App() {
   }, []);
 
   // Fetch all data from API when authenticated
-  const fetchAllData = useCallback(async () => {
+  const fetchAllData = useCallback(async ({ initializeDefaults = true } = {}) => {
     setDataLoading(true);
     setDataError('');
     try {
       // Initialize default data for new users (no-op if already initialized)
-      await api.initUser();
+      if (initializeDefaults) await api.initUser();
 
       const [walletsData, txData, budgetsData, catsData, prefsData, recurringData, debtsData, investmentsData, fixedAssetsData, subscriptionsData] = await Promise.all([
         api.getWallets(),
@@ -188,12 +189,17 @@ function App() {
       }
       setCategories(catsData);
       if (prefsData) {
-        if (prefsData.darkMode !== undefined) setDarkMode(prefsData.darkMode);
-        if (prefsData.cycleStart !== undefined) setCycleStart(prefsData.cycleStart);
-        if (prefsData.salaryAdjust !== undefined) setSalaryAdjust(prefsData.salaryAdjust);
-        if (prefsData.page !== undefined) setPage(prefsData.page);
-        if (prefsData.periodMode !== undefined) setPeriodMode(prefsData.periodMode);
-        if (prefsData.customRanges !== undefined) setCustomRanges(prefsData.customRanges);
+        const prefs = normalizeBackupData({ preferences: prefsData }).preferences;
+        setDarkMode(prefs.darkMode);
+        setCycleStart(prefs.cycleStart);
+        setSalaryAdjust(prefs.salaryAdjust);
+        setPage(prefs.page);
+        setPeriodMode(prefs.periodMode);
+        setCustomRanges(prefs.customRanges);
+        setDensity(prefs.density);
+        setRadius(prefs.radius);
+        setCollapsed(prefs.collapsed);
+        setYearMode(prefs.yearMode);
       }
       // Load FIRE settings from Firestore
       try {
@@ -201,9 +207,9 @@ function App() {
         if (uid && firebaseDb) {
           const fireDocRef = doc(firebaseDb, 'users', uid, 'preferences', 'fire');
           const fireSnap = await getDoc(fireDocRef);
-          if (fireSnap.exists()) {
-            setFireSettings(fireSnap.data());
-          }
+          setFireSettings(normalizeBackupData({
+            fireSettings: fireSnap.exists() ? fireSnap.data() : undefined,
+          }).fireSettings);
         }
       } catch { /* silent — fire settings are optional */ }
     } catch {
@@ -243,10 +249,10 @@ function App() {
     if (!prefsInitialized || IS_LOCAL_MODE) return;
     // Debounce to batch rapid state changes (e.g., setPeriodMode + setCustomRanges in same handler)
     const timer = setTimeout(() => {
-      savePreferences({ darkMode, cycleStart, salaryAdjust, page, periodMode, customRanges });
+      savePreferences({ darkMode, cycleStart, salaryAdjust, page, periodMode, customRanges, density, radius, collapsed, yearMode });
     }, 300);
     return () => clearTimeout(timer);
-  }, [darkMode, cycleStart, salaryAdjust, page, periodMode, customRanges, prefsInitialized, savePreferences]);
+  }, [darkMode, cycleStart, salaryAdjust, page, periodMode, customRanges, density, radius, collapsed, yearMode, prefsInitialized, savePreferences]);
 
   // Simple setters for preferences (no longer need individual persist wrappers for periodMode/customRanges)
   const handleSetDarkMode = useCallback((valOrFn) => {
@@ -1263,67 +1269,62 @@ function App() {
     }
 
     if (mode === 'replace') {
+      const data = normalizeBackupData(importData);
       if (IS_LOCAL_MODE) {
-        // Snapshot current state for rollback
-        const snapshot = {
-          wallets: [...wallets],
-          transactions: [...transactions],
-          budgets: { ...budgets },
-          categories: [...categories],
-        };
-        try {
-          setWallets(importData.wallets || []);
-          setTransactions(importData.transactions || []);
-          setBudgets(importData.budgets || {});
-          setCategories(importData.categories || []);
-          return { added: 0, skipped: 0 };
-        } catch (err) {
-          // Rollback
-          setWallets(snapshot.wallets);
-          setTransactions(snapshot.transactions);
-          setBudgets(snapshot.budgets);
-          setCategories(snapshot.categories);
-          throw err;
-        }
+        // Backup wallets already contain their final balances; do not replay transactions.
+        setWallets(data.wallets);
+        setTransactions(data.transactions);
+        setBudgets(data.budgets);
+        setCategories(data.categories);
+        setRecurringItems(data.recurringItems);
+        setSubscriptions(data.subscriptions);
+        setDebts(data.debts);
+        setInvestments(data.investments);
+        setFixedAssets(data.fixedAssets);
+        setFireSettings(data.fireSettings);
+        const prefs = data.preferences;
+        setDarkMode(prefs.darkMode);
+        setCycleStart(prefs.cycleStart);
+        setSalaryAdjust(prefs.salaryAdjust);
+        setPage(prefs.page);
+        setPeriodMode(prefs.periodMode);
+        setCustomRanges(prefs.customRanges);
+        setDensity(prefs.density);
+        setRadius(prefs.radius);
+        setCollapsed(prefs.collapsed);
+        setYearMode(prefs.yearMode);
+        return { added: 0, skipped: 0 };
       } else {
-        // Authenticated mode: reset then migrate
+        // Suspend preference auto-save while replacing cloud data.
+        setDataLoading(true);
         try {
-          await api.resetUserData();
-          await api.migrateData(importData);
-          await fetchAllData();
+          await api.resetUserData({ initializeDefaults: false });
+          await api.migrateData(data);
+          await fetchAllData({ initializeDefaults: false });
           return { added: 0, skipped: 0 };
         } catch (err) {
-          // Rollback: re-fetch to restore whatever state remains
-          await fetchAllData();
+          await fetchAllData({ initializeDefaults: false });
           throw err;
+        } finally {
+          setDataLoading(false);
         }
       }
     } else {
       // Append mode
-      const existingData = { wallets, transactions, budgets, categories };
+      const existingData = { wallets, transactions, budgets, categories, recurringItems, subscriptions, debts, investments, fixedAssets };
       const { toAdd, counts } = computeAppend(importData, existingData);
 
       if (IS_LOCAL_MODE) {
-        const snapshot = {
-          wallets: [...wallets],
-          transactions: [...transactions],
-          budgets: { ...budgets },
-          categories: [...categories],
-        };
-        try {
-          setWallets((ws) => [...ws, ...toAdd.wallets]);
-          setTransactions((ts) => [...ts, ...toAdd.transactions]);
-          setBudgets((bs) => ({ ...bs, ...toAdd.budgets }));
-          setCategories((cs) => [...cs, ...toAdd.categories]);
-          return counts;
-        } catch (err) {
-          // Rollback
-          setWallets(snapshot.wallets);
-          setTransactions(snapshot.transactions);
-          setBudgets(snapshot.budgets);
-          setCategories(snapshot.categories);
-          throw err;
-        }
+        setWallets((ws) => [...ws, ...toAdd.wallets]);
+        setTransactions((ts) => [...ts, ...toAdd.transactions]);
+        setBudgets((bs) => ({ ...bs, ...toAdd.budgets }));
+        setCategories((cs) => [...cs, ...toAdd.categories]);
+        setRecurringItems((items) => [...items, ...(toAdd.recurringItems || [])]);
+        setSubscriptions((items) => [...items, ...(toAdd.subscriptions || [])]);
+        setDebts((items) => [...items, ...(toAdd.debts || [])]);
+        setInvestments((items) => [...items, ...(toAdd.investments || [])]);
+        setFixedAssets((items) => [...items, ...(toAdd.fixedAssets || [])]);
+        return counts;
       } else {
         // Authenticated mode: migrate only new items, then refresh
         try {
@@ -1548,7 +1549,13 @@ function App() {
             transactions={transactions}
             budgets={budgets}
             categories={categories}
-            preferences={{ darkMode, cycleStart, salaryAdjust, page, periodMode, customRanges }}
+            recurringItems={recurringItems}
+            subscriptions={subscriptions}
+            debts={debts}
+            investments={investments}
+            fixedAssets={fixedAssets}
+            fireSettings={fireSettings}
+            preferences={{ darkMode, cycleStart, salaryAdjust, page, periodMode, customRanges, density, radius, collapsed, yearMode }}
             onImportData={handleImportData}
             showToast={showToast}
             onCreateCategory={handleCreateCategory}
