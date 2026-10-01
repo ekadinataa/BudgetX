@@ -4,7 +4,6 @@ import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { fmtFull } from '../../utils/formatters';
-import styles from './WalletPage.module.css';
 
 /**
  * TransferModal — Transfer funds between wallets.
@@ -69,7 +68,7 @@ export default function TransferModal({ wallets, onClose, onSave }) {
           placeholder="0"
         />
         {fromWallet && (
-          <div className={styles.availableBalance}>
+          <div className="fieldHelp num">
             Saldo tersedia: {fmtFull(fromWallet.balance)}
           </div>
         )}
@@ -84,7 +83,7 @@ export default function TransferModal({ wallets, onClose, onSave }) {
           placeholder="Opsional"
         />
       </Field>
-      <button className={styles.saveBtn} onClick={handleSave}>
+      <button className="btnPrimary" onClick={handleSave}>
         Transfer Sekarang
       </button>
     </Modal>

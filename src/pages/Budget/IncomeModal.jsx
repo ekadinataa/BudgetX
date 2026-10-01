@@ -2,7 +2,6 @@ import { useState } from 'react';
 import Modal from '../../components/Modal/Modal';
 import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
-import styles from './BudgetPage.module.css';
 
 /**
  * IncomeModal — Modal to set the total monthly income amount.
@@ -27,7 +26,7 @@ export default function IncomeModal({ current, onClose, onSave }) {
           placeholder="0"
         />
       </Field>
-      <button className={styles.btnPrimary} onClick={() => onSave(val)}>
+      <button className="btnPrimary" onClick={() => onSave(val)}>
         Simpan
       </button>
     </Modal>

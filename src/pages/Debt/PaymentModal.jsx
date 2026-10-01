@@ -7,7 +7,6 @@ import { fmtFull } from '../../utils/formatters';
 import { validatePayment } from '../../services/debtValidator';
 import { getCurrentInstallmentInfo } from '../../utils/debtHelpers';
 import { TODAY } from '../../data/defaults';
-import styles from './DebtPage.module.css';
 
 /**
  * PaymentModal — Record payment against a debt record.
@@ -114,7 +113,7 @@ export default function PaymentModal({ debt, wallets, onClose, onConfirm }) {
       {isAnnuityDebt && (
         <div style={{
           padding: '12px 16px',
-          background: 'rgba(245, 158, 11, 0.08)',
+          background: 'var(--orange-soft)',
           borderRadius: 10,
           border: '1px solid rgba(245, 158, 11, 0.2)',
           marginBottom: 16,
@@ -145,18 +144,8 @@ export default function PaymentModal({ debt, wallets, onClose, onConfirm }) {
         />
         <button
           type="button"
+          className="btnSmallGhost"
           onClick={handlePayFull}
-          style={{
-            marginTop: 6,
-            padding: '4px 10px',
-            borderRadius: 6,
-            border: '1px solid var(--border)',
-            background: 'var(--bg-2)',
-            color: 'var(--text-3)',
-            fontSize: 11,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
         >
           {isAnnuityDebt
             ? `Bayar Cicilan (${fmtFull(installmentInfo.total)})`
@@ -165,7 +154,7 @@ export default function PaymentModal({ debt, wallets, onClose, onConfirm }) {
         </button>
       </Field>
 
-      <div className={styles.formGrid}>
+      <div className="formGrid">
         <Field label="Tanggal" error={errors.date}>
           <Input type="date" value={form.date} onChange={set('date')} />
         </Field>
@@ -187,10 +176,10 @@ export default function PaymentModal({ debt, wallets, onClose, onConfirm }) {
       </Field>
 
       {errors._general && (
-        <div style={{ color: '#DC2626', fontSize: 12, marginBottom: 8 }}>{errors._general}</div>
+        <div style={{ color: 'var(--red-ink)', fontSize: 12, marginBottom: 8 }}>{errors._general}</div>
       )}
 
-      <button className={styles.saveBtn} onClick={handleSubmit}>
+      <button className="btnPrimary" onClick={handleSubmit}>
         Catat Pembayaran
       </button>
     </Modal>

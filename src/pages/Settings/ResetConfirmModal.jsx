@@ -75,8 +75,8 @@ export default function ResetConfirmModal({ onConfirm, onClose }) {
         <p style={{
           fontSize: 13,
           fontWeight: 600,
-          color: '#FBBF24',
-          background: 'rgba(245, 158, 11, 0.08)',
+          color: 'var(--orange-ink)',
+          background: 'var(--orange-soft)',
           borderRadius: 8,
           padding: '10px 14px',
           marginBottom: 16,
@@ -89,8 +89,8 @@ export default function ResetConfirmModal({ onConfirm, onClose }) {
         <p style={{
           fontSize: 13,
           fontWeight: 600,
-          color: '#F87171',
-          background: 'rgba(220, 38, 38, 0.08)',
+          color: 'var(--red-ink)',
+          background: 'var(--red-soft)',
           borderRadius: 8,
           padding: '10px 14px',
           marginBottom: 16,
@@ -110,63 +110,27 @@ export default function ResetConfirmModal({ onConfirm, onClose }) {
       </label>
 
       <input
+        className="inputField"
         type="text"
         value={safetyInput}
         onChange={(e) => setSafetyInput(e.target.value)}
         disabled={loading}
         placeholder="Delete"
-        style={{
-          width: '100%',
-          padding: '10px 14px',
-          borderRadius: 8,
-          border: '1.5px solid var(--border)',
-          background: 'var(--bg-2)',
-          color: 'var(--text-1)',
-          fontSize: 14,
-          fontFamily: 'inherit',
-          outline: 'none',
-          marginBottom: 20,
-          transition: 'border-color 0.15s',
-        }}
       />
 
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+      <div className="modalActions">
         <button
+          className="btnGhost"
           onClick={handleClose}
           disabled={loading}
-          style={{
-            padding: '10px 20px',
-            borderRadius: 8,
-            border: '1.5px solid var(--border)',
-            background: 'var(--bg-2)',
-            color: 'var(--text-3)',
-            fontSize: 14,
-            fontWeight: 600,
-            fontFamily: 'inherit',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.5 : 1,
-            transition: 'all 0.15s',
-          }}
         >
           Batal
         </button>
 
         <button
+          className="btnDanger"
           onClick={handleConfirm}
           disabled={!canConfirm}
-          style={{
-            padding: '10px 20px',
-            borderRadius: 8,
-            border: 'none',
-            background: canConfirm ? '#DC2626' : '#FCA5A5',
-            color: 'white',
-            fontSize: 14,
-            fontWeight: 600,
-            fontFamily: 'inherit',
-            cursor: canConfirm ? 'pointer' : 'not-allowed',
-            opacity: canConfirm ? 1 : 0.6,
-            transition: 'all 0.15s',
-          }}
         >
           Konfirmasi
         </button>

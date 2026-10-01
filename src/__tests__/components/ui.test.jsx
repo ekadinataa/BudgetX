@@ -28,8 +28,8 @@ describe('Field', () => {
     );
     const error = screen.getByText('Wajib diisi');
     expect(error).toBeInTheDocument();
-    // jsdom normalizes hex to rgb
-    expect(error.style.color).toBe('rgb(239, 68, 68)');
+    expect(error).toHaveClass('fieldError');
+    expect(error).toHaveAttribute('role', 'alert');
   });
 
   it('does not render error element when no error', () => {
@@ -50,14 +50,34 @@ describe('Input', () => {
     expect(inp.placeholder).toBe('Masukkan nama');
   });
 
-  it('merges custom style with base styles', () => {
+  it('applies an inline style override', () => {
     render(<Input style={{ width: 200 }} data-testid="inp" />);
+    expect(screen.getByTestId('inp').style.width).toBe('200px');
+  });
+
+  it('carries the shared inputField class', () => {
+    // The base look moved from an inline style into `.inputField` in
+    // base.css. That matters for layout: the inline version had no
+    // `min-height`, so an input rendered 39–41px next to 32px buttons and
+    // 44px full-size ones. `.inputField` sets `min-height: var(--tap)`, which
+    // is what makes a toolbar row line up. Assert the class, since jsdom does
+    // not apply base.css and cannot check the height itself.
+    render(<Input data-testid="inp" />);
+    expect(screen.getByTestId('inp')).toHaveClass('inputField');
+  });
+
+  it('appends a caller class alongside inputField', () => {
+    render(<Input className="allocInput" data-testid="inp" />);
     const inp = screen.getByTestId('inp');
-    // Custom style wins over the base
-    expect(inp.style.width).toBe('200px');
-    // Base styles survive the merge
-    expect(inp.style.fontSize).toBe('14px');
-    expect(inp.style.background).toContain('var(--bg-2)');
+    expect(inp).toHaveClass('inputField');
+    expect(inp).toHaveClass('allocInput');
+  });
+
+  it('emits no inline background, so a class can own the theme', () => {
+    render(<Input data-testid="inp" />);
+    // An inline background would beat any class on specificity, which is how
+    // `.allocInput` used to be unable to set its own width or background.
+    expect(screen.getByTestId('inp').getAttribute('style')).toBeNull();
   });
 });
 
@@ -74,17 +94,33 @@ describe('Select', () => {
     expect(sel.options.length).toBe(2);
   });
 
-  it('merges custom style with base styles', () => {
+  it('applies an inline style override', () => {
     render(
       <Select style={{ width: 300 }} data-testid="sel">
         <option>X</option>
       </Select>
     );
-    const sel = screen.getByTestId('sel');
-    expect(sel.style.width).toBe('300px');
-    // Base styles survive the merge
-    expect(sel.style.fontSize).toBe('14px');
-    expect(sel.style.background).toContain('var(--bg-2)');
+    expect(screen.getByTestId('sel').style.width).toBe('300px');
+  });
+
+  it('carries the shared inputField class', () => {
+    // See the Input test above: `.inputField` supplies `min-height: var(--tap)`,
+    // so a select lines up with buttons in the same row.
+    render(
+      <Select data-testid="sel">
+        <option>X</option>
+      </Select>
+    );
+    expect(screen.getByTestId('sel')).toHaveClass('inputField');
+  });
+
+  it('emits no inline background, so a class can own the theme', () => {
+    render(
+      <Select data-testid="sel">
+        <option>X</option>
+      </Select>
+    );
+    expect(screen.getByTestId('sel').getAttribute('style')).toBeNull();
   });
 });
 
@@ -117,7 +153,8 @@ describe('ProgressBar', () => {
       <ProgressBar value={150} max={100} color="#4F6EF7" showOverflow />
     );
     const bar = getBar(container);
-    expect(bar.style.background).toBe('rgb(239, 68, 68)');
+    // Token, not a literal: the overflow colour must track the theme.
+    expect(bar.style.background).toBe('var(--red)');
   });
 
   it('keeps original color when showOverflow is true but value <= max', () => {

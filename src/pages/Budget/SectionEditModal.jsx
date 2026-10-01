@@ -6,7 +6,6 @@ import Select from '../../components/ui/Select';
 import NavIcon from '../../components/icons/NavIcon';
 import { sectionLabel } from '../../utils/helpers';
 import { fmtFull } from '../../utils/formatters';
-import styles from './BudgetPage.module.css';
 
 const COLORS = [
   '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444', '#06B6D4', '#EC4899',
@@ -134,6 +133,7 @@ export default function SectionEditModal({
       onClose={onClose}
       width={540}
     >
+      <div className="modalStack">
       <Field label={`Total Anggaran ${sectionLabel(section)} (Rp)`}>
         <Input
           type="number"
@@ -145,73 +145,71 @@ export default function SectionEditModal({
 
       {/* Allocation status bar */}
       <div
-        className={`${styles.allocBar} ${
+        className={
           over
-            ? styles.allocBarOver
+            ? 'allocStatus allocStatusOver'
             : diff > 0
-              ? styles.allocBarUnder
-              : styles.allocBarMatch
-        }`}
+              ? 'allocStatus allocStatusUnder'
+              : 'allocStatus allocStatusMatch'
+        }
       >
-        <span className={styles.allocBarLabel}>
+        <span className="allocStatusLabel">
           Dialokasikan ke kategori:{' '}
           <strong>{fmtFull(catSum)}</strong>
         </span>
         {diff !== 0 && (
-          <span className={styles.allocBarStatus}>
+          <span className="allocStatusValue">
             {over
               ? `⚠ Melebihi ${fmtFull(-diff)}`
               : `Belum dialokasikan: ${fmtFull(diff)}`}
           </span>
         )}
         {diff === 0 && (
-          <span className={styles.allocBarStatus}>✓ Sesuai</span>
+          <span className="allocStatusValue">✓ Sesuai</span>
         )}
       </div>
 
       {/* Category list */}
-      <div className={styles.catList}>
+      <div className="list">
         {cats.map((c) => {
           const cat = getCat(c.id);
           const isEditing = editingId === c.id;
 
           if (isEditing) {
             return (
-              <div key={c.id} className={styles.inlineEdit}>
-                <div className={styles.inlineEditRow}>
+              <div key={c.id} className="allocationEditor">
                   <Input
                     value={editForm.name}
                     onChange={(e) =>
                       setEditForm((f) => ({ ...f, name: e.target.value }))
                     }
-                    style={{ flex: 1 }}
                     placeholder="Nama kategori"
                   />
-                </div>
-                <div className={styles.colorPicker}>
+                <div className="swatches">
                   {COLORS.map((col) => (
                     <button
                       key={col}
                       onClick={() =>
                         setEditForm((f) => ({ ...f, color: col }))
                       }
-                      className={`${styles.colorSwatch} ${
-                        editForm.color === col ? styles.colorSwatchSelected : ''
-                      }`}
+                      className={
+                        editForm.color === col ? 'swatch swatchSelected' : 'swatch'
+                      }
+                      aria-pressed={editForm.color === col}
                       style={{ background: col }}
                       aria-label={`Color ${col}`}
                     />
                   ))}
                 </div>
-                <div className={styles.inlineEditActions}>
+                <div className="modalActions">
                   <button
-                    className={styles.btnSmallPrimary}
+                    className="btnSmallPrimary"
                     onClick={() => saveEdit(c.id)}
                   >
                     <NavIcon name="check" size={13} /> Simpan
                   </button>
                   <button
-                    className={styles.btnSmallGhost}
+                    className="btnSmallGhost"
                     onClick={() => setEditingId(null)}
                   >
                     Batal
@@ -222,46 +220,49 @@ export default function SectionEditModal({
           }
 
           return (
-            <div key={c.id} className={styles.catRow}>
+            <div key={c.id} className="allocationRow">
               <div
-                className={styles.catRowDot}
+                className="dot"
                 style={{ background: cat?.color || 'var(--text-6)' }}
               />
-              <span className={styles.catRowName}>
+              <span className="itemName">
                 {cat?.name || c.id}
               </span>
               <Input
+                className="allocInput"
                 type="number"
                 value={c.amt}
                 onChange={(e) => setAmt(c.id, e.target.value)}
-                style={{ width: 130 }}
+                aria-label={`Alokasi ${cat?.name || c.id}`}
               />
-              <button
-                className={styles.iconBtn}
-                onClick={() => cat && startEdit(cat)}
-                aria-label="Edit category"
-              >
-                <NavIcon name="edit" size={14} />
-              </button>
-              <button
-                className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
-                onClick={() => removeCat(c.id)}
-                aria-label="Remove category"
-              >
-                <NavIcon name="trash" size={14} />
-              </button>
+              <span className="allocRowActions">
+                <button
+                  className="iconBtn"
+                  onClick={() => cat && startEdit(cat)}
+                  aria-label={`Edit kategori ${cat?.name || c.id}`}
+                >
+                  <NavIcon name="edit" size={16} />
+                </button>
+                <button
+                  className="iconBtn iconBtnDanger"
+                  onClick={() => removeCat(c.id)}
+                  aria-label={`Hapus kategori ${cat?.name || c.id}`}
+                >
+                  <NavIcon name="trash" size={16} />
+                </button>
+              </span>
             </div>
           );
         })}
       </div>
 
-      {/* Add existing category */}
+      {/* Add existing category, or say so when there is nothing left to add. */}
       {unusedCats.length > 0 ? (
-        <div className={styles.addCatRow}>
+        <div className="inlineForm">
           <Select
             value={newCat}
             onChange={(e) => setNewCat(e.target.value)}
-            style={{ flex: 1 }}
+            aria-label="Tambah kategori budget"
           >
             <option value="">+ Tambah kategori</option>
             {unusedCats.map((c) => (
@@ -270,67 +271,73 @@ export default function SectionEditModal({
               </option>
             ))}
           </Select>
-          <button className={styles.btnSmallGhost} onClick={addCat}>
+          <button className="btnGhost" onClick={addCat}>
             Tambah
           </button>
         </div>
       ) : (
-        <div className={styles.allCatsMsg}>
-          Semua kategori sudah ditambahkan.
-        </div>
+        <div className="cardSub">Semua kategori sudah ditambahkan.</div>
       )}
 
-      {/* Create custom category */}
+      {/* Create custom category — a single column stack. `.formGrid` is a
+          2-column grid, so the title, input and swatches laid out as 2x2. */}
       {showCustom ? (
-        <div className={styles.customCatForm}>
-          <div className={styles.customCatTitle}>Kategori Baru</div>
+        <div className="customCatForm">
+          <div className="sectionTitle">Kategori Baru</div>
           <Input
             value={customForm.name}
             onChange={(e) =>
               setCustomForm((f) => ({ ...f, name: e.target.value }))
             }
             placeholder="Nama kategori"
-            style={{ marginBottom: 8 }}
           />
-          <div className={styles.colorPicker}>
+          <div className="swatches">
             {COLORS.map((col) => (
               <button
                 key={col}
                 onClick={() =>
                   setCustomForm((f) => ({ ...f, color: col }))
                 }
-                className={`${styles.colorSwatch} ${
-                  customForm.color === col ? styles.colorSwatchSelected : ''
-                }`}
+                className={
+                  customForm.color === col ? 'swatch swatchSelected' : 'swatch'
+                }
+                aria-pressed={customForm.color === col}
                 style={{ background: col }}
                 aria-label={`Color ${col}`}
               />
             ))}
           </div>
-          <div className={styles.inlineEditActions}>
-            <button className={styles.btnSmallPrimary} onClick={addCustom}>
+          <div className="modalActions">
+            <button className="btnSmallPrimary" onClick={addCustom}>
               <NavIcon name="plus" size={13} /> Buat
             </button>
             <button
-              className={styles.btnSmallGhost}
+              className="btnSmallGhost"
               onClick={() => setShowCustom(false)}
             >
               Batal
             </button>
           </div>
         </div>
-      ) : (
-        <button
-          className={styles.createCatBtn}
-          onClick={() => setShowCustom(true)}
-        >
-          <NavIcon name="plus" size={13} /> Buat Kategori Baru
-        </button>
-      )}
+      ) : null}
 
-      <button className={styles.btnPrimary} onClick={handleSave}>
-        Simpan
-      </button>
+      {/* One footer row for the whole modal. `Simpan` used to sit outside
+          .modalActions as a bare inline-flex button, so it lined up beside
+          the block above it and the two overlapped instead of stacking.
+          "Buat Kategori Baru" joins this row too — on its own line it was a
+          32px control stranded above a 44px one. */}
+      <div className="modalActions">
+        {!showCustom && (
+          <button className="btnGhost" onClick={() => setShowCustom(true)}>
+            <NavIcon name="plus" size={15} /> Buat Kategori Baru
+          </button>
+        )}
+        <span className="spacer" />
+        <button className="btnPrimary" onClick={handleSave}>
+          Simpan
+        </button>
+      </div>
+      </div>
     </Modal>
   );
 }

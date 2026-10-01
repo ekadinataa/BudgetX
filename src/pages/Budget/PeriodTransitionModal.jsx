@@ -3,7 +3,6 @@ import Modal from '../../components/Modal/Modal';
 import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import { validateCustomRange } from '../../services/validator';
-import styles from './BudgetPage.module.css';
 
 /**
  * Compute the day after a given YYYY-MM-DD date string.
@@ -70,9 +69,9 @@ export default function PeriodTransitionModal({ previousPeriod, onClose, onCreat
       </p>
 
       {/* Previous period reference */}
-      <div className={styles.transitionPrevPeriod}>
-        <span className={styles.transitionPrevLabel}>Periode sebelumnya</span>
-        <span className={styles.transitionPrevDates}>
+      <div className="salaryAdjustSection">
+        <span className="cycleExampleLabel">Periode sebelumnya</span>
+        <span className="salaryAdjustPreviewDate">
           {formatDateID(previousPeriod.start)} – {formatDateID(previousPeriod.end)}
         </span>
       </div>
@@ -99,38 +98,38 @@ export default function PeriodTransitionModal({ previousPeriod, onClose, onCreat
 
       {/* Copy / Fresh toggle */}
       <Field label="Opsi Budget">
-        <div className={styles.transitionOptionRow}>
-          <label className={`${styles.transitionOption} ${copyBudget ? styles.transitionOptionActive : ''}`}>
+        <div className="periodModeRow">
+          <label className={copyBudget ? 'periodModeBtn periodModeBtnActive' : 'periodModeBtn'}>
             <input
               type="radio"
               name="copyMode"
               checked={copyBudget}
               onChange={() => setCopyBudget(true)}
-              className={styles.transitionRadio}
+              className="salaryAdjustCheckbox"
             />
             <div>
-              <div className={styles.transitionOptionName}>📋 Salin dari periode sebelumnya</div>
-              <div className={styles.transitionOptionDesc}>Salin alokasi pendapatan & kategori</div>
+              <div className="periodModeName">📋 Salin dari periode sebelumnya</div>
+              <div className="periodModeDesc">Salin alokasi pendapatan & kategori</div>
             </div>
           </label>
-          <label className={`${styles.transitionOption} ${!copyBudget ? styles.transitionOptionActive : ''}`}>
+          <label className={!copyBudget ? 'periodModeBtn periodModeBtnActive' : 'periodModeBtn'}>
             <input
               type="radio"
               name="copyMode"
               checked={!copyBudget}
               onChange={() => setCopyBudget(false)}
-              className={styles.transitionRadio}
+              className="salaryAdjustCheckbox"
             />
             <div>
-              <div className={styles.transitionOptionName}>✨ Mulai baru</div>
-              <div className={styles.transitionOptionDesc}>Mulai dengan budget kosong</div>
+              <div className="periodModeName">✨ Mulai baru</div>
+              <div className="periodModeDesc">Mulai dengan budget kosong</div>
             </div>
           </label>
         </div>
       </Field>
 
       <button
-        className={styles.btnPrimary}
+        className="btnPrimary"
         style={!isValid ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
         disabled={!isValid}
         onClick={handleConfirm}

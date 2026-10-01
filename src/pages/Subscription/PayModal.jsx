@@ -4,7 +4,6 @@ import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { fmtFull } from '../../utils/formatters';
-import styles from './SubscriptionPage.module.css';
 
 export default function PayModal({ subscription, wallets, onClose, onConfirm }) {
   const today = new Date().toISOString().slice(0, 10);
@@ -24,7 +23,7 @@ export default function PayModal({ subscription, wallets, onClose, onConfirm }) 
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)' }}>
             {subscription.name}
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#4F6EF7', marginTop: 4 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--blue-ink)', marginTop: 4 }}>
             {fmtFull(subscription.amount)}
           </div>
         </div>
@@ -39,7 +38,7 @@ export default function PayModal({ subscription, wallets, onClose, onConfirm }) 
           </Select>
         </Field>
 
-        <label className={styles.checkbox}>
+        <label className="toggleRow">
           <input
             type="checkbox"
             checked={advanceDue}
@@ -48,9 +47,11 @@ export default function PayModal({ subscription, wallets, onClose, onConfirm }) 
           Update tanggal jatuh tempo berikutnya
         </label>
 
-        <button type="submit" className={styles.saveBtn} style={{ marginTop: 16 }}>
+        <div className="modalActions">
+        <button type="submit" className="btnPrimary">
           Konfirmasi Pembayaran
         </button>
+        </div>
       </form>
     </Modal>
   );

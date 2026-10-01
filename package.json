@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:single": "vite build && node scripts/build-single-html.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest --run",

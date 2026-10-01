@@ -3,6 +3,7 @@ import NavIcon from '../../components/icons/NavIcon';
 import ProgressBar from '../../components/ui/ProgressBar';
 import Select from '../../components/ui/Select';
 import IncomeModal from './IncomeModal';
+import { usePageActions } from '../../context/pageActions';
 import SectionEditModal from './SectionEditModal';
 import PeriodModal from './PeriodModal';
 import PeriodTransitionModal from './PeriodTransitionModal';
@@ -10,7 +11,6 @@ import { sectionLabel, sectionColor, getPeriodRange, filterByRange, getCustomRan
 import { fmtFull, fmt, monthKey } from '../../utils/formatters';
 import { getTotalAmortizedCost, getAmortizedBySection } from '../../utils/recurring';
 import { TODAY } from '../../data/defaults';
-import styles from './BudgetPage.module.css';
 
 const EMPTY_SECTION = { total: 0, cats: [] };
 const EMPTY_BUDGET = {
@@ -253,28 +253,19 @@ export default function BudgetPage({
 
   const showSalaryBadge = periodMode === 'cycle' && cycleStart > 1 && salaryAdjust;
 
-  return (
-    <div>
-      {/* Page Header */}
-      <div className={styles.pageHeader}>
-        <div>
-          <h1 className={styles.pageTitle}>Budget</h1>
-          <p className={styles.pageSubtitle}>
-            Kelola alokasi anggaran Anda
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <button className={styles.btnGhost} onClick={() => setShowPeriodModal(true)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 3" />
-            </svg>
+  // Header actions live in the sticky topbar (reference `pageHeader(…, actions)`).
+  const topbarActions = usePageActions(
+    <>
+      <div className="toolbar budgetToolbar">
+          <button className="btnSmallGhost" onClick={() => setShowPeriodModal(true)}>
+            <NavIcon name="calendar" size={15} />
             {periodButtonLabel}
           </button>
           {periodMode === 'range' ? (
             <Select
               value={selectedRangeId || ''}
               onChange={(e) => setRangeOverride(e.target.value)}
+              aria-label="Periode budget"
               style={{ width: 'auto' }}
             >
               {rangeOptions.length === 0 && (
@@ -288,6 +279,7 @@ export default function BudgetPage({
             <Select
               value={selectedMk}
               onChange={(e) => setSelectedMk(e.target.value)}
+              aria-label="Periode budget"
               style={{ width: 'auto' }}
             >
               {monthOptions.map((p) => (
@@ -295,129 +287,155 @@ export default function BudgetPage({
               ))}
             </Select>
           )}
-          <button className={styles.btnGhost} onClick={() => setShowIncome(true)}>
-            <NavIcon name="edit" size={15} /> Atur Pemasukan
+          <button className="btnSmallGhost incomeAction" aria-label="Atur Pemasukan" title="Atur Pemasukan" onClick={() => setShowIncome(true)}>
+            <NavIcon name="edit" size={15} /> <span className="controlLabel">Atur Pemasukan</span>
           </button>
+      </div>
+    </>
+  );
+
+  // `display: contents` so this wrapper does not become a single flex child of
+  // `.container`. As a plain `<div>` it absorbed the container's `gap` for the
+  // whole page, leaving every card below it flush against its neighbour — which
+  // is why the spacing read as cramped rather than merely tight. `{topbarActions}`
+  // is a portal and renders null, so nothing else depends on this element.
+  return (
+    <div className="pageStack">
+      {topbarActions}
+
+      {/* Page Header */}
+      <div className="largeTitleBlock">
+        <div>
+          <h1 className="largeTitle">Budget</h1>
+          <p className="pageSubtitle">
+            Kelola alokasi anggaran Anda
+          </p>
         </div>
       </div>
 
       {/* Period-ended transition prompt */}
+      {/* Reference `banner`: a tinted notice row. The inner content/text
+          wrappers the module needed are gone; the button sits beside it. */}
       {periodEnded && (
-        <div className={styles.periodEndedBanner}>
-          <div className={styles.periodEndedContent}>
-            <span className={styles.periodEndedIcon}>⚠️</span>
-            <div className={styles.periodEndedText}>
-              <div className={styles.periodEndedTitle}>Periode telah berakhir</div>
-              <div className={styles.periodEndedDesc}>
-                Periode {formatDateID(selectedRange.start)} – {formatDateID(selectedRange.end)} telah berakhir. Buat periode baru untuk melanjutkan pencatatan.
+        <div className="bannerRow">
+          <div className="banner">
+            <NavIcon name="warning" size={16} />
+            <div className="bannerBody">
+              <div className="bannerTitle">Periode telah berakhir</div>
+              <div className="cardSub">
+                Periode {formatDateID(selectedRange.start)} –{' '}
+                {formatDateID(selectedRange.end)} telah berakhir. Buat periode baru
+                untuk melanjutkan pencatatan.
               </div>
             </div>
           </div>
-          <button className={styles.periodEndedBtn} onClick={() => setShowTransition(true)}>
+          <button className="btnSmallPrimary" onClick={() => setShowTransition(true)}>
             Buat Periode Baru
           </button>
         </div>
       )}
 
       {/* Period info bar */}
-      <div className={styles.periodBar}>
-        <span className={styles.periodBarLabel}>Periode aktif:</span>
-        <span className={styles.periodBarValue}>{periodLabel}</span>
+      <div className="periodBar">
+        <span className="periodLabel">Periode aktif:</span>
+        <span className="periodValue">{periodLabel}</span>
         {showSalaryBadge && (
-          <span className={styles.salaryAdjustBadge}>📅 Disesuaikan</span>
+          <span className="badge">📅 Disesuaikan</span>
         )}
         {periodMode !== 'range' && (
-          <span className={styles.periodBarRange}>
+          <span className="cardSub">
             ({periodRange.start} s/d {periodRange.end})
           </span>
         )}
       </div>
 
-      {/* Overview Stats */}
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Total Pemasukan</div>
-          <div className={styles.statValue} style={{ color: '#4F6EF7' }}>
+      {/* Overview Stats — 4 cards, so this needs the 4-up grid. `grid3` put the
+          fourth card alone on row 2 and left the block visibly lopsided. */}
+      <div className="statGrid">
+        <div className="statCard">
+          <div className="statLabel">Total Pemasukan</div>
+          <div className="statValue" style={{ color: 'var(--blue-ink)' }}>
             {fmtFull(budget.totalIncome)}
           </div>
         </div>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Total Dialokasikan</div>
-          <div className={styles.statValue} style={{ color: '#F59E0B' }}>
+        <div className="statCard">
+          <div className="statLabel">Total Dialokasikan</div>
+          <div className="statValue" style={{ color: 'var(--orange-ink)' }}>
             {fmtFull(totalAllocated)}
           </div>
-          <div className={styles.statSub}>
+          <div className="statDetail">
             {budget.totalIncome > 0 ? Math.round((totalAllocated / budget.totalIncome) * 100) : 0}% dari pemasukan
           </div>
         </div>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Belum Dialokasikan</div>
-          <div className={styles.statValue} style={{ color: unallocated < 0 ? '#EF4444' : '#22C55E' }}>
+        <div className="statCard">
+          <div className="statLabel">Belum Dialokasikan</div>
+          <div className="statValue" style={{ color: unallocated < 0 ? 'var(--red-ink)' : 'var(--green-ink)' }}>
             {fmtFull(unallocated)}
           </div>
-          <div className={styles.statSub}>
+          <div className="statDetail">
             {unallocated < 0 ? '⚠ Alokasi melebihi pemasukan' : 'Masih tersedia'}
           </div>
         </div>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Total Terpakai</div>
-          <div className={styles.statValue} style={{ color: '#EF4444' }}>
+        <div className="statCard">
+          <div className="statLabel">Total Terpakai</div>
+          <div className="statValue" style={{ color: 'var(--red-ink)' }}>
             {fmtFull(totalSpent)}
           </div>
-          <div className={styles.statSub}>
+          <div className="statDetail">
             {totalAllocated > 0 ? Math.round((totalSpent / totalAllocated) * 100) : 0}% dari alokasi
           </div>
         </div>
       </div>
 
       {/* Distribution Visualization Bar */}
-      <div className={styles.distCard}>
-        <div className={styles.distHeader}>
-          <span className={styles.distTitle}>Distribusi Alokasi</span>
-          <span className={styles.distGuide}>Panduan 50/30/20</span>
+      <div className="card">
+        <div className="cardHead">
+          <span className="sectionTitle">Distribusi Alokasi</span>
+          <span className="legendGuide">Panduan 50/30/20</span>
         </div>
-        <div className={styles.distBar}>
+        <div className="distBar">
           {['needs', 'wants', 'savings'].map((sec) => {
             const pct = budget.totalIncome > 0
               ? ((budget.sections[sec]?.total || 0) / budget.totalIncome) * 100
               : 0;
             return (
-              <div key={sec} className={styles.distSegment} style={{ width: `${pct}%`, background: sectionColor(sec) }} />
+              <div key={sec} className="distSegment" style={{ width: `${pct}%`, background: sectionColor(sec) }} />
             );
           })}
-          {unallocated > 0 && <div className={styles.distUnalloc} />}
+          {unallocated > 0 && <div className="distUnalloc" />}
         </div>
-        <div className={styles.distLegend}>
+        <div className="legend budgetDistLegend">
           {['needs', 'wants', 'savings'].map((sec) => {
             const pct = budget.totalIncome > 0
               ? Math.round(((budget.sections[sec]?.total || 0) / budget.totalIncome) * 100)
               : 0;
             const guide = sec === 'needs' ? 50 : sec === 'wants' ? 30 : 20;
             return (
-              <div key={sec} className={styles.distLegendItem}>
-                <div className={styles.distDot} style={{ background: sectionColor(sec) }} />
-                <span className={styles.distLegendLabel}>{sectionLabel(sec)}</span>
-                <span className={styles.distLegendPct} style={{ color: Math.abs(pct - guide) > 10 ? '#F59E0B' : 'var(--text-1)' }}>
+              <div key={sec} className="legendRow">
+                <div className="dot" style={{ background: sectionColor(sec) }} />
+                <span className="legendName">{sectionLabel(sec)}</span>
+                <span className="legendGuide">(panduan {guide}%)</span>
+                <span className="legendPct" style={{ color: Math.abs(pct - guide) > 10 ? 'var(--orange-ink)' : 'var(--label)' }}>
                   {pct}%
                 </span>
-                <span className={styles.distLegendGuide}>(panduan {guide}%)</span>
               </div>
             );
           })}
           {unallocated > 0 && (
-            <div className={styles.distLegendItem}>
-              <div className={styles.distDot} style={{ background: 'var(--border)' }} />
-              <span className={styles.distLegendLabel} style={{ color: 'var(--text-5)' }}>Belum dialokasikan</span>
-              <span className={styles.distLegendPct} style={{ color: 'var(--text-5)' }}>
+            <div className="legendRow">
+              <div className="dot" style={{ background: 'var(--separator)' }} />
+              <span className="legendName">Belum dialokasikan</span>
+              <span className="legendGuide">({fmtFull(unallocated)})</span>
+              <span className="legendPct">
                 {budget.totalIncome > 0 ? Math.round((unallocated / budget.totalIncome) * 100) : 0}%
               </span>
-              <span className={styles.distLegendGuide}>({fmtFull(unallocated)})</span>
             </div>
           )}
         </div>
       </div>
 
       {/* Per-Section Budget Cards */}
+      <div className={totalAllocated === 0 && Object.values(budget.sections).every(s => s.cats.length === 0) ? 'budgetSections budgetSectionsEmpty' : 'budgetSections'}>
       {['needs', 'wants', 'savings'].map((sec) => {
         const secData = budget.sections[sec] || EMPTY_SECTION;
         const spent = secSpend[sec] || 0;
@@ -426,53 +444,55 @@ export default function BudgetPage({
         const unallocInSec = secData.total - allocatedInSec;
 
         return (
-          <div key={sec} className={styles.sectionCard}>
-            <div className={styles.sectionHeader}>
-              <div className={styles.sectionHeaderLeft}>
-                <div className={styles.sectionDot} style={{ background: sectionColor(sec) }} />
-                <span className={styles.sectionName}>{sectionLabel(sec)}</span>
+          <div key={sec} className="sectionCard budgetSection">
+            <div className="sectionHeader">
+              <div className="sectionLeft">
+                <div className="dot" style={{ background: sectionColor(sec) }} />
+                <span className="sectionName">{sectionLabel(sec)}</span>
                 {over && (
-                  <span className={styles.sectionOverflowBadge}>
+                  <span className="badge badgeOverdue">
                     <NavIcon name="warning" size={11} /> Melebihi Batas
                   </span>
                 )}
               </div>
-              <div className={styles.sectionHeaderRight}>
-                <div className={styles.sectionAmounts}>
-                  <div className={styles.sectionSpent} style={{ color: over ? '#EF4444' : 'var(--text-1)' }}>
-                    {fmtFull(spent)} <span className={styles.sectionSep}>/</span> {fmtFull(secData.total)}
+              <div className="sectionRight">
+                <div className="sectionAmounts">
+                  <div className="sectionSpent" style={{ color: over ? 'var(--red-ink)' : 'var(--label)' }}>
+                    {fmtFull(spent)} <span className="sep">/</span> {fmtFull(secData.total)}
                   </div>
-                  <div className={styles.sectionRemaining}>
+                  <div className="sectionRemaining">
                     Sisa {fmtFull(Math.max(0, secData.total - spent))}
                   </div>
                 </div>
-                <button className={styles.sectionEditBtn} onClick={() => setEditSection(sec)}>
+                <button className="btnSmallGhost" onClick={() => setEditSection(sec)}>
                   <NavIcon name="edit" size={13} /> Edit
                 </button>
               </div>
             </div>
 
-            <ProgressBar value={spent} max={secData.total} color={sectionColor(sec)} height={8} showOverflow />
+            <div className="budgetProgress">
+              <ProgressBar value={spent} max={secData.total} color={sectionColor(sec)} height={5} showOverflow />
+            </div>
 
-            <div className={styles.catGrid}>
+            <div className="allocGrid">
               {secData.cats.map((c) => {
                 const cat = getCat(c.id);
                 const cSpent = catSpend[c.id] || 0;
                 const cOver = cSpent > c.amt;
                 const cPct = c.amt > 0 ? Math.min((cSpent / c.amt) * 100, 100) : 0;
                 return (
-                  <div key={c.id} className={styles.catCard}>
-                    <div className={styles.catCardHeader}>
-                      <div className={styles.catCardLeft}>
-                        <div className={styles.catDot} style={{ background: cat?.color || 'var(--text-6)' }} />
-                        <span className={styles.catName}>{cat?.name || c.id}</span>
+                  <div key={c.id} className="allocItem">
+                    <div className="allocItemHead">
+                      <div className="allocItemLabel">
+                        <div className="dot" style={{ background: cat?.color || 'var(--fill-tertiary)' }} />
+                        <span className="allocItemName">{cat?.name || c.id}</span>
                       </div>
-                      {cOver && <span className={styles.catOver}>OVER</span>}
+                      {cOver && <span className="allocItemOver">OVER</span>}
                     </div>
                     <ProgressBar value={cSpent} max={c.amt} color={cat?.color || sectionColor(sec)} height={5} showOverflow />
-                    <div className={styles.catFooter}>
-                      <span className={styles.catAmounts}>{fmt(cSpent)} / {fmt(c.amt)}</span>
-                      <span className={styles.catPct} style={{ color: cOver ? '#EF4444' : 'var(--text-4)' }}>
+                    <div className="allocItemFoot">
+                      <span className="num">{fmt(cSpent)} / {fmt(c.amt)}</span>
+                      <span className="num" style={{ color: cOver ? 'var(--red-ink)' : 'var(--label-2)' }}>
                         {Math.round(cPct)}%
                       </span>
                     </div>
@@ -480,41 +500,42 @@ export default function BudgetPage({
                 );
               })}
               {unallocInSec > 0 && (
-                <div className={styles.unallocCard}>
-                  <div className={styles.unallocLabel}>Belum Dialokasikan</div>
-                  <div className={styles.unallocValue}>{fmtFull(unallocInSec)}</div>
+                <div className="statCard">
+                  <div className="statLabel">Belum Dialokasikan</div>
+                  <div className="statValue">{fmtFull(unallocInSec)}</div>
                 </div>
               )}
             </div>
           </div>
         );
       })}
+      </div>
 
       {/* Recurring Items Amortized Cost Card */}
       {recurringItems.length > 0 && (
-        <div className={styles.sectionCard} style={{ marginTop: 20 }}>
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionLeft}>
+        <div className="sectionCard">
+          <div className="sectionHeader">
+            <div className="sectionLeft">
               <span style={{ fontSize: 16 }}>📦</span>
-              <span className={styles.sectionName}>Biaya Berkala (Amortized)</span>
+              <span className="sectionName">Biaya Berkala (Amortized)</span>
             </div>
           </div>
-          <div style={{ padding: '12px 0' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+          <div className="budgetAmortized">
+            <div className="summaryPills">
               {['needs', 'wants', 'savings'].map((sec) => {
                 const amortized = getAmortizedBySection(recurringItems, categories);
                 const val = amortized[sec] || 0;
                 return (
                   <div key={sec} style={{
                     padding: '10px 12px',
-                    background: sectionColor(sec) + '10',
+                    background: `color-mix(in srgb, ${sectionColor(sec)} 10%, transparent)`,
                     borderRadius: 8,
                     textAlign: 'center',
                   }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 600 }}>
+                    <div style={{ fontSize: 11, color: 'var(--label-2)', fontWeight: 600 }}>
                       {sectionLabel(sec)}
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: sectionColor(sec), marginTop: 4 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: sec === 'needs' ? 'var(--blue-ink)' : sec === 'wants' ? 'var(--orange-ink)' : 'var(--green-ink)', marginTop: 4 }}>
                       {fmtFull(Math.round(val))}
                     </div>
                   </div>
@@ -529,14 +550,14 @@ export default function BudgetPage({
               background: 'var(--bg-3)',
               borderRadius: 8,
             }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--label)' }}>
                 Total biaya berkala/bulan
               </span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#4F6EF7' }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--blue-ink)' }}>
                 {fmtFull(Math.round(getTotalAmortizedCost(recurringItems)))}
               </span>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 8, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 11, color: 'var(--label-2)', marginTop: 8, lineHeight: 1.5 }}>
               💡 Ini adalah biaya bulanan dari item yang dibeli berkala (skincare, shampo, dll) yang diamortisasi berdasarkan durasi pemakaian.
             </div>
           </div>

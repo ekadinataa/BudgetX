@@ -4,7 +4,6 @@ import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import { validateCurrentValue } from '../../services/investmentValidator';
 import { fmtFull } from '../../utils/formatters';
-import styles from './InvestmentPage.module.css';
 
 /**
  * UpdateValueModal — Update current market value of an investment.
@@ -39,7 +38,7 @@ export default function UpdateValueModal({ investment, onClose, onConfirm }) {
         />
       </Field>
 
-      <button className={styles.saveBtn} onClick={handleSubmit}>
+      <button className="btnPrimary" onClick={handleSubmit}>
         Simpan
       </button>
     </Modal>

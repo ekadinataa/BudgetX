@@ -1,208 +1,78 @@
-/* ── Light Theme (default) — slightly warmer ──────────────────────── */
-:root {
-  --bg: #F5F6FA;
-  --bg-card: #FFFFFF;
-  --bg-2: #FAFBFC;
-  --bg-3: #F0F1F5;
-  --border: #E4E7ED;
-  --border-2: #F0F1F5;
-  --text-1: #1A1D2E;
-  --text-2: #374151;
-  --text-3: #4B5563;
-  --text-4: #6B7280;
-  --text-5: #9CA3AF;
-  --text-6: #D1D5DB;
-  --sidebar-bg: #1E2233;
-}
+/* ==========================================================================
+   BudgetX — app-level shell wiring
+   --------------------------------------------------------------------------
+   The design system (tokens + 250 component classes) lives in
+   styles/tokens.css and styles/base.css. base.css already defines .shell,
+   .sidebar, .main, .topbar, .container and the mobile tab bar.
 
-/* ── Dark Theme — Cashew-inspired blue-gray ───────────────────────── */
-:root[data-theme="dark"] {
-  --bg: #1A1D2E;
-  --bg-card: #242838;
-  --bg-2: #1E2233;
-  --bg-3: #2A2E42;
-  --border: #323650;
-  --border-2: #2A2E42;
-  --text-1: #E8ECF4;
-  --text-2: #C4CAD8;
-  --text-3: #9CA3B4;
-  --text-4: #6B7280;
-  --text-5: #4B5263;
-  --text-6: #363B4D;
-  --sidebar-bg: #1E2233;
-
-  /* Transaction badge colors */
-  --tx-badge-income-bg: rgba(22, 163, 74, 0.12);
-  --tx-badge-income-color: #4ADE80;
-  --tx-badge-expense-bg: rgba(220, 38, 38, 0.12);
-  --tx-badge-expense-color: #F87171;
-  --tx-badge-transfer-bg: rgba(99, 102, 241, 0.12);
-  --tx-badge-transfer-color: #A5B4FC;
-
-  /* Section pill colors */
-  --section-pill-needs-bg: rgba(99, 102, 241, 0.12);
-  --section-pill-needs-color: #A5B4FC;
-  --section-pill-wants-bg: rgba(245, 158, 11, 0.12);
-  --section-pill-wants-color: #FCD34D;
-  --section-pill-savings-bg: rgba(22, 163, 74, 0.12);
-  --section-pill-savings-color: #4ADE80;
-}
-
-/* ── Global Reset ─────────────────────────────────────────────────── */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html,
-body {
-  height: 100%;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text-1);
-  transition: background 0.3s ease, color 0.3s ease;
-}
-
-/* Smooth theme transition for color-related properties */
-* {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease;
-}
-
-/* Fade-in animation for cards */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes countUp {
-  from { opacity: 0; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
-}
+   This file only does two things base.css cannot do for us:
+     1. Binds the app's root element to the shell flex row and scrolls the
+        right column (base.css assumes the reference's own markup, which had
+        the sidebar and the scroll container as siblings of <body>).
+     2. Keeps the pre-migration per-page CSS Modules working via the legacy
+        token aliases in tokens.css, plus the appMain/appToast hooks the
+        existing components still render.
+   ========================================================================== */
 
 #root {
-  height: 100%;
+  min-height: 100vh;
+}
+
+.appShell {
   display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.appMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+/* The page scrolls on the *window*, like the reference: `.shell` is only
+   `min-height: 100vh` and `.main` is unconstrained, so the sticky sidebar and
+   the sticky topbar anchor to the viewport. That is why Topbar reads
+   `window.scrollY` rather than a scroll event on this element.
+
+   `overflow-x: clip` keeps stray wide children from producing a horizontal
+   scrollbar without turning this into a scroll container (which would swallow
+   the window scroll). */
+.appScroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 99px;
+  background: var(--fill-tertiary);
+  border-radius: 4px;
 }
+::-webkit-scrollbar-thumb:hover { background: var(--highlight); }
 
-/* ── Input & Select Transitions ───────────────────────────────────── */
-input,
-select,
-textarea {
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
-}
+/* ── Legacy hooks still emitted by unmigrated components ──────────── */
+.appToast { z-index: 9999; }
 
-input:focus,
-select:focus {
-  border-color: #4F6EF7 !important;
-  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
-}
-
-/* ── Select Appearance Override ────────────────────────────────────── */
-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 30px !important;
-  cursor: pointer;
-}
-
-/* ── Button Hover ─────────────────────────────────────────────────── */
-button:hover {
-  opacity: 0.88;
-}
-
-/* ── App Main Content ─────────────────────────────────────────────── */
-.appMain {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-  background: var(--bg);
-}
-
-.appMain > * {
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* ── Mobile Responsive (≤ 768px) ──────────────────────────────────── */
-@media (max-width: 768px) {
-  html, body, #root {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
-    width: 100% !important;
+@media (width <= 768px) {
+  .appScroll {
+    padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
   }
-
-  #root {
-    flex-direction: column;
-  }
-
-  * {
-    max-width: 100vw;
-  }
-
-  .appMain {
-    padding: 16px;
-    padding-top: 72px;
-    padding-bottom: 80px;
-    overflow-x: hidden;
-    max-width: 100vw;
-    width: 100%;
-    box-sizing: border-box;
-    margin: 0;
-  }
-
-  .appMain > * {
-    max-width: 100%;
-    margin-left: 0;
-    margin-right: 0;
-  }
-
-  /* Global touch target overrides */
-  button {
-    min-height: 44px;
-  }
-
-  input,
-  select,
-  textarea {
-    min-height: 44px;
-    border-radius: 12px;
-  }
-
-  /* Toast positioning above bottom nav */
   .appToast {
-    bottom: 88px !important;
+    bottom: calc(var(--tabbar-h) + var(--s3) + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
 
-/* ── Landscape on Mobile ──────────────────────────────────────────── */
-@media (max-width: 768px) and (max-height: 500px) {
-  .appMain {
-    padding-bottom: 60px;
+/* Pre-migration pages still paint inline hex accents. Neutralise the two
+   that were hardcoded before the token port so they follow the theme. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

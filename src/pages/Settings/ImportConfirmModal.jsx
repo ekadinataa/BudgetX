@@ -66,14 +66,14 @@ export default function ImportConfirmModal({ importSummary, onConfirm, onClose, 
           alignItems: 'center',
           gap: 10,
           padding: '12px 16px',
-          background: 'rgba(245, 158, 11, 0.08)',
+          background: 'var(--orange-soft)',
           borderRadius: 8,
           marginBottom: 16,
         }}>
           <div style={{
             width: 18,
             height: 18,
-            border: '2px solid #D97706',
+            border: '2px solid var(--orange)',
             borderTopColor: 'transparent',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
@@ -90,8 +90,8 @@ export default function ImportConfirmModal({ importSummary, onConfirm, onClose, 
         <div style={{
           fontSize: 13,
           fontWeight: 600,
-          color: '#F87171',
-          background: 'rgba(220, 38, 38, 0.08)',
+          color: 'var(--red-ink)',
+          background: 'var(--red-soft)',
           borderRadius: 8,
           padding: '10px 14px',
           marginBottom: 16,
@@ -114,42 +114,18 @@ export default function ImportConfirmModal({ importSummary, onConfirm, onClose, 
                 Transaksi dari file CSV akan ditambahkan ke data yang ada.
                 {importSummary.categories > 0 && ` ${importSummary.categories} kategori baru akan dibuat otomatis.`}
               </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <div className="modalActions">
                 <button
+                  className="btnGhost"
                   onClick={handleClose}
                   disabled={loading}
-                  style={{
-                    padding: '10px 20px',
-                    borderRadius: 8,
-                    border: '1.5px solid var(--border)',
-                    background: 'var(--bg-2)',
-                    color: 'var(--text-3)',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    fontFamily: 'inherit',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    opacity: loading ? 0.5 : 1,
-                    transition: 'all 0.15s',
-                  }}
                 >
                   Batal
                 </button>
                 <button
+                  className="btnPrimary"
                   onClick={() => handleConfirm('append')}
                   disabled={loading}
-                  style={{
-                    padding: '10px 20px',
-                    borderRadius: 8,
-                    border: 'none',
-                    background: '#4F6EF7',
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    fontFamily: 'inherit',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    opacity: loading ? 0.5 : 1,
-                    transition: 'all 0.15s',
-                  }}
                 >
                   Impor
                 </button>
@@ -187,7 +163,7 @@ export default function ImportConfirmModal({ importSummary, onConfirm, onClose, 
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)', marginBottom: 4 }}>
                 Ganti Semua (Replace)
               </div>
-              <div style={{ fontSize: 12, color: '#DC2626', fontWeight: 500 }}>
+              <div style={{ fontSize: 12, color: 'var(--red-ink)', fontWeight: 500 }}>
                 ⚠️ Semua data yang ada akan dihapus dan diganti dengan data impor
               </div>
             </button>
@@ -219,23 +195,11 @@ export default function ImportConfirmModal({ importSummary, onConfirm, onClose, 
           </div>
 
           {/* Cancel button */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="modalActions">
             <button
+              className="btnGhost"
               onClick={handleClose}
               disabled={loading}
-              style={{
-                padding: '10px 20px',
-                borderRadius: 8,
-                border: '1.5px solid var(--border)',
-                background: 'var(--bg-2)',
-                color: 'var(--text-3)',
-                fontSize: 14,
-                fontWeight: 600,
-                fontFamily: 'inherit',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.5 : 1,
-                transition: 'all 0.15s',
-              }}
             >
               Batal
             </button>

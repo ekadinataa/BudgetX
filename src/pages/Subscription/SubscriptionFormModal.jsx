@@ -4,7 +4,6 @@ import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { getSubscriptionCategoryInfo } from '../../utils/subscriptionHelpers';
-import styles from './SubscriptionPage.module.css';
 
 const CATEGORY_OPTIONS = [
   'streaming',
@@ -76,7 +75,7 @@ export default function SubscriptionFormModal({ initial, wallets, onClose, onSav
           />
         </Field>
 
-        <div className={styles.formGrid}>
+        <div className="formGrid">
           <Field label="Kategori">
             <Select value={category} onChange={(e) => setCategory(e.target.value)}>
               {CATEGORY_OPTIONS.map((cat) => {
@@ -94,7 +93,7 @@ export default function SubscriptionFormModal({ initial, wallets, onClose, onSav
           </Field>
         </div>
 
-        <div className={styles.formGrid}>
+        <div className="formGrid">
           <Field label="Jumlah (Rp)" error={errors.amount}>
             <Input
               type="number"
@@ -127,15 +126,17 @@ export default function SubscriptionFormModal({ initial, wallets, onClose, onSav
           />
         </Field>
 
-        <button type="submit" className={styles.saveBtn}>
+        <div className="modalActions">
+        <button type="submit" className="btnPrimary">
           {initial ? 'Simpan Perubahan' : 'Tambah Langganan'}
         </button>
 
         {initial && onDelete && (
-          <button type="button" className={styles.deleteBtn} onClick={handleDelete}>
+          <button type="button" className="btnSmallDanger" onClick={handleDelete}>
             {confirmDelete ? 'Yakin hapus?' : 'Hapus Langganan'}
           </button>
         )}
+        </div>
       </form>
     </Modal>
   );

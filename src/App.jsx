@@ -19,6 +19,7 @@ import SettingsPage from './pages/Settings/SettingsPage';
 import FirePage from './pages/Fire/FirePage';
 import HelpPage from './pages/Help/HelpPage';
 import HelpChat from './components/HelpChat/HelpChat';
+import Topbar from './components/Topbar/Topbar';
 import TxFormModal from './pages/Transactions/TxFormModal';
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
@@ -37,6 +38,35 @@ import './App.css';
 
 // Detect if Firebase is configured — if not, run in local-only mode
 const IS_LOCAL_MODE = !firebaseAuth;
+
+/**
+ * Pages that get the topbar's circular `+` launcher.
+ *
+ * Kept as an explicit allow-list rather than "every page except…", so adding a
+ * page cannot silently grow a button whose behaviour the page does not own.
+ * `tx` and `budget` are absent because both publish their own primary action
+ * through `usePageActions`.
+ */
+const TOPBAR_FALLBACK_ADD_TX = new Set(['wallet', 'recurring', 'subscription', 'debt', 'invest', 'asset']);
+
+/**
+ * Content width per page id — see the comment in `renderPage`.
+ * Deliberately keyed by the same ids as `NAV_GROUPS` in the Sidebar.
+ */
+const PAGE_MEASURE = {
+  settings: 'pageWide',   // its cards go two-up via .cardCols
+  help: 'pageMeasure',
+  fire: 'pageMeasure',
+  tx: 'pageWide',
+  report: 'pageWide',
+  wallet: 'pageWide',
+  asset: 'pageWide',
+  budget: 'pageWide',
+  debt: 'pageWide',
+  invest: 'pageWide',
+  recurring: 'pageWide',
+  subscription: 'pageWide',
+};
 
 function App() {
   const { user, loading: authLoading, login, register, logout, resetPassword } = useAuth();
@@ -61,6 +91,14 @@ function App() {
   const [budgets, setBudgets] = useState(savedLocal?.budgets || (IS_LOCAL_MODE ? BUDGETS_INIT : {}));
   const [categories, setCategories] = useState(savedLocal?.categories || (IS_LOCAL_MODE ? CATEGORIES : []));
   const [darkMode, setDarkMode] = useState(savedLocal?.darkMode || false);
+  // Appearance presets from the design system: density and radius scale every
+  // padding and corner in the app, so they belong next to darkMode rather
+  // than inside the page modules.
+  const [density, setDensity] = useState(savedLocal?.density || 'standard');
+  const [radius, setRadius] = useState(savedLocal?.radius || 'soft');
+  const [collapsed, setCollapsed] = useState(savedLocal?.collapsed || false);
+  // Dashboard period switch (Bulan Ini / Tahun Ini), per the reference.
+  const [yearMode, setYearMode] = useState(savedLocal?.yearMode || false);
   const [cycleStart, setCycleStart] = useState(savedLocal?.cycleStart || 1);
   const [salaryAdjust, setSalaryAdjust] = useState(savedLocal?.salaryAdjust || false);
   const [periodMode, setPeriodMode] = useState(savedLocal?.periodMode || 'month');
@@ -89,14 +127,17 @@ function App() {
 
   // Global "Add Transaction" modal state
   const [showAddTx, setShowAddTx] = useState(false);
+  // Which type the global transaction modal opens on. 'expense' for the tab-bar
+  // and FAB, 'transfer' for the Transfer quick action (see reference budgetx-app.html).
+  const [addTxType, setAddTxType] = useState('expense');
 
   // In local-only mode, persist all state to localStorage
   useEffect(() => {
     if (!IS_LOCAL_MODE) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      page, wallets, transactions, budgets, categories, darkMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, subscriptions, fireSettings,
+      page, wallets, transactions, budgets, categories, darkMode, density, radius, collapsed, yearMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, subscriptions, fireSettings,
     }));
-  }, [page, wallets, transactions, budgets, categories, darkMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, subscriptions, fireSettings]);
+  }, [page, wallets, transactions, budgets, categories, darkMode, density, radius, collapsed, yearMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, subscriptions, fireSettings]);
 
   // Show toast notification
   const showToast = useCallback((msg) => {
@@ -238,7 +279,7 @@ function App() {
         <div style={{ textAlign: 'center', color: 'var(--text-4)' }}>
           <div style={{
             width: 40, height: 40, border: '3px solid var(--border)',
-            borderTopColor: '#4F6EF7', borderRadius: '50%',
+            borderTopColor: 'var(--blue)', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite', margin: '0 auto 12px',
           }} />
           <div style={{ fontSize: 14 }}>Memuat...</div>
@@ -289,7 +330,7 @@ function App() {
           <div style={{ textAlign: 'center', color: 'var(--text-4)' }}>
             <div style={{
               width: 40, height: 40, border: '3px solid var(--border)',
-              borderTopColor: '#4F6EF7', borderRadius: '50%',
+              borderTopColor: 'var(--blue)', borderRadius: '50%',
               animation: 'spin 0.8s linear infinite', margin: '0 auto 12px',
             }} />
             <div style={{ fontSize: 14 }}>Memuat data...</div>
@@ -307,12 +348,12 @@ function App() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           height: '100vh', width: '100vw', background: 'var(--bg)', flexDirection: 'column', gap: 16,
         }}>
-          <div style={{ color: '#EF4444', fontSize: 15 }}>{dataError}</div>
+          <div style={{ color: 'var(--red-ink)', fontSize: 15 }}>{dataError}</div>
           <button
             onClick={fetchAllData}
             style={{
               padding: '10px 24px', borderRadius: 8, border: 'none',
-              background: '#4F6EF7', color: '#fff', fontSize: 14,
+              background: 'var(--blue-ink)', color: 'var(--accent-on)', fontSize: 14,
               fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -1327,9 +1368,28 @@ function App() {
   };
 
   /** Callback passed to Dashboard to open the global add-transaction modal */
-  const onAddTx = () => setShowAddTx(true);
+  const onAddTx = (type = 'expense') => {
+    setAddTxType(type);
+    setShowAddTx(true);
+  };
 
   /** Render the active page based on `page` state */
+  /**
+   * Per-page content width.
+   *
+   * The revamp dropped the old `.pageMeasure` / `.pageMeasureTight` classes, so
+   * every page inherited the single container width. That was invisible at
+   * 1180px but wrong once the container grows on a large display: the Settings
+   * form measured 1510px from label to input, and a transaction row stretched
+   * to 1560px, which puts the note and the amount at opposite ends of the
+   * screen. Three widths, chosen by what the page is made of:
+   *
+   *   (none)  dashboard — it has its own two-column grid and wants the room
+   *   wide   data tables and lists, which benefit from horizontal space
+   *   narrow forms and prose, which need a short line
+   */
+  const measure = PAGE_MEASURE[page] || '';
+
   function renderPage() {
     switch (page) {
       case 'dashboard':
@@ -1344,7 +1404,10 @@ function App() {
             recurringItems={recurringItems}
             debts={debts}
             investments={investments}
+            fixedAssets={fixedAssets}
             subscriptions={subscriptions}
+            yearMode={yearMode}
+            onToggleYear={setYearMode}
           />
         );
       case 'wallet':
@@ -1491,6 +1554,14 @@ function App() {
             onCreateCategory={handleCreateCategory}
             onUpdateCategory={handleUpdateCategory}
             onDeleteCategory={handleDeleteCategory}
+            appearance={{
+              darkMode,
+              setDarkMode: handleSetDarkMode,
+              density,
+              setDensity,
+              radius,
+              setRadius,
+            }}
             setPage={setPage}
           />
         );
@@ -1511,42 +1582,49 @@ function App() {
   }
 
   return (
-    <ThemeProvider darkMode={darkMode} setDarkMode={handleSetDarkMode}>
-      <Sidebar
-        page={page}
-        setPage={setPage}
-        darkMode={darkMode}
-        setDarkMode={handleSetDarkMode}
-        user={user}
-        onLogout={logout}
-        onAddTx={onAddTx}
-      />
-      <main className="appMain">
-        {renderPage()}
-      </main>
+    <ThemeProvider
+      darkMode={darkMode}
+      setDarkMode={handleSetDarkMode}
+      density={density}
+      radius={radius}
+      collapsed={collapsed}
+    >
+      <div className="appShell">
+        <Sidebar
+          page={page}
+          setPage={setPage}
+          darkMode={darkMode}
+          setDarkMode={handleSetDarkMode}
+          collapsed={collapsed}
+          onToggleCollapse={() => setCollapsed((c) => !c)}
+          user={user}
+          onLogout={logout}
+          onAddTx={onAddTx}
+        />
+        <main className="appMain">
+          {/* The circular `+` is a fallback for pages that do not declare their
+              own primary action. Transactions and Budget do (via
+              `usePageActions`), so passing `onAddTx` unconditionally put a
+              second, icon-only way to do the same thing right beside the first
+              — and offered a "new transaction" button on pages with no
+              transaction UI at all. */}
+          <Topbar
+            page={page}
+            onAddTx={TOPBAR_FALLBACK_ADD_TX.has(page) ? onAddTx : undefined}
+            user={user}
+          />
+          <div className="appScroll">
+            <div className={`container${measure ? ` ${measure}` : ''}`}>{renderPage()}</div>
+          </div>
+        </main>
+      </div>
 
       {/* Toast notification */}
       {toast && (
-        <div
-          className="appToast"
-          style={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            background: '#1E293B',
-            color: '#F1F5F9',
-            padding: '12px 20px',
-            borderRadius: 10,
-            fontSize: 13,
-            fontWeight: 500,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-            zIndex: 9999,
-            maxWidth: 360,
-            animation: 'fadeIn 0.2s ease',
-          }}
-        >
-          {toast}
-          <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+        <div className="toastHost">
+          <div className="toast" role="status">
+            {toast}
+          </div>
         </div>
       )}
 
@@ -1555,6 +1633,7 @@ function App() {
         <TxFormModal
           wallets={wallets}
           categories={categories}
+          presetType={addTxType}
           onClose={() => setShowAddTx(false)}
           onSave={async (data) => {
             try {

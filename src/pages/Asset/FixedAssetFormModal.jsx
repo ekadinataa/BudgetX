@@ -99,7 +99,7 @@ export default function FixedAssetFormModal({ initial, onClose, onSave, onDelete
         </Select>
       </Field>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="formGrid">
         <Field label="Harga Beli (Rp)" error={errors.purchasePrice}>
           <Input
             type="number"
@@ -122,15 +122,15 @@ export default function FixedAssetFormModal({ initial, onClose, onSave, onDelete
       {preview && (
         <div style={{
           padding: '10px 14px',
-          background: preview.change >= 0 ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+          background: preview.change >= 0 ? 'var(--green-soft)' : 'var(--red-soft)',
           borderRadius: 10,
-          border: `1px solid ${preview.change >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+          border: `1px solid ${preview.change >= 0 ? 'var(--green-soft)' : 'var(--red-soft)'}`,
           marginBottom: 16,
         }}>
           <div style={{
             fontSize: 12,
             fontWeight: 600,
-            color: preview.change >= 0 ? '#4ADE80' : '#F87171',
+            color: preview.change >= 0 ? 'var(--green-ink)' : 'var(--red-ink)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -157,44 +157,20 @@ export default function FixedAssetFormModal({ initial, onClose, onSave, onDelete
       </Field>
 
       {errors._general && (
-        <div style={{ color: '#DC2626', fontSize: 12, marginBottom: 8 }}>{errors._general}</div>
+        <div style={{ color: 'var(--red-ink)', fontSize: 12, marginBottom: 8 }}>{errors._general}</div>
       )}
 
       <button
+        className="btnPrimary"
         onClick={handleSubmit}
-        style={{
-          width: '100%',
-          padding: '12px',
-          borderRadius: 10,
-          border: 'none',
-          background: '#4F6EF7',
-          color: '#fff',
-          fontSize: 14,
-          fontWeight: 600,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          marginTop: 4,
-        }}
       >
         {initial ? 'Simpan Perubahan' : 'Tambah Aset'}
       </button>
 
       {initial && onDelete && (
         <button
+          className={confirmDelete ? 'btnDanger' : 'btnSmallDanger'}
           onClick={handleDelete}
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: 10,
-            border: 'none',
-            background: confirmDelete ? '#EF4444' : 'rgba(220, 38, 38, 0.1)',
-            color: confirmDelete ? '#fff' : '#F87171',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            marginTop: 8,
-          }}
         >
           {confirmDelete ? 'Yakin hapus aset ini?' : 'Hapus Aset'}
         </button>

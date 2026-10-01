@@ -4,9 +4,20 @@ import ImportConfirmModal from './ImportConfirmModal';
 import NavIcon from '../../components/icons/NavIcon';
 import { buildBudgetXJson, downloadJson, downloadCsvZip } from '../../services/exportService';
 import { parseAndValidate, validateEntities, parseCsvZip, parseTransactionCsv, parseWalletCsv, parseBudgetCsv, parseCsv } from '../../services/importService';
-import styles from './SettingsPage.module.css';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Swatch palette for category colours.
+ *
+ * These are deliberately NOT design tokens: the chosen hex is written to the
+ * category document in Firestore and rendered as-is wherever that category
+ * appears. Binding them to `var(--blue)` etc. would rewrite stored data on
+ * every theme change and make colours drift between devices.
+ */
+/** Default colour for a newly created category. Stored on the document, so it
+ *  must be a literal hex from COLORS — never a theme-dependent var. */
+const DEFAULT_CATEGORY_COLOR = '#64748B';
 
 const COLORS = [
   '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444', '#06B6D4',
@@ -52,6 +63,7 @@ export default function SettingsPage({
   onUpdateCategory,
   onDeleteCategory,
   setPage,
+  appearance,
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [exportFormat, setExportFormat] = useState('json');
@@ -85,7 +97,7 @@ export default function SettingsPage({
   const [editingCatId, setEditingCatId] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', color: '' });
   const [addingSection, setAddingSection] = useState(null);
-  const [addForm, setAddForm] = useState({ name: '', color: '#64748B' });
+  const [addForm, setAddForm] = useState({ name: '', color: DEFAULT_CATEGORY_COLOR });
 
   // ── Export handler ─────────────────────────────────────────────────
   const handleExport = async () => {
@@ -440,13 +452,13 @@ export default function SettingsPage({
 
   const startAddCat = (section) => {
     setAddingSection(section);
-    setAddForm({ name: '', color: '#64748B' });
+    setAddForm({ name: '', color: DEFAULT_CATEGORY_COLOR });
     setEditingCatId(null);
   };
 
   const cancelAddCat = () => {
     setAddingSection(null);
-    setAddForm({ name: '', color: '#64748B' });
+    setAddForm({ name: '', color: DEFAULT_CATEGORY_COLOR });
   };
 
   const saveAddCat = async () => {
@@ -462,476 +474,559 @@ export default function SettingsPage({
       // Error handled by App.jsx handler
     }
     setAddingSection(null);
-    setAddForm({ name: '', color: '#64748B' });
+    setAddForm({ name: '', color: DEFAULT_CATEGORY_COLOR });
   };
 
   return (
     <>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Pengaturan</h1>
+      <div className="largeTitleBlock">
+        <div>
+          <h1 className="largeTitle">Pengaturan</h1>
+          <p className="pageSubtitle">Preferensi tampilan, data, dan kategori</p>
+        </div>
       </div>
 
-      {/* ── FIRE Calculator Link ─────────────────────────────────── */}
-      {setPage && (
-        <div className={styles.sectionCard} style={{ marginBottom: 16 }}>
-          <h2 className={styles.sectionTitle}>Alat Keuangan</h2>
-          <button
-            className={styles.btnPrimary}
-            onClick={() => setPage('help')}
-            style={{ background: '#6366F1', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', marginBottom: 10 }}
-          >
-            📖 Bantuan &amp; Panduan
-          </button>
-          <button
-            className={styles.btnPrimary}
-            onClick={() => setPage('fire')}
-            style={{ background: '#F59E0B', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}
-          >
-            🔥 Kalkulator FIRE
-          </button>
-        </div>
-      )}
-
-      {/* ── Export Section ──────────────────────────────────────────── */}
-      <div className={styles.sectionCard} style={{ marginBottom: 16 }}>
-        <h2 className={styles.sectionTitle}>Ekspor Data</h2>
-        <p className={styles.sectionDesc}>
-          Unduh semua data Anda (dompet, transaksi, anggaran, kategori, dan preferensi)
-          sebagai file cadangan.
-        </p>
-
-        {/* Format selector */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 14,
-            color: 'var(--text-1)',
-            cursor: 'pointer',
-            fontWeight: exportFormat === 'json' ? 600 : 400,
-          }}>
-            <input
-              type="radio"
-              name="exportFormat"
-              value="json"
-              checked={exportFormat === 'json'}
-              onChange={() => setExportFormat('json')}
-              style={{ accentColor: '#4F6EF7' }}
-            />
-            JSON
-          </label>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 14,
-            color: 'var(--text-1)',
-            cursor: 'pointer',
-            fontWeight: exportFormat === 'csv' ? 600 : 400,
-          }}>
-            <input
-              type="radio"
-              name="exportFormat"
-              value="csv"
-              checked={exportFormat === 'csv'}
-              onChange={() => setExportFormat('csv')}
-              style={{ accentColor: '#4F6EF7' }}
-            />
-            CSV (ZIP)
-          </label>
-        </div>
-
-        <button
-          className={styles.btnPrimary}
-          onClick={handleExport}
-          disabled={exporting}
-          style={{ opacity: exporting ? 0.6 : 1, cursor: exporting ? 'not-allowed' : 'pointer' }}
-        >
-          {exporting ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <span style={{
-                width: 14, height: 14,
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: '#fff',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-                display: 'inline-block',
-              }} />
-              Mengekspor...
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            </span>
-          ) : 'Ekspor'}
-        </button>
-      </div>
-
-      {/* ── Import Cadangan Section (JSON/ZIP) ─────────────────────── */}
-      <div className={styles.sectionCard} style={{ marginBottom: 16 }}>
-        <h2 className={styles.sectionTitle}>Impor Cadangan</h2>
-        <p className={styles.sectionDesc}>
-          Pulihkan data dari file cadangan BudgetX (JSON atau ZIP).
-        </p>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,.zip"
-          onChange={handleFileSelect}
-          style={{ display: 'none' }}
-        />
-
-        <button
-          className={styles.btnPrimary}
-          onClick={() => fileInputRef.current?.click()}
-          disabled={importing}
-          style={{ opacity: importing ? 0.6 : 1, cursor: importing ? 'not-allowed' : 'pointer' }}
-        >
-          Pilih File
-        </button>
-      </div>
-
-      {/* ── Import CSV Section (Multi-file) ────────────────────────── */}
-      <div className={styles.sectionCard} style={{ marginBottom: 16 }}>
-        <h2 className={styles.sectionTitle}>Impor Data CSV</h2>
-        <p className={styles.sectionDesc}>
-          Impor data dari file CSV. Pilih file yang ingin diimpor (minimal 1).
-        </p>
-
-        {/* Format examples toggle */}
-        <details className={styles.formatExamples}>
-          <summary className={styles.formatExamplesSummary}>📋 Lihat contoh format CSV</summary>
-          <div className={styles.formatExamplesContent}>
-            <div className={styles.formatExample}>
-              <strong>📄 Transaksi:</strong>
-              <pre>Tanggal,Tipe,Jumlah,Kategori,Sub Kategori,Dompet,Ke Dompet,Catatan{'\n'}2026-05-03,EXPENSE,38000,Kebutuhan,Makan,BRI - A,,Makan malam{'\n'}2026-05-01,INCOME,14000000,Pemasukan,Gaji,BRI - A,,{'\n'}2026-05-01,TRANSFER,200000,,,BRI - A,GoPay,</pre>
+      {/* Cards flow into two columns once the page is wide enough to carry
+          them; one column below that. See .cardCols in styles/base.css. */}
+      <div className="cardCols">
+        {/* ── Tampilan ─────────────────────────────────────────────────── */}
+        {appearance && (
+          <div className="card">
+            <div className="cardHead">
+              <h2 className="cardTitle">Tampilan</h2>
             </div>
-            <div className={styles.formatExample}>
-              <strong>📊 Budget:</strong>
-              <pre>Periode,Total Pemasukan,Bagian,Kategori,Alokasi{'\n'}2026-05,15000000,Kebutuhan,Makan,2000000{'\n'}2026-05,15000000,Keinginan,Hobby,500000{'\n'}2026-05,15000000,Tabungan,Deposito,3000000</pre>
-            </div>
-            <div className={styles.formatExample}>
-              <strong>💰 Dompet:</strong>
-              <pre>Nama,Tipe,Saldo,Catatan{'\n'}BRI - A,Bank,5000000,Tabungan{'\n'}GoPay,E-Wallet,100000,{'\n'}Cash,Tunai,50000,</pre>
-            </div>
-            <p style={{ fontSize: 11, color: 'var(--text-5)', margin: '8px 0 0' }}>
-              Tipe dompet: Bank, E-Wallet, Kartu Kredit, PayLater, Tunai<br/>
-              Tipe transaksi: EXPENSE, INCOME, TRANSFER<br/>
-              Bagian budget: Kebutuhan, Keinginan, Tabungan
-            </p>
-          </div>
-        </details>
+            <div>
+              <div className="setRow">
+                <div className="setInfo">
+                  <div className="setLabel">Tema</div>
+                  <div className="setDesc">Ganti antara mode terang dan gelap</div>
+                </div>
+                <button
+                  className="toggle"
+                  type="button"
+                  role="switch"
+                  aria-label="Mode gelap"
+                  aria-checked={appearance.darkMode}
+                  onClick={() => appearance.setDarkMode((d) => !d)}
+                >
+                </button>
+              </div>
 
-        {/* Transaksi slot */}
-        <div className={styles.importSlot}>
-          <span className={styles.importSlotIcon}>📄</span>
-          <span className={styles.importSlotLabel}>Transaksi</span>
-          {csvFiles.transactions ? (
-            <div className={styles.importSlotFileInfo}>
-              <span className={styles.importSlotCheck}>✅</span>
-              <span className={styles.importSlotFile}>
-                {csvFiles.transactions.name} ({csvFiles.transactions.rowCount} baris)
-              </span>
-              <button
-                type="button"
-                className={styles.importSlotRemove}
-                onClick={() => handleCsvFileRemove('transactions')}
-                aria-label="Hapus file transaksi"
-              >
-                ×
-              </button>
-            </div>
-          ) : (
-            <>
-              <input
-                ref={csvTransactionsRef}
-                type="file"
-                accept=".csv"
-                onChange={(e) => handleCsvFileSelect('transactions', e)}
-                style={{ display: 'none' }}
-              />
-              <button
-                type="button"
-                className={styles.importSlotBtn}
-                onClick={() => csvTransactionsRef.current?.click()}
-                disabled={csvImporting}
-              >
-                Pilih File
-              </button>
-              <span className={styles.importSlotFile}>(belum dipilih)</span>
-            </>
-          )}
-        </div>
+              <div className="setRow">
+                <div className="setInfo">
+                  <div className="setLabel">Kerapatan</div>
+                  <div className="setDesc">Mengatur jarak, padding, dan tinggi baris</div>
+                </div>
+                <div className="seg" role="group" aria-label="Kerapatan">
+                  {[
+                    ['compact', 'Padat'],
+                    ['standard', 'Standar'],
+                    ['relaxed', 'Longgar'],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={appearance.density === value}
+                      onClick={() => appearance.setDensity(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-        {/* Budget slot */}
-        <div className={styles.importSlot}>
-          <span className={styles.importSlotIcon}>📊</span>
-          <span className={styles.importSlotLabel}>Budget</span>
-          {csvFiles.budgets ? (
-            <div className={styles.importSlotFileInfo}>
-              <span className={styles.importSlotCheck}>✅</span>
-              <span className={styles.importSlotFile}>
-                {csvFiles.budgets.name} ({csvFiles.budgets.rowCount} periode)
-              </span>
-              <button
-                type="button"
-                className={styles.importSlotRemove}
-                onClick={() => handleCsvFileRemove('budgets')}
-                aria-label="Hapus file budget"
-              >
-                ×
-              </button>
+              <div className="setRow">
+                <div className="setInfo">
+                  <div className="setLabel">Sudut</div>
+                  <div className="setDesc">Membulatkan atau menajamkan sudut kartu</div>
+                </div>
+                <div className="seg" role="group" aria-label="Sudut">
+                  {[
+                    ['sharp', 'Tajam'],
+                    ['soft', 'Lembut'],
+                    ['round', 'Bulat'],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={appearance.radius === value}
+                      onClick={() => appearance.setRadius(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          ) : (
-            <>
-              <input
-                ref={csvBudgetsRef}
-                type="file"
-                accept=".csv"
-                onChange={(e) => handleCsvFileSelect('budgets', e)}
-                style={{ display: 'none' }}
-              />
-              <button
-                type="button"
-                className={styles.importSlotBtn}
-                onClick={() => csvBudgetsRef.current?.click()}
-                disabled={csvImporting}
-              >
-                Pilih File
-              </button>
-              <span className={styles.importSlotFile}>(belum dipilih)</span>
-            </>
-          )}
-        </div>
-
-        {/* Dompet slot */}
-        <div className={styles.importSlot}>
-          <span className={styles.importSlotIcon}>💰</span>
-          <span className={styles.importSlotLabel}>Dompet</span>
-          {csvFiles.wallets ? (
-            <div className={styles.importSlotFileInfo}>
-              <span className={styles.importSlotCheck}>✅</span>
-              <span className={styles.importSlotFile}>
-                {csvFiles.wallets.name} ({csvFiles.wallets.rowCount} dompet)
-              </span>
-              <button
-                type="button"
-                className={styles.importSlotRemove}
-                onClick={() => handleCsvFileRemove('wallets')}
-                aria-label="Hapus file dompet"
-              >
-                ×
-              </button>
-            </div>
-          ) : (
-            <>
-              <input
-                ref={csvWalletsRef}
-                type="file"
-                accept=".csv"
-                onChange={(e) => handleCsvFileSelect('wallets', e)}
-                style={{ display: 'none' }}
-              />
-              <button
-                type="button"
-                className={styles.importSlotBtn}
-                onClick={() => csvWalletsRef.current?.click()}
-                disabled={csvImporting}
-              >
-                Pilih File
-              </button>
-              <span className={styles.importSlotFile}>(belum dipilih)</span>
-            </>
-          )}
-        </div>
-
-        {/* Error display */}
-        {csvError && (
-          <div style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: '#F87171',
-            background: 'rgba(220, 38, 38, 0.08)',
-            borderRadius: 8,
-            padding: '10px 14px',
-            marginTop: 12,
-          }}>
-            {csvError}
           </div>
         )}
 
-        {/* Import button */}
-        <button
-          className={styles.btnPrimary}
-          onClick={handleCsvImport}
-          disabled={!csvHasAnyFile || csvImporting}
-          style={{
-            marginTop: 16,
-            opacity: (!csvHasAnyFile || csvImporting) ? 0.6 : 1,
-            cursor: (!csvHasAnyFile || csvImporting) ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {csvImporting ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <span style={{
-                width: 14, height: 14,
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: '#fff',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-                display: 'inline-block',
-              }} />
-              Mengimpor...
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            </span>
-          ) : 'Impor'}
-        </button>
-      </div>
+        {/* ── FIRE Calculator Link ─────────────────────────────────── */}
+        {setPage && (
+          <div className="card">
+            <h2 className="cardTitle settingsTitle">Alat Keuangan</h2>
+            <button
+              className="btnPrimary"
+              onClick={() => setPage('help')}
+              style={{ marginRight: 8, marginBottom: 8 }}
+            >
+              📖 Bantuan &amp; Panduan
+            </button>
+            <button
+              className="btnPrimary"
+              onClick={() => setPage('fire')}
+              style={{ marginBottom: 8 }}
+            >
+              🔥 Kalkulator FIRE
+            </button>
+          </div>
+        )}
 
-      {/* ── Kelola Kategori Section ────────────────────────────────── */}
-      <div className={styles.sectionCard} style={{ marginBottom: 16 }}>
-        <h2 className={styles.sectionTitle}>Kelola Kategori</h2>
-        <p className={styles.sectionDesc}>
-          Atur kategori pengeluaran dan pemasukan Anda.
-        </p>
+        {/* ── Export Section ──────────────────────────────────────────── */}
+        <div className="card">
+          <h2 className="cardTitle settingsTitle">Ekspor Data</h2>
+          <p className="settingsDesc">
+            Unduh semua data Anda (dompet, transaksi, anggaran, kategori, dan preferensi)
+            sebagai file cadangan.
+          </p>
 
-        {SECTION_ORDER.map((section) => {
-          const sectionCats = categories
-            .filter((c) => c.section === section)
-            .sort((a, b) => a.name.localeCompare(b.name, 'id'));
-          const isCollapsed = collapsedSections[section];
-          return (
-            <div key={section} className={styles.catSection}>
-              <button
-                type="button"
-                className={styles.catSectionTitle}
-                onClick={() => toggleSection(section)}
-              >
-                <span>{SECTION_LABELS[section]} ({sectionCats.length})</span>
-                <svg
-                  width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+          {/* Format selector */}
+          <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 14,
+              color: 'var(--text-1)',
+              cursor: 'pointer',
+              fontWeight: exportFormat === 'json' ? 600 : 400,
+            }}>
+              <input
+                type="radio"
+                name="exportFormat"
+                value="json"
+                checked={exportFormat === 'json'}
+                onChange={() => setExportFormat('json')}
+                style={{ accentColor: 'var(--blue)' }}
+              />
+              JSON
+            </label>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 14,
+              color: 'var(--text-1)',
+              cursor: 'pointer',
+              fontWeight: exportFormat === 'csv' ? 600 : 400,
+            }}>
+              <input
+                type="radio"
+                name="exportFormat"
+                value="csv"
+                checked={exportFormat === 'csv'}
+                onChange={() => setExportFormat('csv')}
+                style={{ accentColor: 'var(--blue)' }}
+              />
+              CSV (ZIP)
+            </label>
+          </div>
+
+          <button
+            className="btnPrimary"
+            onClick={handleExport}
+            disabled={exporting}
+            style={{ opacity: exporting ? 0.6 : 1, cursor: exporting ? 'not-allowed' : 'pointer' }}
+          >
+            {exporting ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span style={{
+                  width: 14, height: 14,
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: 'var(--accent-on)',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                  display: 'inline-block',
+                }} />
+                Mengekspor...
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </span>
+            ) : 'Ekspor'}
+          </button>
+        </div>
+
+        {/* ── Import Cadangan Section (JSON/ZIP) ─────────────────────── */}
+        <div className="card">
+          <h2 className="cardTitle settingsTitle">Impor Cadangan</h2>
+          <p className="settingsDesc">
+            Pulihkan data dari file cadangan BudgetX (JSON atau ZIP).
+          </p>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,.zip"
+            onChange={handleFileSelect}
+            style={{ display: 'none' }}
+          />
+
+          <button
+            className="btnPrimary"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            style={{ opacity: importing ? 0.6 : 1, cursor: importing ? 'not-allowed' : 'pointer' }}
+          >
+            Pilih File
+          </button>
+        </div>
+
+        {/* ── Import CSV Section (Multi-file) ────────────────────────── */}
+        <div className="card">
+          <h2 className="cardTitle settingsTitle">Impor Data CSV</h2>
+          <p className="settingsDesc">
+            Impor data dari file CSV. Pilih file yang ingin diimpor (minimal 1).
+          </p>
+
+          {/* Format examples toggle */}
+          <details className="settingsExamples">
+            <summary className="settingsExamplesSummary">📋 Lihat contoh format CSV</summary>
+            <div className="settingsExamplesContent">
+              <div className="settingsExample">
+                <strong>📄 Transaksi:</strong>
+                <pre>Tanggal,Tipe,Jumlah,Kategori,Sub Kategori,Dompet,Ke Dompet,Catatan{'\n'}2026-05-03,EXPENSE,38000,Kebutuhan,Makan,BRI - A,,Makan malam{'\n'}2026-05-01,INCOME,14000000,Pemasukan,Gaji,BRI - A,,{'\n'}2026-05-01,TRANSFER,200000,,,BRI - A,GoPay,</pre>
+              </div>
+              <div className="settingsExample">
+                <strong>📊 Budget:</strong>
+                <pre>Periode,Total Pemasukan,Bagian,Kategori,Alokasi{'\n'}2026-05,15000000,Kebutuhan,Makan,2000000{'\n'}2026-05,15000000,Keinginan,Hobby,500000{'\n'}2026-05,15000000,Tabungan,Deposito,3000000</pre>
+              </div>
+              <div className="settingsExample">
+                <strong>💰 Dompet:</strong>
+                <pre>Nama,Tipe,Saldo,Catatan{'\n'}BRI - A,Bank,5000000,Tabungan{'\n'}GoPay,E-Wallet,100000,{'\n'}Cash,Tunai,50000,</pre>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-5)', margin: '8px 0 0' }}>
+                Tipe dompet: Bank, E-Wallet, Kartu Kredit, PayLater, Tunai<br/>
+                Tipe transaksi: EXPENSE, INCOME, TRANSFER<br/>
+                Bagian budget: Kebutuhan, Keinginan, Tabungan
+              </p>
+            </div>
+          </details>
+
+          {/* Transaksi slot */}
+          <div className="importSlot">
+            <span className="importSlotIcon">📄</span>
+            <span className="importSlotLabel">Transaksi</span>
+            {csvFiles.transactions ? (
+              <div className="importSlotFileInfo">
+                <span className="importSlotCheck">✅</span>
+                <span className="importSlotFile">
+                  {csvFiles.transactions.name} ({csvFiles.transactions.rowCount} baris)
+                </span>
+                <button
+                  type="button"
+                  className="importSlotRemove"
+                  onClick={() => handleCsvFileRemove('transactions')}
+                  aria-label="Hapus file transaksi"
                 >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
+                  ×
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  ref={csvTransactionsRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => handleCsvFileSelect('transactions', e)}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  className="importSlotBtn"
+                  onClick={() => csvTransactionsRef.current?.click()}
+                  disabled={csvImporting}
+                >
+                  Pilih File
+                </button>
+                <span className="importSlotFile">(belum dipilih)</span>
+              </>
+            )}
+          </div>
 
-              {!isCollapsed && (
-                <>
-              {sectionCats.map((cat) => {
-                if (editingCatId === cat.id) {
-                  return (
-                    <div key={cat.id} className={styles.catEditForm}>
-                      <input
-                        type="text"
-                        value={editForm.name}
-                        onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                        placeholder="Nama kategori"
-                        autoFocus
-                      />
-                      <div className={styles.catColorPalette}>
-                        {COLORS.map((col) => (
-                          <button
-                            key={col}
-                            type="button"
-                            className={`${styles.catColorSwatch} ${editForm.color === col ? styles.catColorSwatchSelected : ''}`}
-                            style={{ background: col }}
-                            onClick={() => setEditForm((f) => ({ ...f, color: col }))}
-                            aria-label={`Warna ${col}`}
-                          />
-                        ))}
+          {/* Budget slot */}
+          <div className="importSlot">
+            <span className="importSlotIcon">📊</span>
+            <span className="importSlotLabel">Budget</span>
+            {csvFiles.budgets ? (
+              <div className="importSlotFileInfo">
+                <span className="importSlotCheck">✅</span>
+                <span className="importSlotFile">
+                  {csvFiles.budgets.name} ({csvFiles.budgets.rowCount} periode)
+                </span>
+                <button
+                  type="button"
+                  className="importSlotRemove"
+                  onClick={() => handleCsvFileRemove('budgets')}
+                  aria-label="Hapus file budget"
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  ref={csvBudgetsRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => handleCsvFileSelect('budgets', e)}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  className="importSlotBtn"
+                  onClick={() => csvBudgetsRef.current?.click()}
+                  disabled={csvImporting}
+                >
+                  Pilih File
+                </button>
+                <span className="importSlotFile">(belum dipilih)</span>
+              </>
+            )}
+          </div>
+
+          {/* Dompet slot */}
+          <div className="importSlot">
+            <span className="importSlotIcon">💰</span>
+            <span className="importSlotLabel">Dompet</span>
+            {csvFiles.wallets ? (
+              <div className="importSlotFileInfo">
+                <span className="importSlotCheck">✅</span>
+                <span className="importSlotFile">
+                  {csvFiles.wallets.name} ({csvFiles.wallets.rowCount} dompet)
+                </span>
+                <button
+                  type="button"
+                  className="importSlotRemove"
+                  onClick={() => handleCsvFileRemove('wallets')}
+                  aria-label="Hapus file dompet"
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  ref={csvWalletsRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => handleCsvFileSelect('wallets', e)}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  className="importSlotBtn"
+                  onClick={() => csvWalletsRef.current?.click()}
+                  disabled={csvImporting}
+                >
+                  Pilih File
+                </button>
+                <span className="importSlotFile">(belum dipilih)</span>
+              </>
+            )}
+          </div>
+
+          {/* Error display */}
+          {csvError && (
+            <div style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--red-ink)',
+              background: 'var(--red-soft)',
+              borderRadius: 8,
+              padding: '10px 14px',
+              marginTop: 12,
+            }}>
+              {csvError}
+            </div>
+          )}
+
+          {/* Import button */}
+          <button
+            className="btnPrimary"
+            onClick={handleCsvImport}
+            disabled={!csvHasAnyFile || csvImporting}
+            style={{
+              marginTop: 16,
+              opacity: (!csvHasAnyFile || csvImporting) ? 0.6 : 1,
+              cursor: (!csvHasAnyFile || csvImporting) ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {csvImporting ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span style={{
+                  width: 14, height: 14,
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: 'var(--accent-on)',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                  display: 'inline-block',
+                }} />
+                Mengimpor...
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </span>
+            ) : 'Impor'}
+          </button>
+        </div>
+
+        {/* ── Kelola Kategori Section ────────────────────────────────── */}
+        <div className="card">
+          <h2 className="cardTitle settingsTitle">Kelola Kategori</h2>
+          <p className="settingsDesc">
+            Atur kategori pengeluaran dan pemasukan Anda.
+          </p>
+
+          {SECTION_ORDER.map((section) => {
+            const sectionCats = categories
+              .filter((c) => c.section === section)
+              .sort((a, b) => a.name.localeCompare(b.name, 'id'));
+            const isCollapsed = collapsedSections[section];
+            return (
+              <div key={section} className="settingsCatSection">
+                <button
+                  type="button"
+                  className="settingsCatSectionTitle"
+                  onClick={() => toggleSection(section)}
+                >
+                  <span>{SECTION_LABELS[section]} ({sectionCats.length})</span>
+                  <svg
+                    width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+
+                {!isCollapsed && (
+                  <>
+                {sectionCats.map((cat) => {
+                  if (editingCatId === cat.id) {
+                    return (
+                      <div key={cat.id} className="settingsCatEdit">
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                          placeholder="Nama kategori"
+                          autoFocus
+                        />
+                        <div className="settingsCatPalette">
+                          {COLORS.map((col) => (
+                            <button
+                              key={col}
+                              type="button"
+                              className="settingsCatSwatch"
+                              aria-pressed={editForm.color === col}
+                              style={{ background: col }}
+                              onClick={() => setEditForm((f) => ({ ...f, color: col }))}
+                              aria-label={`Warna ${col}`}
+                            />
+                          ))}
+                        </div>
+                        <div className="settingsCatEditActions">
+                          <button className="btnSmallPrimary" type="button" onClick={saveEditCat}>Simpan</button>
+                          <button className="btnSmallGhost" type="button" onClick={cancelEditCat}>Batal</button>
+                        </div>
                       </div>
-                      <div className={styles.catEditFormActions}>
-                        <button type="button" onClick={saveEditCat}>Simpan</button>
-                        <button type="button" onClick={cancelEditCat}>Batal</button>
+                    );
+                  }
+
+                  return (
+                    <div key={cat.id} className="settingsCatItem">
+                      <div
+                        className="dot settingsCatDot"
+                        style={{ background: cat.color }}
+                      />
+                      <span className="settingsCatName">{cat.name}</span>
+                      <div className="settingsCatActions">
+                        <button
+                          type="button"
+                          className="iconBtn"
+                          onClick={() => startEditCat(cat)}
+                          aria-label={`Edit ${cat.name}`}
+                        >
+                          <NavIcon name="edit" size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="iconBtn iconBtnDanger"
+                          onClick={() => handleDeleteCat(cat)}
+                          aria-label={`Hapus ${cat.name}`}
+                        >
+                          <NavIcon name="trash" size={14} />
+                        </button>
                       </div>
                     </div>
                   );
-                }
+                })}
 
-                return (
-                  <div key={cat.id} className={styles.catItem}>
-                    <div
-                      className={styles.catItemDot}
-                      style={{ background: cat.color }}
+                {addingSection === section ? (
+                  <div className="settingsCatEdit">
+                    <input
+                      type="text"
+                      value={addForm.name}
+                      onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
+                      placeholder="Nama kategori baru"
+                      autoFocus
                     />
-                    <span className={styles.catItemName}>{cat.name}</span>
-                    <div className={styles.catItemActions}>
-                      <button
-                        type="button"
-                        onClick={() => startEditCat(cat)}
-                        aria-label={`Edit ${cat.name}`}
-                      >
-                        <NavIcon name="edit" size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCat(cat)}
-                        aria-label={`Hapus ${cat.name}`}
-                      >
-                        <NavIcon name="trash" size={14} />
-                      </button>
+                    <div className="settingsCatPalette">
+                      {COLORS.map((col) => (
+                        <button
+                          key={col}
+                          type="button"
+                          className="settingsCatSwatch"
+                          aria-pressed={addForm.color === col}
+                          style={{ background: col }}
+                          onClick={() => setAddForm((f) => ({ ...f, color: col }))}
+                          aria-label={`Warna ${col}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="settingsCatEditActions">
+                      <button className="btnSmallPrimary" type="button" onClick={saveAddCat}>Tambah</button>
+                      <button className="btnSmallGhost" type="button" onClick={cancelAddCat}>Batal</button>
                     </div>
                   </div>
-                );
-              })}
+                ) : (
+                  <button
+                    type="button"
+                    className="btnSmallGhost settingsCatAdd"
+                    onClick={() => startAddCat(section)}
+                  >
+                    <NavIcon name="plus" size={13} /> Tambah Kategori
+                  </button>
+                )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-              {addingSection === section ? (
-                <div className={styles.catEditForm}>
-                  <input
-                    type="text"
-                    value={addForm.name}
-                    onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="Nama kategori baru"
-                    autoFocus
-                  />
-                  <div className={styles.catColorPalette}>
-                    {COLORS.map((col) => (
-                      <button
-                        key={col}
-                        type="button"
-                        className={`${styles.catColorSwatch} ${addForm.color === col ? styles.catColorSwatchSelected : ''}`}
-                        style={{ background: col }}
-                        onClick={() => setAddForm((f) => ({ ...f, color: col }))}
-                        aria-label={`Warna ${col}`}
-                      />
-                    ))}
-                  </div>
-                  <div className={styles.catEditFormActions}>
-                    <button type="button" onClick={saveAddCat}>Tambah</button>
-                    <button type="button" onClick={cancelAddCat}>Batal</button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className={styles.catAddBtn}
-                  onClick={() => startAddCat(section)}
-                >
-                  <NavIcon name="plus" size={13} /> Tambah Kategori
-                </button>
-              )}
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Reset Data Section ─────────────────────────────────────── */}
-      <div className={styles.sectionCard}>
-        <h2 className={styles.sectionTitle}>Reset Data</h2>
-        <p className={styles.sectionDesc}>
-          Menghapus semua data Anda secara permanen, termasuk dompet, transaksi,
-          anggaran, kategori, dan preferensi. Data yang sudah dihapus tidak dapat
-          dikembalikan.
-        </p>
-        <button
-          className={styles.btnDanger}
-          onClick={() => setShowConfirm(true)}
-        >
-          Reset Data
-        </button>
+        {/* ── Reset Data Section ─────────────────────────────────────── */}
+        <div className="card">
+          <h2 className="cardTitle settingsTitle">Reset Data</h2>
+          <p className="settingsDesc">
+            Menghapus semua data Anda secara permanen, termasuk dompet, transaksi,
+            anggaran, kategori, dan preferensi. Data yang sudah dihapus tidak dapat
+            dikembalikan.
+          </p>
+          <button
+            className="btnDanger"
+            onClick={() => setShowConfirm(true)}
+          >
+            Reset Data
+          </button>
+        </div>
       </div>
 
       {/* ── Modals ─────────────────────────────────────────────────── */}

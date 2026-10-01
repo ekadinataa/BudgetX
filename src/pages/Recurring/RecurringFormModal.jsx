@@ -5,7 +5,6 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { calcNextEstimateDate, shortcutToDays, formatDuration } from '../../utils/recurring';
 import { TODAY } from '../../data/defaults';
-import styles from './RecurringPage.module.css';
 
 const DURATION_SHORTCUTS = [
   { label: '2 mgg', value: '2mgg' },
@@ -95,7 +94,7 @@ export default function RecurringFormModal({ initial, categories, wallets, onClo
         <Input value={form.name} onChange={set('name')} placeholder="cth. Skincare Moisturizer" />
       </Field>
 
-      <div className={styles.formGrid}>
+      <div className="formGrid">
         <Field label="Kategori">
           <Select value={form.categoryId} onChange={set('categoryId')}>
             {expenseCategories.map((c) => (
@@ -124,12 +123,13 @@ export default function RecurringFormModal({ initial, categories, wallets, onClo
           onChange={set('durationDays')}
           placeholder="cth. 45"
         />
-        <div className={styles.shortcuts}>
+        <div className="chipGroup">
           {DURATION_SHORTCUTS.map((s) => (
             <button
               key={s.value}
               type="button"
-              className={`${styles.shortcutBtn} ${activeShortcut?.value === s.value ? styles.shortcutBtnActive : ''}`}
+              className="filterChip"
+              aria-pressed={activeShortcut?.value === s.value}
               onClick={() => handleShortcut(s.value)}
             >
               {s.label}
@@ -157,12 +157,12 @@ export default function RecurringFormModal({ initial, categories, wallets, onClo
         <Input value={form.tags} onChange={set('tags')} placeholder="cth. perawatan, rutin" />
       </Field>
 
-      <button className={styles.saveBtn} onClick={handleSubmit}>
+      <button className="btnPrimary" onClick={handleSubmit}>
         {initial ? 'Simpan Perubahan' : 'Tambah Item'}
       </button>
 
       {initial && onDelete && (
-        <button className={styles.deleteBtn} onClick={() => onDelete(initial.id)}>
+        <button className="btnSmallDanger" onClick={() => onDelete(initial.id)}>
           Hapus Item
         </button>
       )}

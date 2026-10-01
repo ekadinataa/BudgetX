@@ -16,18 +16,18 @@ import { sectionLabel } from '../../utils/helpers';
  * Requirements: 5.4
  */
 
-/** Background colors per section (light theme defaults) */
+/** Tinted background per budget section. */
 const bgMap = {
-  needs: 'var(--section-pill-needs-bg, rgba(99, 102, 241, 0.08))',
-  wants: 'var(--section-pill-wants-bg, rgba(245, 158, 11, 0.08))',
-  savings: 'var(--section-pill-savings-bg, rgba(22, 163, 74, 0.08))',
+  needs: 'var(--indigo-soft)',
+  wants: 'var(--orange-soft)',
+  savings: 'var(--green-soft)',
 };
 
-/** Foreground colors per section (light theme defaults) */
+/** Text-safe foreground per budget section. */
 const fgMap = {
-  needs: 'var(--section-pill-needs-color, #4338CA)',
-  wants: 'var(--section-pill-wants-color, #854D0E)',
-  savings: 'var(--section-pill-savings-color, #166534)',
+  needs: 'var(--indigo-ink)',
+  wants: 'var(--orange-ink)',
+  savings: 'var(--green-ink)',
 };
 
 export default function SectionPill({ section }) {

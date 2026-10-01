@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import styles from './CategoryPicker.module.css';
 
 const SECTION_LABELS = {
   needs: 'Kebutuhan',
@@ -65,11 +64,11 @@ export default function CategoryPicker({ categories, value, onChange }) {
   };
 
   return (
-    <div className={styles.container} ref={containerRef}>
+    <div className="categoryPicker" ref={containerRef}>
       {/* Trigger button */}
-      <button type="button" className={styles.trigger} onClick={() => setOpen(!open)}>
-        {selected && <span className={styles.dot} style={{ background: selected.color }} />}
-        <span className={styles.triggerText}>{selected?.name || 'Pilih kategori'}</span>
+      <button type="button" className="inputField categoryPickerTrigger" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {selected && <span className="categoryPickerDot" style={{ background: selected.color }} />}
+        <span className="categoryPickerText">{selected?.name || 'Pilih kategori'}</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -77,34 +76,35 @@ export default function CategoryPicker({ categories, value, onChange }) {
 
       {/* Dropdown */}
       {open && (
-        <div className={styles.dropdown}>
-          <div className={styles.searchWrap}>
+        <div className="categoryPickerDropdown">
+          <div className="categoryPickerSearchWrap">
             <input
               ref={searchRef}
               type="text"
-              className={styles.searchInput}
+              className="categoryPickerSearch"
               placeholder="Cari kategori..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className={styles.list}>
+          <div className="categoryPickerList">
             {Object.keys(grouped).length === 0 && (
-              <div className={styles.empty}>Tidak ditemukan</div>
+              <div className="categoryPickerEmpty">Tidak ditemukan</div>
             )}
             {Object.entries(grouped).map(([sec, items]) => (
               <div key={sec}>
-                <div className={styles.sectionHeader}>{SECTION_LABELS[sec]}</div>
-                <div className={styles.emojiGrid}>
+                <div className="categoryPickerSection">{SECTION_LABELS[sec]}</div>
+                <div className="categoryPickerGrid">
                   {items.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
-                      className={`${styles.emojiItem} ${cat.id === value ? styles.emojiItemActive : ''}`}
+                      className="categoryPickerItem"
+                      aria-pressed={cat.id === value}
                       onClick={() => handleSelect(cat.id)}
                     >
                       <span
-                        className={styles.emojiCircle}
+                        className="categoryPickerCircle"
                         style={{
                           background: cat.color + '26',
                           borderColor: cat.id === value ? cat.color : 'transparent',
@@ -112,7 +112,7 @@ export default function CategoryPicker({ categories, value, onChange }) {
                       >
                         {cat.icon || cat.name.charAt(0)}
                       </span>
-                      <span className={styles.emojiLabel}>{cat.name}</span>
+                      <span className="categoryPickerLabel">{cat.name}</span>
                     </button>
                   ))}
                 </div>

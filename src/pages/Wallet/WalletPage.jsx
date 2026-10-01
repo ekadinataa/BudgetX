@@ -3,10 +3,10 @@ import { fmtFull } from '../../utils/formatters';
 import { computeWalletAggregates } from '../../utils/helpers';
 import { WALLET_TYPES } from '../../utils/constants';
 import NavIcon from '../../components/icons/NavIcon';
+import { usePageActions } from '../../context/pageActions';
 import WalletCard from './WalletCard';
 import WalletFormModal from './WalletFormModal';
 import TransferModal from './TransferModal';
-import styles from './WalletPage.module.css';
 
 /**
  * WalletPage — Multi-wallet management page.
@@ -116,57 +116,66 @@ export default function WalletPage({
     setShowTransfer(false);
   };
 
+  // Header actions live in the topbar so they stay reachable while a long wallet
+  // list scrolls. The hook returns a portal, so it is rendered in the tree.
+  // `.toolbar` normalises the secondary `Transfer` button up to the primary
+  // button's height; without it the pair rendered 32px beside 44px.
+  const topbarActions = usePageActions(
+    <div className="toolbar">
+      <button className="btnGhost" onClick={() => setShowTransfer(true)}>
+        <NavIcon name="transfer" size={16} /> Transfer
+      </button>
+      <button className="btnPrimary" onClick={() => setShowAdd(true)}>
+        <NavIcon name="plus" size={16} /> Tambah Dompet
+      </button>
+    </div>,
+  );
+
+  // `display: contents` so this wrapper does not become a single flex child of
+  // `.container`. As a plain `<div>` it absorbed the container's `gap` for the
+  // whole page, leaving every card below it flush against its neighbour — which
+  // is why the spacing read as cramped rather than merely tight. `{topbarActions}`
+  // is a portal and renders null, so nothing else depends on this element.
   return (
-    <div>
-      {/* Page header */}
-      <div className={styles.pageHeader}>
+    <div className="pageStack">
+      {topbarActions}
+
+      {/* Page header — actions go to the sticky topbar, as the reference's
+          `pageHeader(title, sub, actions)` does. */}
+      <div className="largeTitleBlock">
         <div>
-          <h1 className={styles.pageTitle}>Dompet</h1>
-          <p className={styles.pageSubtitle}>
+          <h1 className="largeTitle">Dompet</h1>
+          <p className="pageSubtitle">
             Kelola semua dompet &amp; rekening Anda
           </p>
-        </div>
-        <div className={styles.headerActions}>
-          <button
-            className={styles.btnGhost}
-            onClick={() => setShowTransfer(true)}
-          >
-            <NavIcon name="transfer" size={16} /> Transfer
-          </button>
-          <button
-            className={styles.btnPrimary}
-            onClick={() => setShowAdd(true)}
-          >
-            <NavIcon name="plus" size={16} /> Tambah Dompet
-          </button>
         </div>
       </div>
 
       {/* Summary row */}
-      <div className={styles.summaryGrid}>
-        <div className={styles.summaryCard}>
-          <div className={styles.summaryLabel}>Total Saldo Bersih</div>
+      <div className="statGrid">
+        <div className="statCard">
+          <div className="statLabel">Total Saldo Bersih</div>
           <div
-            className={styles.summaryValue}
-            style={{ color: netBalance < 0 ? '#EF4444' : '#4F6EF7' }}
+            className="statValue num"
+            style={{ color: netBalance < 0 ? 'var(--red-ink)' : 'var(--blue-ink)' }}
           >
             {fmtFull(netBalance)}
           </div>
         </div>
-        <div className={styles.summaryCard}>
-          <div className={styles.summaryLabel}>Total Aset</div>
+        <div className="statCard">
+          <div className="statLabel">Total Aset</div>
           <div
-            className={styles.summaryValue}
-            style={{ color: '#22C55E' }}
+            className="statValue num"
+            style={{ color: 'var(--green-ink)' }}
           >
             {fmtFull(totalAsset)}
           </div>
         </div>
-        <div className={styles.summaryCard}>
-          <div className={styles.summaryLabel}>Total Hutang</div>
+        <div className="statCard">
+          <div className="statLabel">Total Hutang</div>
           <div
-            className={styles.summaryValue}
-            style={{ color: '#EF4444' }}
+            className="statValue num"
+            style={{ color: 'var(--red-ink)' }}
           >
             {fmtFull(totalDebt)}
           </div>
@@ -178,9 +187,9 @@ export default function WalletPage({
         const group = wallets.filter((w) => w.type === wt.value);
         if (!group.length) return null;
         return (
-          <div key={wt.value} className={styles.groupSection}>
-            <div className={styles.groupLabel}>{wt.label}</div>
-            <div className={styles.groupGrid}>
+          <div key={wt.value} className="sectionBlock">
+            <h2 className="sectionTitle">{wt.label}</h2>
+            <div className="walletGrid">
               {group.map((w) => (
                 <WalletCard
                   key={w.id}

@@ -27,10 +27,10 @@
 ## 🛠️ Tech Stack
 
 - **Frontend:** React 19 + Vite 8
-- **Styling:** CSS Modules + CSS Custom Properties (Dark/Light theme)
+- **Styling:** Kelas CSS global + design tokens (tema, kerapatan, radius)
 - **Backend:** Firebase (Auth, Firestore, Hosting)
 - **Charts:** Recharts
-- **Font:** Plus Jakarta Sans
+- **Font:** System font stack; IBM Plex Mono self-hosted sebagai fallback angka monospace
 
 ---
 
@@ -63,6 +63,21 @@ cp .env.example .env
 
 npm run dev
 ```
+
+---
+
+## 📄 Single File
+
+Build produksi bisa digabung jadi **satu file HTML mandiri** — CSS, JS, dan logo
+sudah inline, jadi bisa dibuka langsung dari filesystem tanpa server:
+
+```bash
+npm run build:single   # → ../budgetx.html (±1.4 MB)
+```
+
+Google Fonts tetap `<link>` (offline app jatuh ke system font). Mode auth
+mengikuti isi `.env` saat build: env terisi → cloud mode (butuh internet +
+login); env kosong → local mode (`localStorage`, sepenuhnya offline).
 
 ---
 
@@ -103,6 +118,7 @@ budgetku/
 │   └── data/                # Default data
 ├── docs/                    # Documentation
 ├── public/                  # Static assets
+├── scripts/                 # Build scripts (single-file HTML)
 └── firebase.json            # Hosting config
 ```
 

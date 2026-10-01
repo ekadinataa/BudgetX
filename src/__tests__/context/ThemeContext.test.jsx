@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider, useTheme } from '../../context/ThemeContext';
-import { DARK_VARS, LIGHT_VARS } from '../../utils/constants';
 
 /** Helper component that consumes the theme context */
 function ThemeConsumer() {
@@ -13,6 +12,8 @@ function ThemeConsumer() {
     </div>
   );
 }
+
+const attr = () => document.documentElement.getAttribute.bind(document.documentElement);
 
 describe('ThemeContext', () => {
   it('provides darkMode value to consumers', () => {
@@ -33,28 +34,16 @@ describe('ThemeContext', () => {
     expect(screen.getByTestId('mode').textContent).toBe('dark');
   });
 
-  it('applies light CSS custom properties when darkMode is false', () => {
-    render(
-      <ThemeProvider darkMode={false} setDarkMode={vi.fn()}>
-        <div>child</div>
-      </ThemeProvider>
-    );
-    const root = document.documentElement;
-    Object.entries(LIGHT_VARS).forEach(([key, value]) => {
-      expect(root.style.getPropertyValue(key)).toBe(value);
-    });
-  });
-
-  it('applies dark CSS custom properties when darkMode is true', () => {
+  it('does NOT inject inline CSS custom properties', () => {
+    // Colours live in src/styles/tokens.css. Injecting them inline would pin
+    // them as inline styles and defeat the stylesheet, so the provider must
+    // only ever write data attributes.
     render(
       <ThemeProvider darkMode={true} setDarkMode={vi.fn()}>
         <div>child</div>
       </ThemeProvider>
     );
-    const root = document.documentElement;
-    Object.entries(DARK_VARS).forEach(([key, value]) => {
-      expect(root.style.getPropertyValue(key)).toBe(value);
-    });
+    expect(document.documentElement.style.length).toBe(0);
   });
 
   it('sets data-theme="dark" when darkMode is true', () => {
@@ -63,25 +52,77 @@ describe('ThemeContext', () => {
         <div>child</div>
       </ThemeProvider>
     );
-    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(attr()('data-theme')).toBe('dark');
   });
 
-  it('removes data-theme attribute when darkMode is false', () => {
-    // First set dark to add the attribute
+  it('sets data-theme="light" when darkMode is false', () => {
+    // Unlike the previous token system, light is an explicit value rather than
+    // "attribute absent": the reference styles dark through
+    // :root[data-theme='dark'] and the FOUC script always writes the attribute.
+    render(
+      <ThemeProvider darkMode={false} setDarkMode={vi.fn()}>
+        <div>child</div>
+      </ThemeProvider>
+    );
+    expect(attr()('data-theme')).toBe('light');
+  });
+
+  it('toggles the attribute when darkMode changes', () => {
     const { rerender } = render(
       <ThemeProvider darkMode={true} setDarkMode={vi.fn()}>
         <div>child</div>
       </ThemeProvider>
     );
-    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-
-    // Then switch to light
+    expect(attr()('data-theme')).toBe('dark');
     rerender(
       <ThemeProvider darkMode={false} setDarkMode={vi.fn()}>
         <div>child</div>
       </ThemeProvider>
     );
-    expect(document.documentElement.getAttribute('data-theme')).toBeNull();
+    expect(attr()('data-theme')).toBe('light');
+  });
+
+  it('writes the density preset', () => {
+    render(
+      <ThemeProvider darkMode={false} setDarkMode={vi.fn()} density="compact">
+        <div>child</div>
+      </ThemeProvider>
+    );
+    expect(attr()('data-density')).toBe('compact');
+  });
+
+  it('defaults density to standard and radius to soft', () => {
+    render(
+      <ThemeProvider darkMode={false} setDarkMode={vi.fn()}>
+        <div>child</div>
+      </ThemeProvider>
+    );
+    expect(attr()('data-density')).toBe('standard');
+    expect(attr()('data-radius')).toBe('soft');
+  });
+
+  it('writes the radius preset', () => {
+    render(
+      <ThemeProvider darkMode={false} setDarkMode={vi.fn()} radius="round">
+        <div>child</div>
+      </ThemeProvider>
+    );
+    expect(attr()('data-radius')).toBe('round');
+  });
+
+  it('sets data-collapsed only while collapsed', () => {
+    const { rerender } = render(
+      <ThemeProvider darkMode={false} setDarkMode={vi.fn()} collapsed>
+        <div>child</div>
+      </ThemeProvider>
+    );
+    expect(attr()('data-collapsed')).toBe('true');
+    rerender(
+      <ThemeProvider darkMode={false} setDarkMode={vi.fn()} collapsed={false}>
+        <div>child</div>
+      </ThemeProvider>
+    );
+    expect(attr()('data-collapsed')).toBeNull();
   });
 
   it('calls setDarkMode when consumer triggers toggle', () => {
@@ -96,7 +137,6 @@ describe('ThemeContext', () => {
   });
 
   it('throws when useTheme is used outside ThemeProvider', () => {
-    // Suppress console.error for the expected error
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => render(<ThemeConsumer />)).toThrow(
       'useTheme must be used within a ThemeProvider'

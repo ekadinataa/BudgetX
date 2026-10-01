@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
-import styles from './Auth.module.css';
 
 /**
  * LoginPage — Email + password login form.
@@ -30,18 +29,18 @@ export default function LoginPage({ onLogin, onNavigate }) {
   };
 
   return (
-    <div className={styles.authWrapper}>
-      <div className={styles.authCard}>
-        <div className={styles.logo}>
-          <img src="/logo.png" alt="BudgetX" className={styles.logoImg} />
-          <span className={styles.logoText}>BudgetX</span>
+    <div className="authWrapper">
+      <div className="authCard">
+        <div className="authLogo">
+          <img src="/logo.png" alt="BudgetX" className="authLogoImg" />
+          <span className="authLogoText">BudgetX</span>
         </div>
-        <h1 className={styles.title}>Masuk</h1>
-        <p className={styles.subtitle}>Masuk ke akun BudgetX Anda</p>
+        <h1 className="authTitle">Masuk</h1>
+        <p className="authSubtitle">Masuk ke akun BudgetX Anda</p>
 
-        {error && <div className={styles.errorBox}>{error}</div>}
+        {error && <div className="errorBox authNotice">{error}</div>}
 
-        <form className={styles.form} onSubmit={handleSubmit}>
+        <form className="authForm" onSubmit={handleSubmit}>
           <Field label="Email">
             <Input
               type="email"
@@ -64,19 +63,19 @@ export default function LoginPage({ onLogin, onNavigate }) {
           </Field>
           <button
             type="submit"
-            className={styles.submitBtn}
+            className="btnPrimary authSubmit"
             disabled={loading}
           >
             {loading ? 'Memproses...' : 'Masuk'}
           </button>
         </form>
 
-        <div className={styles.links}>
-          <button className={styles.link} onClick={() => onNavigate('forgot')}>
+        <div className="authLinks">
+          <button className="authLink" onClick={() => onNavigate('forgot')}>
             Lupa password?
           </button>
           <span style={{ margin: '0 8px' }}>·</span>
-          <button className={styles.link} onClick={() => onNavigate('register')}>
+          <button className="authLink" onClick={() => onNavigate('register')}>
             Buat akun baru
           </button>
         </div>

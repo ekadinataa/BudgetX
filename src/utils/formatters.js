@@ -58,6 +58,47 @@ export function fmtDate(d) {
 }
 
 /**
+ * Indonesian currency with full digit grouping.
+ * Example: rp(10825000) => "Rp10.825.000"
+ *
+ * This is the reference's `rp()`. Use it where the design shows a large
+ * figure on its own (the balance hero, stat values) rather than the
+ * abbreviated `fmt()`.
+ *
+ * @param {number} n
+ * @returns {string}
+ */
+export function rp(n) {
+  const v = Number(n) || 0;
+  const grouped = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(
+    Math.abs(v)
+  );
+  return `${v < 0 ? '-Rp' : 'Rp'}${grouped}`;
+}
+
+/**
+ * Currency scaled to M / jt / rb.
+ * Example: rpShort(1500000) => "Rp1,5jt", rpShort(800) => "Rp800"
+ *
+ * The reference's `rpShort()`, used in dense tables and inline figures.
+ *
+ * @param {number} n
+ * @returns {string}
+ */
+export function rpShort(n) {
+  const a = Math.abs(Number(n) || 0);
+  const sign = n < 0 ? '-' : '';
+  if (a >= 1e9) return `${sign}Rp${trimZero(a / 1e9)}M`;
+  if (a >= 1e6) return `${sign}Rp${trimZero(a / 1e6)}jt`;
+  if (a >= 1e3) return `${sign}Rp${trimZero(a / 1e3)}rb`;
+  return `${sign}Rp${a}`;
+}
+
+function trimZero(v) {
+  return v.toFixed(Math.abs(v % 1) < 1e-9 ? 0 : 1).replace('.', ',');
+}
+
+/**
  * Returns a "YYYY-MM" string for the given date.
  * Example: monthKey(new Date(2026, 3, 19)) => "2026-04"
  *

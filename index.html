@@ -5,39 +5,22 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BudgetX – Money Tracker</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
     <script>
-      // Apply dark theme CSS vars from localStorage before first paint to prevent FOUC
+      // Apply appearance before first paint to prevent FOUC.
+      // The values live in src/styles/tokens.css; this only writes the four
+      // data attributes the stylesheet keys off. Keep the try/catch —
+      // localStorage throws in some privacy modes.
       (function () {
         try {
           var s = JSON.parse(localStorage.getItem('budgetku_state') || '{}');
-          if (s.darkMode) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            var vars = {
-              '--bg': '#0D1117',
-              '--bg-card': '#161B22',
-              '--bg-2': '#0D1117',
-              '--bg-3': '#1C2128',
-              '--border': '#30363D',
-              '--border-2': '#21262D',
-              '--text-1': '#E6EDF3',
-              '--text-2': '#CDD9E5',
-              '--text-3': '#ADBAC7',
-              '--text-4': '#768390',
-              '--text-5': '#545D68',
-              '--text-6': '#373E47',
-              '--sidebar-bg': '#010409'
-            };
-            for (var k in vars) {
-              document.documentElement.style.setProperty(k, vars[k]);
-            }
-          }
-        } catch (e) {}
+          var r = document.documentElement;
+          r.setAttribute('data-theme', s.darkMode ? 'dark' : 'light');
+          r.setAttribute('data-density', s.density || 'standard');
+          r.setAttribute('data-radius', s.radius || 'soft');
+          if (s.collapsed) r.setAttribute('data-collapsed', 'true');
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
       })();
     </script>
   </head>

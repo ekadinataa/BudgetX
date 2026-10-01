@@ -33,6 +33,16 @@ export default defineConfig([
     },
   },
   {
+    // Build scripts run in Node, not the browser.
+    files: ['**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      globals: globals.node,
+      sourceType: 'module',
+    },
+  },
+  {
     // Context files intentionally export both a Provider component and its
     // `use*` hook. Fast Refresh only complains about the non-component export;
     // splitting them into separate files would be churn for no benefit.

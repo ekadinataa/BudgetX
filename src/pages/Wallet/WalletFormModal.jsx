@@ -4,7 +4,6 @@ import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { WALLET_TYPES } from '../../utils/constants';
-import styles from './WalletPage.module.css';
 
 /** Predefined color palette for wallet color picker */
 const COLORS = [
@@ -72,14 +71,15 @@ export default function WalletFormModal({ title, initial = {}, onClose, onSave }
         />
       </Field>
       <Field label="Warna">
-        <div className={styles.colorPicker}>
+        <div className="swatches">
           {COLORS.map((c) => (
             <button
               key={c}
               onClick={() => setForm((f) => ({ ...f, color: c }))}
-              className={`${styles.colorSwatch}${form.color === c ? ` ${styles.colorSwatchSelected}` : ''}`}
+              className="swatch"
               style={{ background: c }}
-              aria-label={`Select color ${c}`}
+              aria-pressed={form.color === c}
+              aria-label={`Pilih warna ${c}`}
             />
           ))}
         </div>
@@ -91,7 +91,7 @@ export default function WalletFormModal({ title, initial = {}, onClose, onSave }
           placeholder="cth. 4 digit terakhir"
         />
       </Field>
-      <button className={styles.saveBtn} onClick={handleSave}>
+      <button className="btnPrimary" onClick={handleSave}>
         Simpan
       </button>
     </Modal>

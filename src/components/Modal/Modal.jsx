@@ -1,12 +1,8 @@
-import { useEffect } from 'react';
+import { Children, useEffect, useId, useRef } from 'react';
 import NavIcon from '../icons/NavIcon';
-import styles from './Modal.module.css';
 
 /**
  * Modal — Fixed overlay dialog with backdrop blur, Escape key and backdrop click to close.
- *
- * Ported from the prototype's shared.jsx Modal component, converted from inline styles
- * to CSS Modules with theme-aware CSS custom properties.
  *
  * @param {Object} props
  * @param {string} props.title - Header title text
@@ -15,6 +11,14 @@ import styles from './Modal.module.css';
  * @param {number} [props.width=480] - Maximum width of the modal content in pixels
  */
 export default function Modal({ title, onClose, children, width = 480 }) {
+  const titleId = useId();
+  const panelRef = useRef(null);
+  // Simple forms finish with their save/delete buttons. Give those actions a
+  // consistent footer without changing their callbacks or submission behavior.
+  const content = Children.toArray(children);
+  const footer = [];
+  while (content.at(-1)?.type === 'button') footer.unshift(content.pop());
+
   useEffect(() => {
     const handler = (e) => {
       if (e.key === 'Escape') onClose();
@@ -23,20 +27,47 @@ export default function Modal({ title, onClose, children, width = 480 }) {
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  // Lock body scroll so the page behind the overlay doesn't move, and move
+  // focus into the dialog so keyboard users don't stay on the trigger.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    panelRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   return (
-    <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div
-        className={styles.modal}
+        ref={panelRef}
+        className="modal"
         style={{ maxWidth: width }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
       >
-        <div className={styles.header}>
-          <span className={styles.title}>{title}</span>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
+        <div className="modalHead">
+          <span className="modalTitle" id={titleId}>{title}</span>
+          <button
+            className="iconBtn"
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup"
+          >
             <NavIcon name="close" size={18} />
           </button>
         </div>
-        <div className={styles.body}>{children}</div>
+        <div className="modalBody">
+          {content}
+          {footer.length > 0 && <div className="modalActions">{footer}</div>}
+        </div>
       </div>
     </div>
   );

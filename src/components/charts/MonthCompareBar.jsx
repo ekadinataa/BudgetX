@@ -17,8 +17,8 @@ export default function MonthCompareBar({ current, prev, curLabel, prevLabel }) 
   const max = Math.max(current, prev, 1);
 
   const bars = [
-    { label: curLabel, value: current, color: '#EF4444' },
-    { label: prevLabel, value: prev, color: '#FCA5A5' },
+    { label: curLabel, value: current, color: 'var(--red-ink)' },
+    { label: prevLabel, value: prev, color: 'var(--red-ink)' },
   ];
 
   return (

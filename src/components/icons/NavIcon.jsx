@@ -3,6 +3,8 @@ import {
   Receipt,
   Wallet,
   PieChart,
+  Info,
+  Calendar,
   Target,
   Handshake,
   RefreshCcwDot,
@@ -22,6 +24,7 @@ import {
   AlertTriangle,
   Check,
   TrendingUp,
+  Zap,
   TrendingDown,
   Sun,
   Moon,
@@ -30,6 +33,9 @@ import {
   Flame,
   CreditCard,
   Settings,
+  LogOut,
+  ChevronLeft,
+  HelpCircle,
 } from 'lucide-react';
 
 /**
@@ -48,6 +54,7 @@ export default function NavIcon({ name, size = 20, ...rest }) {
     wallet: <Wallet {...props} />,
     tx: <Receipt {...props} />,
     budget: <PieChart {...props} />,
+    calendar: <Calendar {...props} />,
     report: <ClipboardList {...props} />,
     plus: <Plus {...props} strokeWidth={2.5} />,
     close: <X {...props} strokeWidth={2.5} />,
@@ -71,6 +78,12 @@ export default function NavIcon({ name, size = 20, ...rest }) {
     fire: <Flame {...props} />,
     subscription: <CreditCard {...props} />,
     settings: <Settings {...props} />,
+    help: <HelpCircle {...props} />,
+    info: <Info {...props} />,
+    bolt: <Zap {...props} />,
+    logout: <LogOut {...props} />,
+    chevronLeft: <ChevronLeft {...props} />,
+    chevronRight: <ChevronRight {...props} />,
   };
 
   return icons[name] || null;

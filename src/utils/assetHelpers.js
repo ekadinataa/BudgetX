@@ -108,12 +108,16 @@ export function computeHealthRatios(netWorthData, transactions, debts) {
 
   score = Math.max(0, Math.min(100, score));
 
-  // Grade
+  // Grade. Colours are CSS vars so they follow the theme, and there are two of
+  // them: `ring` is the saturated system fill for the 10px donut stroke, `ink`
+  // is the darker text-safe variant for the 16px grade label. The reference
+  // used a single hex for both, which reads fine on a mockup but is too light
+  // for body text and too dark for a thick arc.
   let grade;
-  if (score >= 80) grade = { emoji: '💪', label: 'Sangat Sehat', color: '#22C55E' };
-  else if (score >= 60) grade = { emoji: '🟢', label: 'Sehat', color: '#22C55E' };
-  else if (score >= 40) grade = { emoji: '🟡', label: 'Perlu Perhatian', color: '#F59E0B' };
-  else grade = { emoji: '🔴', label: 'Bahaya', color: '#EF4444' };
+  if (score >= 80) grade = { label: 'Sangat Sehat', ring: 'var(--green)', ink: 'var(--green-ink)', soft: 'var(--green-soft)' };
+  else if (score >= 60) grade = { label: 'Sehat', ring: 'var(--green)', ink: 'var(--green-ink)', soft: 'var(--green-soft)' };
+  else if (score >= 40) grade = { label: 'Perlu Perhatian', ring: 'var(--orange)', ink: 'var(--orange-ink)', soft: 'var(--orange-soft)' };
+  else grade = { label: 'Bahaya', ring: 'var(--red)', ink: 'var(--red-ink)', soft: 'var(--red-soft)' };
 
   return {
     debtToAsset,

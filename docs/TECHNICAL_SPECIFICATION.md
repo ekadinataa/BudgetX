@@ -12,7 +12,7 @@
 |-------|-----------|-------|
 | UI Framework | React | 19.2.x |
 | Build Tool | Vite (dengan Rolldown) | 8.x |
-| Styling | CSS Modules + CSS Custom Properties | — |
+| Styling | Kelas CSS global + CSS Custom Properties | — |
 | Charts | Recharts | 2.15.x |
 | Icons | lucide-react | 1.17.x |
 | Compression | fflate (ZIP untuk CSV export) | 0.8.x |
@@ -29,7 +29,7 @@
 | Tidak ada backend server | Semua logika berjalan client-side; Firebase menyediakan auth dan storage |
 | Tidak ada state management library | State di-lift ke `App.jsx`, diteruskan via props |
 | Tidak ada router library | Navigasi berbasis state variable `page` |
-| CSS Modules | Scoped styles per komponen, tidak ada CSS-in-JS runtime overhead |
+| CSS global + design tokens | Primitive bersama di `styles/base.css`, tema dan proporsi di `styles/tokens.css` |
 | Vite 8 + Rolldown | Build cepat dengan bundler berbasis Rust |
 
 ---
@@ -118,14 +118,13 @@ budgetku/
 │   ├── components/
 │   │   ├── DataMigrator.jsx     # Migrasi localStorage → Firestore saat login pertama
 │   │   ├── Sidebar/
-│   │   │   ├── Sidebar.jsx
-│   │   │   └── Sidebar.module.css
+│   │   │   └── Sidebar.jsx
 │   │   ├── Modal/
-│   │   │   ├── Modal.jsx
-│   │   │   └── Modal.module.css
+│   │   │   └── Modal.jsx
 │   │   ├── HelpChat/
-│   │   │   ├── HelpChat.jsx
-│   │   │   └── HelpChat.module.css
+│   │   │   └── HelpChat.jsx
+│   │   ├── Topbar/
+│   │   │   └── Topbar.jsx
 │   │   ├── charts/
 │   │   │   ├── CompareBarChart.jsx
 │   │   │   ├── DailyBarChart.jsx
@@ -147,9 +146,9 @@ budgetku/
 │   │
 │   ├── pages/
 │   │   ├── Auth/              # LoginPage, RegisterPage, ForgotPasswordPage
-│   │   ├── Dashboard/         # Dashboard, StatCard, Calendar, DebtWidget, InvestmentWidget
+│   │   ├── Dashboard/         # Dashboard, ScoreParts
 │   │   ├── Wallet/            # WalletPage, WalletCard, WalletFormModal, TransferModal
-│   │   ├── Transactions/      # TransactionsPage, TxFormModal
+│   │   ├── Transactions/      # TransactionsPage, TxFormModal, TxCalendar
 │   │   ├── Budget/            # BudgetPage, IncomeModal, PeriodModal, PeriodTransitionModal, SectionEditModal
 │   │   ├── Recurring/         # RecurringPage, RecurringFormModal, RepurchaseModal
 │   │   ├── Subscription/      # SubscriptionPage, SubscriptionFormModal, PayModal
@@ -167,6 +166,8 @@ budgetku/
 │   └── __tests__/             # Unit, property, integration, deployment tests
 │
 ├── dist/                      # Output build (generated, tidak di-commit)
+├── scripts/
+│   └── build-single-html.mjs  # Inline dist/ jadi satu file HTML mandiri
 ├── index.html                 # HTML entry point dengan FOUC prevention script
 ├── vite.config.js             # Konfigurasi Vite + Vitest
 ├── eslint.config.js           # Konfigurasi ESLint
@@ -518,12 +519,13 @@ File template tersedia di `.env.example`. Nilai production di `.env.production` 
 ### Perintah
 
 ```bash
-npm run dev        # Jalankan dev server (Vite HMR)
-npm run build      # Build production ke dist/
-npm run preview    # Preview build production secara lokal
-npm run lint       # Jalankan ESLint
-npm run test       # Jalankan semua test (single run)
-npm run test:watch # Jalankan test dalam watch mode
+npm run dev         # Jalankan dev server (Vite HMR)
+npm run build       # Build production ke dist/
+npm run build:single # Build + gabung jadi ../budgetx.html (satu file mandiri)
+npm run preview     # Preview build production secara lokal
+npm run lint        # Jalankan ESLint
+npm run test        # Jalankan semua test (single run)
+npm run test:watch  # Jalankan test dalam watch mode
 ```
 
 ### Output Build
@@ -533,6 +535,39 @@ Vite menghasilkan file ke `dist/`:
 - `assets/*.js` — Bundle JavaScript dengan content hash
 - `assets/*.css` — Bundle CSS dengan content hash
 - File publik dari `public/` (favicon, logo, icons)
+
+### Single-File Build
+
+`scripts/build-single-html.mjs` menggabungkan `dist/` menjadi satu file HTML
+mandiri (`../budgetx.html`, ±1.4 MB) yang bisa dibuka langsung dari filesystem —
+tanpa server dan tanpa file tetangga.
+
+| Yang di-inline | Cara |
+|----------------|------|
+| `assets/*.js` | Satu `<script type="module">` di `<head>` |
+| `assets/*.css` | Satu `<style>` |
+| `public/logo.png` | Data URI untuk favicon |
+
+Yang **tidak** di-inline: Google Fonts (tetap `<link>`; ±250 KB woff2 untuk
+ke-Nordifan yang sepele — offline app jatuh ke system font).
+
+Tiga jebakan yang dijaga script dan oleh
+`src/__tests__/deployment/single-html-build.test.js`:
+
+1. **`$` di `String.replace`.** Bundle minified penuh `` $` ``, `$&`, `$'`.
+   Kalau bundle dipakai sebagai *string* replacement, pola itu ekspansi jadi HTML
+   sekeliling dan output-nya korup. Semua `replace` di script ini memakai
+   function replacer (`() => value`), yang mematikan interpretasi `$`.
+2. **`</script` di dalam bundle.** Mengakhiri elemen script lebih awal; sisa
+   kode diparse sebagai HTML. Semua `</script` di-escape jadi `<\/script`.
+3. **`/logo.png` dari 5 komponen.** Path-nya relatif ke root server, jadi 404
+   begitu file berdiri sendiri. Call site-nya ditulis ulang jadi identifier
+   global `__BUDGETX_LOGO__` yang diisi data URI once di `<head>` — bukan
+   meng-inline 55 KB base64 di tiap call site.
+
+Mode auth mengikuti apa yang di-build: `VITE_FIREBASE_*` terisi → cloud mode
+(butuh internet + login, menulis ke project Firebase produksi). Kosong → local
+mode (`localStorage` saja, benar-benar offline).
 
 ---
 
@@ -613,14 +648,17 @@ src/__tests__/
 - Grid 4-kolom stat cards → 2 kolom
 - Grid dashboard (main + sidebar) → single column
 - Grid wallet cards, budget categories → single column
-- Modal width minimal 92vw
-- Padding page dikurangi 24px → 16px
-- Font size heading 22px → 18px
+- Modal menjadi bottom sheet, lebar viewport, tinggi maksimum 92vh
+- Heading halaman 34px → 28px
+- Toolbar/form/aksi kartu pada desktop standar: 36px/40px/32px
 - Touch target minimum 44×44px
 
 ### Implementasi
 
-Responsivitas diimplementasi murni dengan CSS media queries di CSS Modules — tidak ada JavaScript breakpoint detection. Tidak ada dependensi tambahan.
+Responsivitas menggunakan media queries di kelas global `src/styles/base.css`.
+Token proporsi, tema, kerapatan dan radius berada di `src/styles/tokens.css`.
+Seluruh CSS Module sudah dimigrasikan; modifier halaman diberi prefix untuk
+menjaga primitive bersama dari benturan selector.
 
 ---
 

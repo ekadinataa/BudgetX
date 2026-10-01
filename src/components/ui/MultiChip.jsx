@@ -31,22 +31,12 @@ export default function MultiChip({ options, selected, onChange, allLabel = 'Sem
   const selectAll = () => onChange(new Set());
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+    <div className="chipGroup">
       <button
+        type="button"
+        className="filterChip"
+        aria-pressed={allSelected}
         onClick={selectAll}
-        style={{
-          padding: '4px 12px',
-          borderRadius: 99,
-          border: '1.5px solid',
-          borderColor: allSelected ? '#4F6EF7' : 'var(--border)',
-          background: allSelected ? 'rgba(79,110,247,0.1)' : 'var(--bg-card)',
-          color: allSelected ? '#4F6EF7' : 'var(--text-4)',
-          fontSize: 12,
-          fontWeight: 600,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          transition: 'all 0.15s',
-        }}
       >
         {allLabel}
       </button>
@@ -55,22 +45,12 @@ export default function MultiChip({ options, selected, onChange, allLabel = 'Sem
         return (
           <button
             key={opt.value}
+            type="button"
+            className="filterChip"
+            aria-pressed={active}
             onClick={() => toggle(opt.value)}
-            style={{
-              padding: '4px 12px',
-              borderRadius: 99,
-              border: '1.5px solid',
-              borderColor: active ? (opt.color || '#4F6EF7') : 'var(--border)',
-              background: active ? (opt.color || '#4F6EF7') + '18' : 'var(--bg-card)',
-              color: active ? (opt.color || '#4F6EF7') : 'var(--text-4)',
-              fontSize: 12,
-              fontWeight: active ? 600 : 400,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              transition: 'all 0.15s',
-              whiteSpace: 'nowrap',
-            }}
           >
+            {opt.color && <span className="dot" style={{ background: opt.color }} aria-hidden="true" />}
             {opt.label}
           </button>
         );

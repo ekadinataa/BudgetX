@@ -4,7 +4,6 @@ import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import { adjustCycleStart } from '../../utils/periodAdjuster';
 import { validateCustomRange } from '../../services/validator';
-import styles from './BudgetPage.module.css';
 
 const DAY_OPTIONS = [1, 5, 10, 15, 20, 21, 22, 23, 24, 25, 26, 27, 28];
 
@@ -97,35 +96,38 @@ export default function PeriodModal({ currentMode, currentCycleStart, currentSal
 
       {/* Mode selector */}
       <Field label="Mode Periode">
-        <div className={styles.periodModeRow}>
+        <div className="periodModeRow">
           <button
-            className={`${styles.periodModeBtn} ${mode === 'month' ? styles.periodModeBtnActive : ''}`}
+            className={mode === 'month' ? 'periodModeBtn periodModeBtnActive' : 'periodModeBtn'}
+              aria-pressed={mode === 'month'}
             onClick={() => setMode('month')}
           >
-            <span className={styles.periodModeIcon}>📅</span>
+            <span className="periodModeIcon">📅</span>
             <div>
-              <div className={styles.periodModeName}>Per Bulan</div>
-              <div className={styles.periodModeDesc}>Tanggal 1 – akhir bulan</div>
+              <div className="periodModeName">Per Bulan</div>
+              <div className="periodModeDesc">Tanggal 1 – akhir bulan</div>
             </div>
           </button>
           <button
-            className={`${styles.periodModeBtn} ${mode === 'cycle' ? styles.periodModeBtnActive : ''}`}
+            className={mode === 'cycle' ? 'periodModeBtn periodModeBtnActive' : 'periodModeBtn'}
+              aria-pressed={mode === 'cycle'}
             onClick={() => setMode('cycle')}
           >
-            <span className={styles.periodModeIcon}>🔄</span>
+            <span className="periodModeIcon">🔄</span>
             <div>
-              <div className={styles.periodModeName}>Custom Siklus</div>
-              <div className={styles.periodModeDesc}>Sesuai tanggal gajian</div>
+              <div className="periodModeName">Custom Siklus</div>
+              <div className="periodModeDesc">Sesuai tanggal gajian</div>
             </div>
           </button>
           <button
-            className={`${styles.periodModeBtn} ${mode === 'range' ? styles.periodModeBtnActive : ''}`}
+            className={mode === 'range' ? 'periodModeBtn periodModeBtnActive' : 'periodModeBtn'}
+              aria-pressed={mode === 'range'}
             onClick={() => setMode('range')}
           >
-            <span className={styles.periodModeIcon}>📆</span>
+            <span className="periodModeIcon">📆</span>
             <div>
-              <div className={styles.periodModeName}>Custom Rentang</div>
-              <div className={styles.periodModeDesc}>Pilih tanggal mulai & akhir</div>
+              <div className="periodModeName">Custom Rentang</div>
+              <div className="periodModeDesc">Pilih tanggal mulai & akhir</div>
             </div>
           </button>
         </div>
@@ -134,12 +136,13 @@ export default function PeriodModal({ currentMode, currentCycleStart, currentSal
       {/* Cycle start day picker (only shown for custom cycle mode) */}
       {mode === 'cycle' && (
         <Field label="Tanggal Mulai Siklus">
-          <div className={styles.dayGrid}>
+          <div className="dayGrid">
             {DAY_OPTIONS.map((d) => (
               <button
                 key={d}
                 onClick={() => setDay(d)}
-                className={`${styles.dayBtn} ${day === d ? styles.dayBtnActive : ''}`}
+                className={day === d ? 'dayBtn dayBtnActive' : 'dayBtn'}
+                aria-pressed={day === d}
               >
                 {d}
               </button>
@@ -150,8 +153,8 @@ export default function PeriodModal({ currentMode, currentCycleStart, currentSal
               ? 'Siklus: 1 – akhir bulan (sama dengan Per Bulan)'
               : `Siklus: tgl ${day} bulan lalu – tgl ${day - 1} bulan berjalan`}
           </p>
-          <div className={styles.cycleExample}>
-            <span className={styles.cycleExampleLabel}>Contoh:</span>
+          <div className="cycleExample">
+            <span className="cycleExampleLabel">Contoh:</span>
             {day <= 1
               ? ' 1 Apr – 30 Apr 2026'
               : ` ${day} Mar – ${day - 1} Apr 2026`}
@@ -161,25 +164,25 @@ export default function PeriodModal({ currentMode, currentCycleStart, currentSal
 
       {/* Salary adjustment toggle (only shown for custom cycle mode) */}
       {mode === 'cycle' && (
-        <div className={styles.salaryAdjustSection}>
-          <label className={styles.salaryAdjustToggle}>
+        <div className="salaryAdjustSection">
+          <label className="toggleRow">
             <input
               type="checkbox"
               checked={salaryAdj}
               onChange={(e) => setSalaryAdj(e.target.checked)}
-              className={styles.salaryAdjustCheckbox}
+              className="salaryAdjustCheckbox"
             />
-            <span className={styles.salaryAdjustLabel}>Sesuaikan hari libur</span>
+            <span className="periodModeName">Sesuaikan hari libur</span>
           </label>
-          <p className={styles.salaryAdjustDesc}>
+          <p className="periodModeDesc">
             Jika tanggal gajian jatuh di hari libur/weekend, periode akan dimulai dari hari kerja sebelumnya
           </p>
           {salaryAdj && adjustedPreview && (
-            <div className={styles.salaryAdjustPreview}>
-              <span className={styles.salaryAdjustPreviewLabel}>
+            <div className="cycleExample">
+              <span className="cycleExampleLabel">
                 {adjustedPreview.isAdjusted ? 'Tanggal disesuaikan:' : 'Tanggal tidak berubah:'}
               </span>
-              <span className={styles.salaryAdjustPreviewDate}>{adjustedPreview.label}</span>
+              <span className="salaryAdjustPreviewDate">{adjustedPreview.label}</span>
             </div>
           )}
         </div>
@@ -206,7 +209,7 @@ export default function PeriodModal({ currentMode, currentCycleStart, currentSal
       )}
 
       <button
-        className={styles.btnPrimary}
+        className="btnPrimary"
         style={isSaveDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
         disabled={isSaveDisabled}
         onClick={handleSave}

@@ -4,7 +4,6 @@ import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { validateInvestment } from '../../services/investmentValidator';
-import styles from './InvestmentPage.module.css';
 
 const ASSET_TYPE_OPTIONS = [
   { value: 'deposito', label: 'Deposito' },
@@ -107,7 +106,7 @@ export default function InvestmentFormModal({ initial, onClose, onSave, onDelete
       {/* Type-specific fields */}
       {form.assetType === 'deposito' && (
         <>
-          <div className={styles.formGrid}>
+          <div className="formGrid">
             <Field label="Bunga per Tahun (%)">
               <Input
                 type="number"
@@ -154,15 +153,15 @@ export default function InvestmentFormModal({ initial, onClose, onSave, onDelete
       </Field>
 
       {errors._general && (
-        <div style={{ color: '#DC2626', fontSize: 12, marginBottom: 8 }}>{errors._general}</div>
+        <div style={{ color: 'var(--red-ink)', fontSize: 12, marginBottom: 8 }}>{errors._general}</div>
       )}
 
-      <button className={styles.saveBtn} onClick={handleSubmit}>
+      <button className="btnPrimary" onClick={handleSubmit}>
         {initial ? 'Simpan Perubahan' : 'Tambah'}
       </button>
 
       {initial && onDelete && (
-        <button className={styles.deleteBtn} onClick={handleDelete}>
+        <button className="btnSmallDanger" onClick={handleDelete}>
           {confirmDelete ? 'Yakin hapus?' : 'Hapus'}
         </button>
       )}

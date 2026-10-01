@@ -7,7 +7,7 @@
  * @param {Object} props
  * @param {number} props.value - Current value
  * @param {number} props.max - Maximum value (determines 100% width)
- * @param {string} [props.color='#4F6EF7'] - Bar fill color
+ * @param {string} [props.color='var(--blue-ink)'] - Bar fill color
  * @param {number} [props.height=6] - Bar height in pixels
  * @param {boolean} [props.showOverflow=false] - When true, bar turns red if value > max
  *
@@ -16,13 +16,13 @@
 export default function ProgressBar({
   value,
   max,
-  color = '#4F6EF7',
+  color = 'var(--blue-ink)',
   height = 6,
   showOverflow = false,
 }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   const overflow = max > 0 && value > max;
-  const barColor = showOverflow && overflow ? '#EF4444' : color;
+  const barColor = showOverflow && overflow ? 'var(--red)' : color;
 
   return (
     <div

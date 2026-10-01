@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
-import styles from './Auth.module.css';
 
 /**
  * ForgotPasswordPage — Email field + "Kirim Link Reset" button.
@@ -30,25 +29,25 @@ export default function ForgotPasswordPage({ onResetPassword, onNavigate }) {
   };
 
   return (
-    <div className={styles.authWrapper}>
-      <div className={styles.authCard}>
-        <div className={styles.logo}>
-          <img src="/logo.png" alt="BudgetX" className={styles.logoImg} />
-          <span className={styles.logoText}>BudgetX</span>
+    <div className="authWrapper">
+      <div className="authCard">
+        <div className="authLogo">
+          <img src="/logo.png" alt="BudgetX" className="authLogoImg" />
+          <span className="authLogoText">BudgetX</span>
         </div>
-        <h1 className={styles.title}>Reset Password</h1>
-        <p className={styles.subtitle}>
+        <h1 className="authTitle">Reset Password</h1>
+        <p className="authSubtitle">
           Masukkan email Anda untuk menerima link reset password
         </p>
 
         {sent && (
-          <div className={styles.successBox}>
+          <div className="errorBox successBox authNotice authNoticeSuccess">
             Jika email terdaftar, link reset password telah dikirim. Periksa inbox Anda.
           </div>
         )}
 
         {!sent && (
-          <form className={styles.form} onSubmit={handleSubmit}>
+          <form className="authForm" onSubmit={handleSubmit}>
             <Field label="Email">
               <Input
                 type="email"
@@ -61,7 +60,7 @@ export default function ForgotPasswordPage({ onResetPassword, onNavigate }) {
             </Field>
             <button
               type="submit"
-              className={styles.submitBtn}
+              className="btnPrimary authSubmit"
               disabled={loading}
             >
               {loading ? 'Mengirim...' : 'Kirim Link Reset'}
@@ -69,8 +68,8 @@ export default function ForgotPasswordPage({ onResetPassword, onNavigate }) {
           </form>
         )}
 
-        <div className={styles.links}>
-          <button className={styles.link} onClick={() => onNavigate('login')}>
+        <div className="authLinks">
+          <button className="authLink" onClick={() => onNavigate('login')}>
             Kembali ke halaman masuk
           </button>
         </div>

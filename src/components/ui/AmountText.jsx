@@ -17,9 +17,9 @@ import { fmtFull } from '../../utils/formatters';
  */
 export default function AmountText({ type, amount, size = 14 }) {
   const colorMap = {
-    income: 'var(--amount-income, #16A34A)',
-    expense: 'var(--amount-expense, #DC2626)',
-    transfer: 'var(--amount-transfer, #4F46E5)',
+    income: 'var(--green-ink)',
+    expense: 'var(--red-ink)',
+    transfer: 'var(--indigo-ink)',
   };
 
   const prefixMap = {

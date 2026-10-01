@@ -82,12 +82,12 @@ export default function DataMigrator({ onComplete }) {
       {error && (
         <div
           style={{
-            background: 'rgba(239,68,68,0.08)',
-            border: '1px solid rgba(239,68,68,0.2)',
+            background: 'var(--red-soft)',
+            border: '1px solid var(--separator)',
             borderRadius: 8,
             padding: '10px 14px',
             marginBottom: 16,
-            color: '#EF4444',
+            color: 'var(--red-ink)',
             fontSize: 13,
           }}
         >
@@ -120,8 +120,8 @@ export default function DataMigrator({ onComplete }) {
             padding: '10px 20px',
             borderRadius: 8,
             border: 'none',
-            background: '#4F6EF7',
-            color: '#fff',
+            background: 'var(--blue)',
+            color: 'var(--accent-on)',
             fontSize: 14,
             fontWeight: 600,
             cursor: 'pointer',

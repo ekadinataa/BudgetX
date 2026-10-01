@@ -1,7 +1,12 @@
-import { useState } from 'react';
 import NavIcon from '../icons/NavIcon';
-import styles from './Sidebar.module.css';
 
+/**
+ * Navigation model, ported from the reference (budgetx-app.html).
+ *
+ * The reference groups the sidebar into four sections instead of one flat
+ * list. `help` is deliberately absent from the reference's NAV; it is kept
+ * here under "Analisa" so the existing Help page stays reachable.
+ */
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
   { id: 'wallet', label: 'Dompet', icon: 'wallet' },
@@ -14,251 +19,168 @@ const NAV_ITEMS = [
   { id: 'asset', label: 'Aset', icon: 'asset' },
   { id: 'report', label: 'Laporan', icon: 'report' },
   { id: 'settings', label: 'Pengaturan', icon: 'settings' },
+  { id: 'help', label: 'Bantuan', icon: 'help' },
 ];
 
-// Mobile bottom nav items (5 max with FAB in center)
-const MOBILE_NAV_ITEMS = [
+const NAV_GROUPS = [
+  { label: 'Ringkasan', items: ['dashboard', 'wallet', 'tx', 'budget'] },
+  { label: 'Komitmen', items: ['recurring', 'subscription', 'debt'] },
+  { label: 'Aset', items: ['invest', 'asset'] },
+  { label: 'Analisa', items: ['report', 'settings', 'help'] },
+];
+
+/** Mobile tab bar: 4 destinations with a compose button in the centre. */
+const TAB_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
   { id: 'tx', label: 'Transaksi', icon: 'tx' },
-  { id: '__fab__', label: '', icon: 'plus' }, // FAB placeholder
+  { id: '__fab__', label: '', icon: 'plus' },
   { id: 'report', label: 'Laporan', icon: 'report' },
   { id: 'settings', label: 'Pengaturan', icon: 'settings' },
 ];
 
+const findNav = (id) => NAV_ITEMS.find((n) => n.id === id);
+
 /**
- * Sidebar — Persistent left navigation panel with collapse/expand toggle.
- *
- * Displays BudgetX branding, 5 navigation items with active highlighting,
- * a theme toggle button, and the active period label. Can be collapsed to
- * show only icons.
+ * Sidebar — desktop navigation rail with grouped sections, plus the mobile
+ * tab bar. Both the collapse state and the active page live on <html> as
+ * data attributes so the CSS can drive width and label visibility without
+ * React re-rendering the nav (see styles/base.css `[data-collapsed]`).
  *
  * @param {Object} props
  * @param {string} props.page - Currently active page id
  * @param {(page: string) => void} props.setPage - Page navigation callback
  * @param {boolean} props.darkMode - Whether dark mode is active
  * @param {(fn: (prev: boolean) => boolean) => void} props.setDarkMode - Dark mode toggle callback
+ * @param {boolean} [props.collapsed] - Whether the rail is collapsed to icons
+ * @param {(fn: (prev: boolean) => boolean) => void} [props.onToggleCollapse]
  * @param {Object} [props.user] - Firebase user object (optional)
  * @param {() => void} [props.onLogout] - Logout callback (optional)
+ * @param {() => void} [props.onAddTx] - Opens the add-transaction modal
  */
-export default function Sidebar({ page, setPage, darkMode, setDarkMode, user, onLogout, onAddTx }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const now = new Date();
-  const periodText = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+export default function Sidebar({
+  page,
+  setPage,
+  darkMode,
+  setDarkMode,
+  collapsed,
+  onToggleCollapse,
+  user,
+  onLogout,
+  onAddTx,
+}) {
+  const initial = user?.email?.charAt(0).toUpperCase() || 'U';
 
   return (
     <>
-    <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
-      {/* Branding + collapse toggle */}
-      <div className={styles.logo}>
-        <div className={styles.logoMark}>
-          <img src="/logo.png" alt="BudgetX" width="34" height="34" style={{ objectFit: 'contain' }} />
-        </div>
-        {!collapsed && (
-          <div className={styles.brandText}>
-            <div className={styles.brandName}>BudgetX</div>
-            <div className={styles.brandSub}>Money Tracker</div>
-          </div>
-        )}
-        <button
-          className={styles.collapseBtn}
-          onClick={() => setCollapsed((c) => !c)}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            style={{
-              transform: collapsed ? 'rotate(180deg)' : 'none',
-              transition: 'transform 0.2s',
-            }}
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
+      <aside className="sidebar">
+        <button className="logo" type="button" onClick={() => setPage('dashboard')} aria-label="BudgetX — beranda">
+          <img src="/logo.png" alt="" className="logoImg" width={30} height={30} />
+          <span className="brandText">
+            <span className="brandName">BudgetX</span>
+            <span className="brandSub">Money Tracker</span>
+          </span>
         </button>
-      </div>
 
-      {/* Navigation */}
-      <nav className={styles.nav}>
-        {NAV_ITEMS.map((item) => {
-          const active = page === item.id;
+        <nav className="nav" aria-label="Navigasi utama">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="navGroup">
+              <div className="navGroupLabel">{group.label}</div>
+              {group.items.map((id) => {
+                const item = findNav(id);
+                if (!item) return null;
+                const active = item.id === page;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`navItem${active ? ' navItemActive' : ''}`}
+                    data-page={item.id}
+                    onClick={() => setPage(item.id)}
+                    aria-current={active ? 'page' : undefined}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <span className="navIcon">
+                      <NavIcon name={item.icon} size={18} />
+                    </span>
+                    <span className="navLabel">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sidebarFoot">
+          {onLogout && (
+            <button className="sidebarAction" type="button" onClick={onLogout} title={collapsed ? 'Keluar' : undefined}>
+              <span className="navIcon" aria-hidden="true">
+                <NavIcon name="logout" size={18} />
+              </span>
+              <span className="sidebarActionLabel">Keluar</span>
+            </button>
+          )}
+          <button
+            className="sidebarAction"
+            type="button"
+            onClick={() => setDarkMode((d) => !d)}
+            title={collapsed ? (darkMode ? 'Mode terang' : 'Mode gelap') : undefined}
+          >
+            <span className="navIcon" aria-hidden="true">
+              <NavIcon name={darkMode ? 'sun' : 'moon'} size={18} />
+            </span>
+            <span className="sidebarActionLabel">Mode {darkMode ? 'terang' : 'gelap'}</span>
+          </button>
+          {onToggleCollapse && (
+            <button
+              className="sidebarAction"
+              type="button"
+              onClick={onToggleCollapse}
+              title={collapsed ? 'Perluas' : 'Ciutkan'}
+            >
+              <span className="navIcon" aria-hidden="true">
+                <NavIcon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={18} />
+              </span>
+              <span className="sidebarActionLabel">{collapsed ? 'Perluas' : 'Ciutkan'}</span>
+            </button>
+          )}
+          {user && (
+            <div className="userSection">
+              <span className="avatar" aria-hidden="true">{initial}</span>
+              <span className="userEmail truncate">{user.email}</span>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <nav className="tabbar" aria-label="Navigasi bawah">
+        {TAB_ITEMS.map((item) => {
+          if (item.id === '__fab__') {
+            return (
+              <button key="fab" className="tabItem" type="button" onClick={() => onAddTx()} aria-label="Tambah Transaksi">
+                <span className="tabCompose">
+                  <NavIcon name="plus" size={18} />
+                </span>
+              </button>
+            );
+          }
+          const active = item.id === page;
           return (
             <button
               key={item.id}
+              type="button"
+              className={`tabItem${active ? ' tabItemActive' : ''}`}
+              data-page={item.id}
               onClick={() => setPage(item.id)}
-              className={`${styles.navItem} ${active ? styles.navItemActive : ''}`}
-              title={collapsed ? item.label : undefined}
+              aria-current={active ? 'page' : undefined}
             >
-              <span className={`${styles.navIcon} ${active ? styles.navIconActive : ''}`}>
-                <NavIcon name={item.icon} size={18} />
-              </span>
-              {!collapsed && (
-                <span className={`${styles.navLabel} ${active ? styles.navLabelActive : ''}`}>
-                  {item.label}
-                </span>
-              )}
+              <NavIcon name={item.icon} size={22} />
+              <span>{item.label}</span>
             </button>
           );
         })}
       </nav>
-
-      {/* Bottom: user info, theme toggle, period */}
-      <div className={styles.bottom}>
-        {/* User email display */}
-        {user && !collapsed && (
-          <div className={styles.userSection}>
-            <div className={styles.userEmail} title={user.email}>
-              {user.email}
-            </div>
-            {onLogout && (
-              <button className={styles.logoutBtn} onClick={onLogout} title="Keluar">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-              </button>
-            )}
-          </div>
-        )}
-        {user && collapsed && onLogout && (
-          <button
-            className={styles.logoutBtnCollapsed}
-            onClick={onLogout}
-            title="Keluar"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
-        )}
-
-        <button
-          className={styles.themeToggle}
-          onClick={() => setDarkMode && setDarkMode((d) => !d)}
-          title={collapsed ? (darkMode ? 'Dark Mode' : 'Light Mode') : undefined}
-        >
-          {!collapsed && (
-            <span className={styles.themeLabel}>
-              {darkMode ? 'Dark Mode' : 'Light Mode'}
-            </span>
-          )}
-          <span className={darkMode ? styles.themeIconDark : styles.themeIconLight}>
-            <NavIcon name={darkMode ? 'moon' : 'sun'} size={15} />
-          </span>
-        </button>
-
-        {!collapsed && (
-          <>
-            <div className={styles.periodLabel}>Periode Aktif</div>
-            <div className={styles.periodValue}>{periodText}</div>
-          </>
-        )}
-      </div>
-    </aside>
-
-    {/* Bottom navigation for mobile */}
-    <nav className={styles.bottomNav}>
-      {MOBILE_NAV_ITEMS.map((item) => {
-        if (item.id === '__fab__') {
-          return (
-            <button
-              key="fab"
-              className={styles.fab}
-              onClick={onAddTx}
-              aria-label="Tambah Transaksi"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          );
-        }
-        return (
-          <button
-            key={item.id}
-            onClick={() => setPage(item.id)}
-            className={`${styles.bottomNavItem} ${page === item.id ? styles.bottomNavItemActive : ''}`}
-          >
-            <NavIcon name={item.icon} size={20} />
-            <span className={styles.bottomNavLabel}>{item.label}</span>
-          </button>
-        );
-      })}
-    </nav>
-
-    {/* Mobile top bar */}
-    {user && (
-      <div className={styles.mobileTopBar}>
-        <div className={styles.mobileTopLeft}>
-          <img src="/logo.png" alt="BudgetX" width="28" height="28" style={{ objectFit: 'contain' }} />
-          <span className={styles.mobileTopBrand}>BudgetX</span>
-        </div>
-        <button className={styles.mobileUserBtn} onClick={() => setShowMobileMenu((v) => !v)}>
-          <div className={styles.mobileAvatar}>
-            {user.email?.charAt(0).toUpperCase() || 'U'}
-          </div>
-        </button>
-
-        {/* Mobile user dropdown */}
-        {showMobileMenu && (
-          <div className={styles.mobileDropdown}>
-            <div className={styles.mobileDropdownEmail}>{user.email}</div>
-            <button className={styles.mobileDropdownItem} onClick={() => { setPage('wallet'); setShowMobileMenu(false); }}>
-              <NavIcon name="wallet" size={16} />
-              Dompet
-            </button>
-            <button className={styles.mobileDropdownItem} onClick={() => { setPage('budget'); setShowMobileMenu(false); }}>
-              <NavIcon name="budget" size={16} />
-              Budget
-            </button>
-            <button className={styles.mobileDropdownItem} onClick={() => { setPage('recurring'); setShowMobileMenu(false); }}>
-              <NavIcon name="recurring" size={16} />
-              Berkala
-            </button>
-            <button className={styles.mobileDropdownItem} onClick={() => { setPage('subscription'); setShowMobileMenu(false); }}>
-              <NavIcon name="subscription" size={16} />
-              Langganan
-            </button>
-            <button className={styles.mobileDropdownItem} onClick={() => { setPage('debt'); setShowMobileMenu(false); }}>
-              <NavIcon name="debt" size={16} />
-              Utang/Piutang
-            </button>
-            <button className={styles.mobileDropdownItem} onClick={() => { setPage('invest'); setShowMobileMenu(false); }}>
-              <NavIcon name="invest" size={16} />
-              Investasi
-            </button>
-            <div className={styles.mobileDropdownDivider} />
-            <button className={styles.mobileDropdownItem} onClick={() => { setPage('help'); setShowMobileMenu(false); }}>
-              <NavIcon name="settings" size={16} />
-              Bantuan
-            </button>
-            <button className={styles.mobileDropdownItem} onClick={() => { setDarkMode((d) => !d); setShowMobileMenu(false); }}>
-              <NavIcon name={darkMode ? 'sun' : 'moon'} size={16} />
-              {darkMode ? 'Light Mode' : 'Dark Mode'}
-            </button>
-            {onLogout && (
-              <button className={styles.mobileDropdownLogout} onClick={() => { onLogout(); setShowMobileMenu(false); }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-                Keluar
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    )}
     </>
   );
 }
+
+export { NAV_ITEMS, NAV_GROUPS, TAB_ITEMS };

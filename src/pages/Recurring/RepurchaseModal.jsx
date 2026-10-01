@@ -6,7 +6,6 @@ import Select from '../../components/ui/Select';
 import { TODAY } from '../../data/defaults';
 import { calcNextEstimateDate } from '../../utils/recurring';
 import { fmtFull } from '../../utils/formatters';
-import styles from './RecurringPage.module.css';
 
 /**
  * RepurchaseModal — Confirm repurchase of a recurring item.
@@ -75,7 +74,7 @@ export default function RepurchaseModal({ item, wallets, onClose, onConfirm }) {
         </div>
       )}
 
-      <label className={styles.checkbox}>
+      <label className="toggleRow">
         <input
           type="checkbox"
           checked={form.createTransaction}
@@ -84,7 +83,7 @@ export default function RepurchaseModal({ item, wallets, onClose, onConfirm }) {
         Buat transaksi pengeluaran otomatis
       </label>
 
-      <button className={styles.saveBtn} onClick={handleConfirm}>
+      <button className="btnPrimary" onClick={handleConfirm}>
         Konfirmasi
       </button>
     </Modal>

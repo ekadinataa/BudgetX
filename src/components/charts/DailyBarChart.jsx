@@ -32,11 +32,11 @@ export default function DailyBarChart({ data, max, days, cycleStart }) {
           const isTd = ds === todayStr;
           const isCyc = day === cycleStart;
           const color = isTd
-            ? '#4F6EF7'
+            ? 'var(--blue)'
             : v > max * 0.7
-              ? '#EF4444'
+              ? 'var(--red)'
               : v > max * 0.4
-                ? '#F59E0B'
+                ? 'var(--orange)'
                 : 'var(--text-6)';
           return (
             <g key={i}>
@@ -46,7 +46,7 @@ export default function DailyBarChart({ data, max, days, cycleStart }) {
                   y1={0}
                   x2={x}
                   y2={H}
-                  stroke="#4F6EF7"
+                  stroke="var(--blue)"
                   strokeWidth="1"
                   strokeDasharray="3,2"
                   opacity="0.5"
@@ -69,7 +69,7 @@ export default function DailyBarChart({ data, max, days, cycleStart }) {
                   y={H + 18}
                   textAnchor="middle"
                   fontSize="9.5"
-                  fill={isCyc ? '#4F6EF7' : 'var(--text-5)'}
+                  fill={isCyc ? 'var(--blue)' : 'var(--text-2)'}
                   fontWeight={isCyc ? 700 : 400}
                 >
                   {day}
@@ -82,7 +82,7 @@ export default function DailyBarChart({ data, max, days, cycleStart }) {
       </svg>
       {cycleStart > 1 && (
         <div style={{ fontSize: 11, color: 'var(--text-5)', marginTop: 6 }}>
-          <span style={{ color: '#4F6EF7', fontWeight: 600 }}>│</span> = hari mulai siklus (tgl{' '}
+          <span style={{ color: 'var(--blue-ink)', fontWeight: 600 }}>│</span> = hari mulai siklus (tgl{' '}
           {cycleStart})
         </div>
       )}

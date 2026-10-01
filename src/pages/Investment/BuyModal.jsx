@@ -5,7 +5,6 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { validateInvestmentTransaction } from '../../services/investmentValidator';
 import { fmtFull } from '../../utils/formatters';
-import styles from './InvestmentPage.module.css';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -60,7 +59,7 @@ export default function BuyModal({ investment, wallets, onClose, onConfirm }) {
 
   return (
     <Modal title={`Beli — ${investment.name}`} onClose={onClose} width={460}>
-      <div className={styles.formGrid}>
+      <div className="formGrid">
         <Field label={isDeposito ? 'Jumlah Deposito' : 'Unit'} error={errors.units}>
           <Input
             type="number"
@@ -80,7 +79,7 @@ export default function BuyModal({ investment, wallets, onClose, onConfirm }) {
         </Field>
       </div>
 
-      <div className={styles.formGrid}>
+      <div className="formGrid">
         <Field label="Dompet" error={errors.walletId}>
           <Select value={form.walletId} onChange={set('walletId')}>
             {wallets.map((w) => (
@@ -98,16 +97,16 @@ export default function BuyModal({ investment, wallets, onClose, onConfirm }) {
       </Field>
 
       {totalAmount > 0 && (
-        <div className={styles.previewBox}>
+        <div className="formPreview">
           <strong>Total: {fmtFull(totalAmount)}</strong>
         </div>
       )}
 
       {errors._general && (
-        <div style={{ color: '#DC2626', fontSize: 12, marginBottom: 8 }}>{errors._general}</div>
+        <div style={{ color: 'var(--red-ink)', fontSize: 12, marginBottom: 8 }}>{errors._general}</div>
       )}
 
-      <button className={styles.saveBtn} onClick={handleSubmit}>
+      <button className="btnPrimary" onClick={handleSubmit}>
         Konfirmasi Beli
       </button>
     </Modal>

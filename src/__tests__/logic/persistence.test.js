@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { STORAGE_KEY, DARK_VARS, LIGHT_VARS } from '../../utils/constants.js';
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { STORAGE_KEY } from '../../utils/constants.js';
 
 /**
  * Create a proper localStorage mock with all standard methods.
@@ -21,9 +24,11 @@ function createStorageMock() {
 function resetRoot() {
   const root = document.documentElement;
   root.removeAttribute('data-theme');
-  Object.keys({ ...DARK_VARS, ...LIGHT_VARS }).forEach((key) => {
-    root.style.removeProperty(key);
-  });
+  // ThemeProvider no longer writes inline custom properties, but clear
+  // anything a previous test may have left behind.
+  for (let i = root.style.length - 1; i >= 0; i -= 1) {
+    root.style.removeProperty(root.style[i]);
+  }
 }
 
 describe('Theme persistence', () => {
@@ -132,31 +137,11 @@ describe('Theme persistence', () => {
     const s = JSON.parse(storage.getItem(STORAGE_KEY) || '{}');
     if (s.darkMode) {
       document.documentElement.setAttribute('data-theme', 'dark');
-      const vars = {
-        '--bg': '#0D1117',
-        '--bg-card': '#161B22',
-        '--bg-2': '#0D1117',
-        '--bg-3': '#1C2128',
-        '--border': '#30363D',
-        '--border-2': '#21262D',
-        '--text-1': '#E6EDF3',
-        '--text-2': '#CDD9E5',
-        '--text-3': '#ADBAC7',
-        '--text-4': '#768390',
-        '--text-5': '#545D68',
-        '--text-6': '#373E47',
-        '--sidebar-bg': '#010409',
-      };
-      for (const k in vars) {
-        document.documentElement.style.setProperty(k, vars[k]);
-      }
     }
 
-    // Verify the script applied dark theme
+    // The script only sets the attribute; tokens.css supplies the colours.
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-    Object.entries(DARK_VARS).forEach(([key, value]) => {
-      expect(document.documentElement.style.getPropertyValue(key)).toBe(value);
-    });
+    expect(document.documentElement.style.length).toBe(0);
   });
 
   it('FOUC prevention script does nothing when darkMode is false in localStorage', () => {
@@ -202,49 +187,40 @@ describe('Theme persistence', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBeNull();
   });
 
-  // ── FOUC script vars match DARK_VARS constant ─────────────────────────────
+  // ── Theme is driven by data attributes, not inline custom properties ────
 
-  it('FOUC prevention script dark vars match the DARK_VARS constant', () => {
-    // The inline script in index.html hardcodes these values.
-    // They must stay in sync with DARK_VARS from constants.js.
-    const foucVars = {
-      '--bg': '#0D1117',
-      '--bg-card': '#161B22',
-      '--bg-2': '#0D1117',
-      '--bg-3': '#1C2128',
-      '--border': '#30363D',
-      '--border-2': '#21262D',
-      '--text-1': '#E6EDF3',
-      '--text-2': '#CDD9E5',
-      '--text-3': '#ADBAC7',
-      '--text-4': '#768390',
-      '--text-5': '#545D68',
-      '--text-6': '#373E47',
-      '--sidebar-bg': '#010409',
-    };
-
-    // Every key/value in the FOUC script must match DARK_VARS
-    Object.entries(foucVars).forEach(([key, value]) => {
-      expect(DARK_VARS[key]).toBe(value);
-    });
-
-    // Every key in DARK_VARS must be present in the FOUC script
-    Object.keys(DARK_VARS).forEach((key) => {
-      expect(foucVars).toHaveProperty(key);
-    });
+  it('FOUC script only sets data attributes, never inline custom properties', () => {
+    // Regression guard: the inline script used to hardcode the whole dark
+    // palette, duplicating tokens.css. It must only write attributes.
+    const html = readFileSync(
+      resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'index.html'),
+      'utf-8'
+    );
+    const script = html.slice(html.indexOf('<script>'), html.indexOf('</script>'));
+    expect(script).toContain("setAttribute('data-theme'");
+    expect(script).toContain("setAttribute('data-density'");
+    expect(script).toContain("setAttribute('data-radius'");
+    expect(script).not.toContain('setProperty');
+    expect(script).not.toContain('--bg');
   });
 
-  // ── ThemeContext applies correct CSS vars based on darkMode ────────────────
-
-  it('DARK_VARS and LIGHT_VARS cover the same CSS custom properties', () => {
-    const darkKeys = Object.keys(DARK_VARS).sort();
-    const lightKeys = Object.keys(LIGHT_VARS).sort();
-    expect(darkKeys).toEqual(lightKeys);
+  it('tokens.css carries the HIG system for both themes', async () => {
+    const css = (await import('../../styles/tokens.css?raw')).default;
+    // Light + dark blocks
+    expect(css).toContain(":root[data-theme='dark']");
+    expect(css).toContain('--blue: #007aff');
+    expect(css).toContain('--blue: #0a84ff');
+    // Density and radius are user-scalable, per the reference.
+    expect(css).toContain("[data-density='compact']");
+    expect(css).toContain("[data-radius='round']");
+    // Legacy aliases must survive until the remaining pages migrate.
+    expect(css).toContain('--bg-card: var(--surface)');
+    expect(css).toContain('--text-1: var(--label)');
   });
 
-  it('DARK_VARS and LIGHT_VARS have different values for each property', () => {
-    Object.keys(DARK_VARS).forEach((key) => {
-      expect(DARK_VARS[key]).not.toBe(LIGHT_VARS[key]);
-    });
+  it('tokens.css does not import a remote font (system stack instead)', async () => {
+    const css = (await import('../../styles/tokens.css?raw')).default;
+    expect(css).toContain('-apple-system');
+    expect(css).not.toContain('fonts.googleapis.com');
   });
 });

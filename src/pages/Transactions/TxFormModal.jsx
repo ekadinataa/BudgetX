@@ -6,7 +6,6 @@ import Select from '../../components/ui/Select';
 import CategoryPicker from '../../components/ui/CategoryPicker';
 import { filterCategoriesByTxType } from '../../utils/helpers';
 import { TODAY } from '../../data/defaults';
-import styles from './TransactionsPage.module.css';
 
 /**
  * TxFormModal — Add / Edit transaction modal.
@@ -22,14 +21,15 @@ import styles from './TransactionsPage.module.css';
  * @param {Array} props.categories - All categories
  * @param {() => void} props.onClose - Close callback
  * @param {(data: Object) => void} props.onSave - Save callback with form data
+ * @param {string} [props.presetType] - Starting type when adding (ignored when editing)
  *
  * Requirements: 4.4, 4.5, 4.6, 4.7
  */
-export default function TxFormModal({ wallets, initial, onClose, onSave, categories }) {
+export default function TxFormModal({ wallets, initial, onClose, onSave, categories, presetType = 'expense' }) {
   const [form, setForm] = useState({
     date: initial?.date || TODAY,
     walletId: initial?.walletId || wallets[0]?.id || '',
-    type: initial?.type || 'expense',
+    type: initial?.type || presetType,
     categoryId: initial?.categoryId || 'c1',
     amount: initial?.amount ? String(initial.amount) : '',
     note: initial?.note || '',
@@ -51,8 +51,14 @@ export default function TxFormModal({ wallets, initial, onClose, onSave, categor
   };
 
   return (
-    <Modal title={initial ? 'Edit Transaksi' : 'Tambah Transaksi'} onClose={onClose} width={500}>
-      <div className={styles.formGrid}>
+    <Modal
+      title={
+        initial ? 'Edit Transaksi' : presetType === 'transfer' ? 'Transfer' : 'Tambah Transaksi'
+      }
+      onClose={onClose}
+      width={500}
+    >
+      <div className="formGrid">
         <Field label="Tipe">
           <Select value={form.type} onChange={set('type')}>
             <option value="expense">Pengeluaran</option>
@@ -64,7 +70,7 @@ export default function TxFormModal({ wallets, initial, onClose, onSave, categor
           <Input type="date" value={form.date} onChange={set('date')} />
         </Field>
       </div>
-      <div className={styles.formGrid}>
+      <div className="formGrid">
         <Field label="Dompet">
           <Select value={form.walletId} onChange={set('walletId')}>
             {wallets.map((w) => (
@@ -95,10 +101,10 @@ export default function TxFormModal({ wallets, initial, onClose, onSave, categor
       </div>
       <Field label="Jumlah (Rp)">
         <Input type="number" value={form.amount} onChange={set('amount')} placeholder="0" />
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+        <div className="chipGroup">
           {[10000, 25000, 50000, 100000, 200000, 500000].map(amt => (
             <button key={amt} type="button" onClick={() => setForm(f => ({ ...f, amount: String(amt) }))}
-              style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-2)', color: 'var(--text-3)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', minHeight: 'auto' }}>
+              className="filterChip">
               {amt >= 1000000 ? `${amt/1000000}jt` : `${amt/1000}rb`}
             </button>
           ))}
@@ -110,7 +116,7 @@ export default function TxFormModal({ wallets, initial, onClose, onSave, categor
       <Field label="Tags (pisahkan dengan koma)">
         <Input value={form.tags} onChange={set('tags')} placeholder="cth. rutin, makan" />
       </Field>
-      <button className={styles.saveBtn} onClick={handleSubmit}>
+      <button className="btnPrimary" onClick={handleSubmit}>
         {initial ? 'Simpan Perubahan' : 'Tambah Transaksi'}
       </button>
     </Modal>

@@ -16,18 +16,18 @@
 export default function TxBadge({ type }) {
   const map = {
     income: {
-      bg: 'var(--tx-badge-income-bg, rgba(22, 163, 74, 0.1))',
-      color: 'var(--tx-badge-income-color, #065F46)',
+      bg: 'var(--green-soft)',
+      color: 'var(--green-ink)',
       label: 'Pemasukan',
     },
     expense: {
-      bg: 'var(--tx-badge-expense-bg, rgba(220, 38, 38, 0.1))',
-      color: 'var(--tx-badge-expense-color, #991B1B)',
+      bg: 'var(--red-soft)',
+      color: 'var(--red-ink)',
       label: 'Pengeluaran',
     },
     transfer: {
-      bg: 'var(--tx-badge-transfer-bg, rgba(99, 102, 241, 0.1))',
-      color: 'var(--tx-badge-transfer-color, #3730A3)',
+      bg: 'var(--indigo-soft)',
+      color: 'var(--indigo-ink)',
       label: 'Transfer',
     },
   };

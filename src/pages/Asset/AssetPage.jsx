@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { fmtFull, fmt } from '../../utils/formatters';
 import { computeNetWorth, computeHealthRatios } from '../../utils/assetHelpers';
+import NavIcon from '../../components/icons/NavIcon';
 import FixedAssetFormModal from './FixedAssetFormModal';
-import styles from './AssetPage.module.css';
 
 const FIXED_ASSET_CATEGORIES = [
   { value: 'rumah', label: 'Rumah/Properti', emoji: '🏠' },
@@ -81,8 +81,8 @@ export default function AssetPage({
 
   const statusBadge = (status) => {
     const labels = { sehat: 'Sehat', perhatian: 'Perhatian', bahaya: 'Bahaya' };
-    const cls = { sehat: styles.badgeSehat, perhatian: styles.badgePerhatian, bahaya: styles.badgeBahaya };
-    return <span className={`${styles.badge} ${cls[status]}`}>{labels[status]}</span>;
+    const cls = { sehat: 'badgeSehat', perhatian: 'badgePerhatian', bahaya: 'badgeBahaya' };
+    return <span className={`badge assetBadge ${cls[status]}`}>{labels[status]}</span>;
   };
 
   // Generate recommendations
@@ -176,9 +176,9 @@ export default function AssetPage({
   ];
 
   const statusColor = (s) => {
-    if (s === 'sehat') return '#22C55E';
-    if (s === 'perhatian') return '#F59E0B';
-    return '#EF4444';
+    if (s === 'sehat') return 'var(--green-ink)';
+    if (s === 'perhatian') return 'var(--orange-ink)';
+    return 'var(--red-ink)';
   };
 
   const handleEditAsset = (asset) => {
@@ -203,24 +203,24 @@ export default function AssetPage({
   };
 
   return (
-    <div className={styles.wrapper}>
+    <div className="pageStack">
       {/* Page Header */}
-      <div className={styles.pageHeader}>
+      <div className="largeTitleBlock">
         <div>
-          <h1 className={styles.pageTitle}>Kesehatan Keuangan</h1>
-          <p className={styles.pageSubtitle}>Ringkasan aset, kewajiban, dan rasio keuanganmu</p>
+          <h1 className="largeTitle">Kesehatan Keuangan</h1>
+          <p className="pageSubtitle">Ringkasan aset, kewajiban, dan rasio keuanganmu</p>
         </div>
       </div>
 
       {/* Health Score Hero */}
-      <div className={styles.scoreHero}>
-        <div className={styles.scoreCircle}>
+      <div className="card assetHero">
+        <div className="assetScoreCircle">
           <svg width="100" height="100" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="42" fill="none" stroke="var(--bg-3)" strokeWidth="8" />
             <circle
               cx="50" cy="50" r="42"
               fill="none"
-              stroke={ratios.grade.color}
+              stroke={ratios.grade.ring}
               strokeWidth="8"
               strokeLinecap="round"
               strokeDasharray={`${(ratios.overallScore / 100) * 264} 264`}
@@ -228,49 +228,49 @@ export default function AssetPage({
               style={{ transition: 'stroke-dasharray 0.8s ease-out' }}
             />
           </svg>
-          <span className={styles.scoreNumber} style={{ position: 'absolute' }}>
+          <span className="assetScoreNumber" style={{ position: 'absolute' }}>
             {ratios.overallScore}
           </span>
         </div>
-        <div className={styles.scoreInfo}>
+        <div className="scoreInfo">
           <div
-            className={styles.scoreGrade}
-            style={{ background: ratios.grade.color + '18', color: ratios.grade.color }}
+            className="scoreGrade assetGrade"
+            style={{ background: ratios.grade.soft, color: ratios.grade.ink }}
           >
-            <span>{ratios.grade.emoji}</span>
+            <NavIcon name={ratios.overallScore >= 60 ? 'check' : 'warning'} size={14} />
             <span>{ratios.grade.label}</span>
           </div>
-          <div className={styles.scoreLabel}>
+          <div className="assetScoreLabel">
             Skor dihitung dari rasio utang, dana darurat, tingkat tabungan, cicilan, dan porsi investasi.
           </div>
-          <div className={styles.scoreBar}>
+          <div className="assetScoreBar">
             <div
-              className={styles.scoreBarFill}
-              style={{ width: `${ratios.overallScore}%`, background: ratios.grade.color }}
+              className="assetBarFill"
+              style={{ width: `${ratios.overallScore}%`, background: ratios.grade.ring }}
             />
           </div>
         </div>
       </div>
 
       {/* Net Worth Card */}
-      <div className={styles.card}>
-        <h3 className={styles.cardTitle}>Net Worth</h3>
-        <div className={styles.netWorthGrid}>
-          <div className={styles.netWorthItem}>
-            <span className={styles.netWorthLabel}>Total Aset</span>
-            <span className={styles.netWorthValue} style={{ color: '#22C55E' }}>
+      <div className="card">
+        <h3 className="cardTitle contentTitle">Net Worth</h3>
+        <div className="netWorthGrid">
+          <div className="assetWorthItem">
+            <span className="assetWorthLabel">Total Aset</span>
+            <span className="assetWorthValue" style={{ color: 'var(--green-ink)' }}>
               {fmtFull(netWorthData.totalAssets)}
             </span>
           </div>
-          <div className={styles.netWorthItem}>
-            <span className={styles.netWorthLabel}>Total Kewajiban</span>
-            <span className={styles.netWorthValue} style={{ color: '#EF4444' }}>
+          <div className="assetWorthItem">
+            <span className="assetWorthLabel">Total Kewajiban</span>
+            <span className="assetWorthValue" style={{ color: 'var(--red-ink)' }}>
               {fmtFull(netWorthData.totalLiabilities)}
             </span>
           </div>
-          <div className={styles.netWorthItem}>
-            <span className={styles.netWorthLabel}>Net Worth</span>
-            <span className={styles.netWorthValue} style={{ color: netWorthData.netWorth >= 0 ? '#22C55E' : '#EF4444' }}>
+          <div className="assetWorthItem">
+            <span className="assetWorthLabel">Net Worth</span>
+            <span className="assetWorthValue" style={{ color: netWorthData.netWorth >= 0 ? 'var(--green-ink)' : 'var(--red-ink)' }}>
               {fmtFull(netWorthData.netWorth)}
             </span>
           </div>
@@ -278,65 +278,65 @@ export default function AssetPage({
       </div>
 
       {/* Breakdown Cards */}
-      <div className={styles.breakdownGrid}>
+      <div className="assetBreakdown">
         {/* Asset Breakdown */}
-        <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Komposisi Aset</h3>
-          <div className={styles.breakdownRow}>
-            <div className={styles.breakdownLeft}>
-              <span className={styles.breakdownDot} style={{ background: '#4F6EF7' }} />
-              <span className={styles.breakdownLabel}>Saldo Dompet</span>
+        <div className="card">
+          <h3 className="cardTitle contentTitle">Komposisi Aset</h3>
+          <div className="assetBreakdownRow">
+            <div className="assetBreakdownLeft">
+              <span className="dot assetDot" style={{ background: 'var(--blue)' }} />
+              <span className="assetBreakdownLabel">Saldo Dompet</span>
             </div>
-            <span className={styles.breakdownValue}>{fmt(netWorthData.breakdown.walletPositive)}</span>
+            <span className="assetBreakdownValue">{fmt(netWorthData.breakdown.walletPositive)}</span>
           </div>
-          <div className={styles.breakdownRow}>
-            <div className={styles.breakdownLeft}>
-              <span className={styles.breakdownDot} style={{ background: '#22C55E' }} />
-              <span className={styles.breakdownLabel}>Investasi</span>
+          <div className="assetBreakdownRow">
+            <div className="assetBreakdownLeft">
+              <span className="dot assetDot" style={{ background: 'var(--green)' }} />
+              <span className="assetBreakdownLabel">Investasi</span>
             </div>
-            <span className={styles.breakdownValue}>{fmt(netWorthData.breakdown.investments)}</span>
+            <span className="assetBreakdownValue">{fmt(netWorthData.breakdown.investments)}</span>
           </div>
-          <div className={styles.breakdownRow}>
-            <div className={styles.breakdownLeft}>
-              <span className={styles.breakdownDot} style={{ background: '#06B6D4' }} />
-              <span className={styles.breakdownLabel}>Piutang</span>
+          <div className="assetBreakdownRow">
+            <div className="assetBreakdownLeft">
+              <span className="dot assetDot" style={{ background: 'var(--teal)' }} />
+              <span className="assetBreakdownLabel">Piutang</span>
             </div>
-            <span className={styles.breakdownValue}>{fmt(netWorthData.breakdown.piutang)}</span>
+            <span className="assetBreakdownValue">{fmt(netWorthData.breakdown.piutang)}</span>
           </div>
-          <div className={styles.breakdownRow}>
-            <div className={styles.breakdownLeft}>
-              <span className={styles.breakdownDot} style={{ background: '#F59E0B' }} />
-              <span className={styles.breakdownLabel}>Aset Tetap</span>
+          <div className="assetBreakdownRow">
+            <div className="assetBreakdownLeft">
+              <span className="dot assetDot" style={{ background: 'var(--orange)' }} />
+              <span className="assetBreakdownLabel">Aset Tetap</span>
             </div>
-            <span className={styles.breakdownValue}>{fmt(netWorthData.breakdown.fixedAssets)}</span>
+            <span className="assetBreakdownValue">{fmt(netWorthData.breakdown.fixedAssets)}</span>
           </div>
         </div>
 
         {/* Liability Breakdown */}
-        <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Komposisi Kewajiban</h3>
-          <div className={styles.breakdownRow}>
-            <div className={styles.breakdownLeft}>
-              <span className={styles.breakdownDot} style={{ background: '#EF4444' }} />
-              <span className={styles.breakdownLabel}>Utang</span>
+        <div className="card">
+          <h3 className="cardTitle contentTitle">Komposisi Kewajiban</h3>
+          <div className="assetBreakdownRow">
+            <div className="assetBreakdownLeft">
+              <span className="dot assetDot" style={{ background: 'var(--red)' }} />
+              <span className="assetBreakdownLabel">Utang</span>
             </div>
-            <span className={styles.breakdownValue}>{fmt(netWorthData.breakdown.utang)}</span>
+            <span className="assetBreakdownValue">{fmt(netWorthData.breakdown.utang)}</span>
           </div>
-          <div className={styles.breakdownRow}>
-            <div className={styles.breakdownLeft}>
-              <span className={styles.breakdownDot} style={{ background: '#F59E0B' }} />
-              <span className={styles.breakdownLabel}>Saldo Kredit/PayLater</span>
+          <div className="assetBreakdownRow">
+            <div className="assetBreakdownLeft">
+              <span className="dot assetDot" style={{ background: 'var(--orange)' }} />
+              <span className="assetBreakdownLabel">Saldo Kredit/PayLater</span>
             </div>
-            <span className={styles.breakdownValue}>{fmt(netWorthData.breakdown.walletNegative)}</span>
+            <span className="assetBreakdownValue">{fmt(netWorthData.breakdown.walletNegative)}</span>
           </div>
         </div>
       </div>
 
       {/* Aset Tetap Section */}
-      <div className={styles.card}>
-        <div className={styles.cardTitleRow}>
-          <h3 className={styles.cardTitle} style={{ margin: 0 }}>🏠 Aset Tetap</h3>
-          <button className={styles.addAssetBtn} onClick={() => { setEditingAsset(null); setShowAssetForm(true); }}>
+      <div className="card">
+        <div className="assetTitleRow">
+          <h3 className="cardTitle contentTitle" style={{ margin: 0 }}>🏠 Aset Tetap</h3>
+          <button className="btnSmallPrimary" onClick={() => { setEditingAsset(null); setShowAssetForm(true); }}>
             + Tambah Aset
           </button>
         </div>
@@ -351,16 +351,16 @@ export default function AssetPage({
               ? ((asset.currentValue - asset.purchasePrice) / asset.purchasePrice) * 100
               : 0;
             return (
-              <div key={asset.id} className={styles.fixedAssetRow} onClick={() => handleEditAsset(asset)}>
+              <div key={asset.id} className="fixedAssetRow" onClick={() => handleEditAsset(asset)}>
                 <div>
-                  <span className={styles.fixedAssetBadge}>
+                  <span className="fixedAssetBadge">
                     {getCategoryEmoji(asset.category)} {getCategoryLabel(asset.category)}
                   </span>
-                  <div className={styles.fixedAssetName}>{asset.name}</div>
-                  <div className={styles.fixedAssetValue}>{fmtFull(asset.currentValue)}</div>
-                  <div className={styles.fixedAssetBuy}>Beli: {fmtFull(asset.purchasePrice)}</div>
+                  <div className="fixedAssetName">{asset.name}</div>
+                  <div className="fixedAssetValue">{fmtFull(asset.currentValue)}</div>
+                  <div className="fixedAssetBuy">Beli: {fmtFull(asset.purchasePrice)}</div>
                 </div>
-                <div className={styles.fixedAssetChange} style={{ color: change >= 0 ? '#22C55E' : '#EF4444' }}>
+                <div className="fixedAssetChange" style={{ color: change >= 0 ? 'var(--green-ink)' : 'var(--red-ink)' }}>
                   {change >= 0 ? '↗' : '↘'} {Math.abs(change).toFixed(1)}%
                 </div>
               </div>
@@ -370,25 +370,25 @@ export default function AssetPage({
       </div>
 
       {/* Rasio Keuangan */}
-      <div className={styles.card}>
-        <h3 className={styles.cardTitle}>Rasio Keuangan</h3>
+      <div className="card">
+        <h3 className="cardTitle contentTitle">Rasio Keuangan</h3>
         {ratioItems.map((item) => (
-          <div key={item.label} className={styles.ratioRow}>
-            <div className={styles.ratioInfo}>
-              <div className={styles.ratioHeader}>
-                <span className={styles.ratioLabel}>{item.label}</span>
-                <span className={styles.ratioValue}>{item.displayValue}</span>
+          <div key={item.label} className="assetRatioRow">
+            <div className="itemInfo">
+              <div className="assetRatioHead">
+                <span className="assetRatioLabel">{item.label}</span>
+                <span className="assetRatioValue">{item.displayValue}</span>
               </div>
-              <div className={styles.ratioBar}>
+              <div className="assetRatioBar">
                 <div
-                  className={styles.ratioBarFill}
+                  className="assetBarFill"
                   style={{
                     width: `${Math.min((Math.abs(item.value) / item.max) * 100, 100)}%`,
                     background: statusColor(item.status),
                   }}
                 />
               </div>
-              <div className={styles.ratioTarget}>{item.target}</div>
+              <div className="assetRatioTarget">{item.target}</div>
             </div>
             {statusBadge(item.status)}
           </div>
@@ -396,17 +396,17 @@ export default function AssetPage({
       </div>
 
       {/* Rekomendasi */}
-      <div className={styles.card}>
-        <h3 className={styles.cardTitle}>Rekomendasi</h3>
-        <div className={styles.rekomList}>
+      <div className="card">
+        <h3 className="cardTitle contentTitle">Rekomendasi</h3>
+        <div className="assetRecommendationList">
           {recommendations.map((rec, i) => {
-            const cls = rec.type === 'bahaya' ? styles.rekomBahaya
-              : rec.type === 'perhatian' ? styles.rekomPerhatian
-              : styles.rekomSehat;
+            const cls = rec.type === 'bahaya' ? 'rekomBahaya'
+              : rec.type === 'perhatian' ? 'rekomPerhatian'
+              : 'rekomSehat';
             return (
-              <div key={i} className={`${styles.rekomItem} ${cls}`}>
-                <span className={styles.rekomIcon}>{rec.icon}</span>
-                <span className={styles.rekomText}>{rec.text}</span>
+              <div key={i} className={`rekomItem assetRecommendation ${cls}`}>
+                <span className="assetRecommendationIcon">{rec.icon}</span>
+                <span className="itemInfo">{rec.text}</span>
               </div>
             );
           })}

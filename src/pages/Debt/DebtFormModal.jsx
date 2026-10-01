@@ -7,7 +7,6 @@ import { validateDebt } from '../../services/debtValidator';
 import { calcAnnuityInstallment, calcTotalInterest } from '../../utils/debtHelpers';
 import { fmtFull } from '../../utils/formatters';
 import { TODAY } from '../../data/defaults';
-import styles from './DebtPage.module.css';
 
 /**
  * DebtFormModal — Create/edit debt record form with optional annuity interest.
@@ -133,8 +132,8 @@ export default function DebtFormModal({ initial, wallets, onClose, onSave, onDel
   return (
     <Modal title={initial ? 'Edit Utang/Piutang' : 'Tambah Utang/Piutang'} onClose={onClose} width={520}>
       <Field label="Tipe" error={errors.type}>
-        <div className={styles.radioGroup}>
-          <label className={styles.radioLabel}>
+        <div className="radioGroup">
+          <label className="radioRow">
             <input
               type="radio"
               name="debtType"
@@ -145,7 +144,7 @@ export default function DebtFormModal({ initial, wallets, onClose, onSave, onDel
             />
             Utang (saya pinjam)
           </label>
-          <label className={styles.radioLabel}>
+          <label className="radioRow">
             <input
               type="radio"
               name="debtType"
@@ -167,7 +166,7 @@ export default function DebtFormModal({ initial, wallets, onClose, onSave, onDel
         />
       </Field>
 
-      <div className={styles.formGrid}>
+      <div className="formGrid">
         <Field label="Jumlah Pokok (Rp)" error={errors.totalAmount}>
           <Input
             type="number"
@@ -189,12 +188,12 @@ export default function DebtFormModal({ initial, wallets, onClose, onSave, onDel
       {/* Interest toggle */}
       {!hasPayments && (
         <div style={{ marginBottom: 16 }}>
-          <label className={styles.radioLabel} style={{ cursor: 'pointer' }}>
+          <label className="radioRow" style={{ cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={form.interestEnabled}
               onChange={(e) => setForm((f) => ({ ...f, interestEnabled: e.target.checked }))}
-              style={{ width: 16, height: 16, accentColor: '#4F6EF7' }}
+              style={{ width: 16, height: 16, accentColor: 'var(--blue)' }}
             />
             <span style={{ fontWeight: 600 }}>Pakai Bunga (Anuitas)</span>
           </label>
@@ -204,7 +203,7 @@ export default function DebtFormModal({ initial, wallets, onClose, onSave, onDel
       {/* Interest fields */}
       {form.interestEnabled && !hasPayments && (
         <>
-          <div className={styles.formGrid}>
+          <div className="formGrid">
             <Field label="Bunga per Tahun (%)" error={errors.interestRate}>
               <Input
                 type="number"
@@ -231,9 +230,9 @@ export default function DebtFormModal({ initial, wallets, onClose, onSave, onDel
           {preview && (
             <div style={{
               padding: '12px 16px',
-              background: 'rgba(79, 110, 247, 0.08)',
+              background: 'var(--blue-soft)',
               borderRadius: 10,
-              border: '1px solid rgba(79, 110, 247, 0.2)',
+              border: '1px solid var(--separator)',
               marginBottom: 16,
             }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 8 }}>
@@ -281,15 +280,15 @@ export default function DebtFormModal({ initial, wallets, onClose, onSave, onDel
       </Field>
 
       {errors._general && (
-        <div style={{ color: '#DC2626', fontSize: 12, marginBottom: 8 }}>{errors._general}</div>
+        <div style={{ color: 'var(--red-ink)', fontSize: 12, marginBottom: 8 }}>{errors._general}</div>
       )}
 
-      <button className={styles.saveBtn} onClick={handleSubmit}>
+      <button className="btnPrimary" onClick={handleSubmit}>
         {initial ? 'Simpan Perubahan' : 'Tambah'}
       </button>
 
       {initial && onDelete && (
-        <button className={styles.deleteBtn} onClick={handleDelete}>
+        <button className="btnSmallDanger" onClick={handleDelete}>
           {confirmDelete ? 'Yakin hapus?' : 'Hapus'}
         </button>
       )}

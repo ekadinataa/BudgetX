@@ -1,0 +1,267 @@
+/* ==========================================================================
+   BudgetX design tokens — iOS / Human Interface Guidelines
+   --------------------------------------------------------------------------
+   Ported from ../budgetx-revamp/budgetx-app.html, which is the agreed
+   reference. Values are copied verbatim from its :root and
+   :root[data-theme='dark'] blocks — do not eyeball-adjust them.
+
+   The system is Apple's: system colors for fills, a separate "ink" ramp for
+   text (each ink passes AA on white AND on the grouped background), and
+   "soft" fills for chips and badges. Three tiers of colour, not two.
+
+   The UI face is the platform system font (SF Pro on Apple, system-ui
+   elsewhere). IBM Plex Mono is self-hosted only as the last link of the
+   tabular-figure chain; see fonts.css.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- system colors (fills, tints, charts) ---- */
+  --blue: #007aff;
+  --blue-fill: #0062cc;          /* blue that carries white text at AA */
+  --blue-fill-hover: #0a52b0;
+  --blue-fill-active: #084a9e;
+  /* `-fill` = the dark variant of a hue, for surfaces that carry white text.
+     `--green`/`--red`/`--orange` are tuned as fills against a light card, and
+     their `-ink` counterparts are text colours: neither holds 4.5:1 with white
+     in *both* themes, because `-ink` inverts to a light value in dark mode. */
+  --green-fill: #16773c;
+  --red-fill: #c9251c;
+  --orange-fill: #8a5200;
+  --green: #34c759;
+  --red: #ff3b30;
+  --orange: #ff9500;
+  --indigo: #5856d6;
+  --teal: #30b0c7;
+  --pink: #ff2d55;
+  --purple: #af52de;
+  --yellow: #ffcc00;
+  --gray: #8e8e93;
+  --brown: #a2845e;
+
+  /* ---- semantic ink (AA on white AND on grouped #f2f2f7) ---- */
+  --blue-ink: #0062cc;
+  --green-ink: #16773c;
+  --red-ink: #c9251c;
+  --orange-ink: #8a5200;
+  --indigo-ink: #3b3aa8;
+  --teal-ink: #0a6e7c;
+  --pink-ink: #c20e36;
+  --purple-ink: #7a2b9e;
+  --yellow-ink: #7a5c00;
+  --gray-ink: #6c6c70;
+  --brown-ink: #7a5f3e;
+
+  /* ---- soft (chip / badge) fills ---- */
+  --blue-soft: #e8f2ff;
+  --green-soft: #e3f6ea;
+  --red-soft: #fdeceb;
+  --orange-soft: #fdf0dc;
+  --indigo-soft: #ebebf9;
+  --teal-soft: #e2f5f8;
+  --pink-soft: #fdecf0;
+  --purple-soft: #f5eafb;
+  --yellow-soft: #fdf5da;
+  --gray-soft: #eeeef0;
+  --brown-soft: #f3ece2;
+
+  /* ---- surfaces ---- */
+  --bg: #f2f2f7;                 /* systemGroupedBackground */
+  --surface: #fff;               /* secondarySystemGroupedBackground */
+  --surface-2: #f9f9fb;          /* tertiary / inset fill */
+  --surface-3: #f0f0f4;          /* quaternary fill */
+  --label: #000;
+  --label-2: #636366;            /* secondaryLabel, deepened to pass AA */
+  --label-3: #8e8e93;            /* tertiaryLabel — icons & large text only */
+  --separator: rgba(60, 60, 67, 0.29);
+  --separator-opaque: #c6c6c8;
+  --fill-tertiary: rgba(118, 118, 128, 0.12);
+  --fill-quaternary: rgba(118, 118, 128, 0.08);
+  --highlight: rgba(118, 118, 128, 0.14);
+  --scrim: rgba(0, 0, 0, 0.32);
+  --material-bar: #f2f2f7;
+  --material-bar-glass: rgba(242, 242, 247, 0.78);
+  --material-sidebar: #f2f2f7;
+  --material-sidebar-glass: rgba(242, 242, 247, 0.72);
+  --material-sheet: #fff;
+
+  /* ---- type ---- */
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Helvetica Neue', Helvetica, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, 'Helvetica Neue', Helvetica, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, 'IBM Plex Mono', monospace;
+  --t-large-title: 34px;
+  --t-title1: 28px;
+  --t-title2: 22px;
+  --t-title3: 20px;
+  --t-headline: 17px;
+  --t-body: 17px;
+  --t-callout: 16px;
+  --t-subhead: 15px;
+  --t-footnote: 13px;
+  --t-caption1: 12px;
+  --t-caption2: 11px;
+
+  /* ---- 4pt grid ---- */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s12: 48px;
+  --gutter: 20px;
+  --pad-card: 16px;
+  --density-scale: 1;
+  --density: 1;
+  --radius-scale: 1;
+
+  /* Contextual desktop sizes; touch layouts keep the 44px target. */
+  --control-height: clamp(36px, calc(40px * var(--density-scale)), 46px);
+  --control-toolbar-height: clamp(32px, calc(36px * var(--density-scale)), 40px);
+  --control-small-height: clamp(28px, calc(32px * var(--density-scale)), 38px);
+  --control-font: 14px;
+  --control-small-font: var(--t-footnote);
+  --control-radius: min(var(--r-sm), 10px);
+  --space-card: calc(var(--pad-card) * var(--density-scale));
+  --space-stack: calc(var(--s4) * var(--density-scale));
+
+  /* ---- shape ---- */
+  --r-sm: calc(8px * var(--radius-scale, 1));
+  --r-md: calc(12px * var(--radius-scale, 1));
+  --r-lg: calc(16px * var(--radius-scale, 1));
+  --r-xl: calc(20px * var(--radius-scale, 1));
+  --r-pill: 999px;
+  --hairline: 0.5px;
+  --tap: 44px;
+
+  /* ---- elevation ---- */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --elev-2: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --elev-3: 0 16px 40px rgba(0, 0, 0, 0.14);
+  --focus-ring: 0 0 0 4px rgba(0, 122, 255, 0.32);
+
+  /* ---- motion ---- */
+  --dur-fast: 0.2s;
+  --dur: 0.35s;
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* The reference caps the container at 1180px. That is right for a laptop
+     but wastes ~32% of the viewport on a 2000px monitor, so the cap grows with
+     the window instead of pinning the content to a narrow column in the middle
+     of the screen. `.container` keeps `width: 100%`, so the cap only ever
+     raises the ceiling — it can never overflow. */
+  --container-max: 1180px;
+  --nav-h: 52px;
+
+  /* --- Density & radius presets. The reference exposes all six in
+     Settings; App.jsx writes them onto <html> as data attributes.
+     Note these differ from budgetx-app-v1.html (0.84/1.16 and 0.55/1.45
+     here, vs 0.84/1.16 and 0.5/1.5 there) — budgetx-app.html is the
+     agreed reference, so its values win. --- */
+   /* Compatibility aliases for older inline styles. Pages and components now
+      use the shared global component layer rather than CSS Modules. */
+  --bg-card: var(--surface);
+  --bg-2: var(--surface-2);
+  --bg-3: var(--surface-3);
+  --border: var(--separator);
+  --border-2: var(--separator-opaque);
+  --text-1: var(--label);
+  --text-2: var(--label-2);
+  --text-3: var(--label-2);
+  --text-4: var(--gray-ink);
+  --text-5: var(--label-2);
+  --text-6: var(--separator-opaque);
+  --sidebar-bg: var(--material-sidebar);
+  --accent: var(--blue);
+  --accent-ink: var(--blue-ink);
+  --accent-soft: var(--blue-soft);
+  --accent-on: #fff;
+  --success: var(--green);
+  --warn: var(--orange);
+  --danger: var(--red);
+  --info: var(--blue);
+  --success-ink: var(--green-ink);
+  --warn-ink: var(--orange-ink);
+  --danger-ink: var(--red-ink);
+  --info-ink: var(--blue-ink);
+  --success-soft: var(--green-soft);
+  --warn-soft: var(--orange-soft);
+  --danger-soft: var(--red-soft);
+  --info-soft: var(--blue-soft);
+  --tx-badge-income-bg: var(--green-soft);
+  --tx-badge-income-color: var(--green-ink);
+  --tx-badge-expense-bg: var(--red-soft);
+  --tx-badge-expense-color: var(--red-ink);
+  --tx-badge-transfer-bg: var(--indigo-soft);
+  --tx-badge-transfer-color: var(--indigo-ink);
+  --section-pill-needs-bg: var(--blue-soft);
+  --section-pill-needs-color: var(--blue-ink);
+  --section-pill-wants-bg: var(--orange-soft);
+  --section-pill-wants-color: var(--orange-ink);
+  --section-pill-savings-bg: var(--green-soft);
+  --section-pill-savings-color: var(--green-ink);
+}
+
+:root[data-density='compact'] { --density-scale: 0.84; }
+:root[data-density='standard'] { --density-scale: 1; }
+:root[data-density='relaxed'] { --density-scale: 1.16; }
+:root[data-radius='sharp'] { --radius-scale: 0.55; }
+:root[data-radius='soft'] { --radius-scale: 1; }
+:root[data-radius='round'] { --radius-scale: 1.45; }
+
+@media (width <= 768px), (pointer: coarse) {
+  :root {
+    --control-height: var(--tap);
+    --control-toolbar-height: var(--tap);
+    --control-small-height: var(--tap);
+  }
+}
+
+/* ==========================================================================
+   Dark mode
+   The reference drives this from an explicit data-theme attribute, not
+   prefers-color-scheme, so the in-app toggle controls it. Every fill gets a
+   dark-mode system value, every ink gets lightened, every soft becomes a
+   dark tint.
+   ========================================================================== */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --blue: #0a84ff;
+  --blue-fill: #0a6ae0;
+  --blue-fill-hover: #1768ca;
+  --blue-fill-active: #205bb4;
+  --green-fill: #14602f; --red-fill: #a81c14; --orange-fill: #6b3f00;
+  --green: #30d158; --red: #ff453a; --orange: #ff9f0a;
+  --indigo: #5e5ce6; --teal: #40c8e0; --pink: #ff375f; --purple: #bf5af2;
+  --yellow: #ffd60a; --gray: #8e8e93; --brown: #ac8e68;
+
+  --blue-ink: #64a8ff; --green-ink: #3fd27c; --red-ink: #ff6b61;
+  --orange-ink: #ffb340; --indigo-ink: #9a99ff; --teal-ink: #5fd0e2;
+  --pink-ink: #ff7d95; --purple-ink: #cf8ef5; --yellow-ink: #e8c55f;
+  --gray-ink: #aeaeb2; --brown-ink: #c7a97f;
+
+  --blue-soft: #10233d; --green-soft: #0f2a1c; --red-soft: #341512;
+  --orange-soft: #33240f; --indigo-soft: #1c1c38; --teal-soft: #0d2b31;
+  --pink-soft: #35121c; --purple-soft: #291a36; --yellow-soft: #2f2a10;
+  --gray-soft: #252527; --brown-soft: #2a2118;
+
+  --bg: #000;                    /* systemGroupedBackground, dark */
+  --surface: #1c1c1e;            /* secondarySystemGroupedBackground */
+  --surface-2: #2c2c2e;
+  --surface-3: #3a3a3c;
+  --label: #fff;
+  --label-2: #98989d;
+  --label-3: #636366;
+  --separator: rgba(84, 84, 88, 0.65);
+  --separator-opaque: #38383a;
+  --fill-tertiary: rgba(118, 118, 128, 0.24);
+  --fill-quaternary: rgba(118, 118, 128, 0.18);
+  --highlight: rgba(118, 118, 128, 0.28);
+  --scrim: rgba(0, 0, 0, 0.55);
+  --material-bar: #000;
+  --material-bar-glass: rgba(22, 22, 24, 0.76);
+  --material-sidebar: #121214;
+  --material-sidebar-glass: rgba(18, 18, 20, 0.74);
+  --material-sheet: #1c1c1e;
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elev-2: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --elev-3: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --focus-ring: 0 0 0 4px rgba(10, 132, 255, 0.45);
+}

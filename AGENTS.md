@@ -34,10 +34,13 @@ dari commit lama — jangan cari di working tree.
 > ⚠️ Root `Budget Money Track/` **tidak** punya `.gitignore` sendiri dan outer repo
 > `/Kiro-exploit` tidak melacak file di dalamnya.
 
-### Status git saat ini (29 Sep 2026)
-Commit terakhir: `776ff97 docs: update README.md for BudgetX`.
-Working tree **bersih** untuk yang kritical, tapi masih ada banyak WIP belum di-commit
-(`src/pages/Subscription/`, `src/utils/subscriptionHelpers.js`, `public/logo.png` untracked).
+### Status rilis UI (1 Okt 2026)
+Migrasi design system selesai untuk seluruh halaman, dialog, autentikasi, dan
+CategoryPicker. Baseline sebelum revamp: `2836b10`.
+Repo aktif: `https://github.com/ekadinataa/budgetku`, branch `main`.
+Deployment frontend: `firebase deploy --only hosting:budgetx --project budgetku-app-v1`.
+Build production membaca `.env.production`; Vite development tetap dapat
+berjalan lokal dengan `.env` dinonaktifkan.
 
 ---
 
@@ -60,7 +63,7 @@ Firebase Auth + Firestore (langsung dari browser)
 | Tanpa React Router | Navigasi = `switch(page)` di `App.jsx:1328`. Tambah halaman = tambah case + item Sidebar. |
 | Tanpa state management lib | Semua state di `App.jsx`,diteruskan via props. |
 | Tanpa backend server | Firestore diakses langsung dari client. **Jangan usulkan Express/API baru.** |
-| CSS Modules | Scoped per komponen. Warna hex masih di-hardcode di JSX (masalah konsistensi yang tersisa). |
+| CSS global + tokens | Primitive bersama di `base.css`, modifier halaman diberi prefix; tanpa CSS Module. |
 
 ### Dual-mode
 `const IS_LOCAL_MODE = !firebaseAuth` — `App.jsx:39`, dievaluasi sekali di module scope.
@@ -89,7 +92,153 @@ Hanya `getBalanceEffect()` yang boleh menentukan arah saldo:
 
 ---
 
-## 3. Komponen Inti
+## 3. Design System
+
+**Acuan kebenaran: `../budgetx-revamp/budgetx-app.html`** (iOS HIG / Apple system
+look). Revamp 30 Sep 2026 mengganti design system lama ("Ledger") secara penuh.
+`../budgetx-revamp/brand-spec.md` dan `budgetx-app-v1.html` **bukan** acuan —
+keduanya memakai palet dual-biru yang tidak dipakai `budgetx-app.html`.
+
+| File | Isi |
+|---|---|
+| `src/styles/tokens.css` | Token iOS/HIG light + dark (`--blue #007aff` / `#0a84ff`, `--red`, `--orange`, `--green`, label/fill/separator bertingkat), skala density `0.84/1/1.16`, radius `0.55/1/1.45`, **+ alias legacy** |
+| `src/styles/base.css` | ~250 class global yang diekstrak literal dari `<style>` di `budgetx-app.html`. Ada yang kodenya belum dipakai — itu catatan, jangan dihapus |
+| `src/styles/fonts.css` | 4 IBM Plex Mono self-hosted + fallback. UI face = system stack (`-apple-system`), bukan IBM Plex |
+| `src/App.css` | Hanya wiring shell: `#root` → `.appShell` (`.appMain` + `.appScroll`) dan hook legacy |
+
+### Aturan yang harus dijaga
+**Audit proporsi 1 Okt 2026:** ukuran mengikuti konteks, bukan semua dipaksa
+44px. Pada desktop standar: toolbar 36px, form 40px, aksi kartu 32px. Pada
+mobile/pointer coarse semuanya memakai target 44px. Token `--control-*` dan
+`--space-card`/`--space-stack` adalah sumber ukurannya. `.toolbar` mengatur
+`display:flex`, jadi jangan digabung dengan kelas grid. Semua halaman, dialog,
+autentikasi, dan CategoryPicker memakai kelas global. Migrasi CSS Module
+selesai: nol file/impor `.module.css` dan nol referensi `styles.*` di komponen.
+
+Preset harus ditulis `:root[data-density='…']` / `:root[data-radius='…']`.
+Selector nested di dalam `:root` akan menargetkan keturunan, sementara atribut
+berada di `<html>` sendiri — pilihan kerapatan/sudut jadi tidak bekerja.
+
+1. **Pakai class global `base.css` dulu** untuk komponen baru, bukan CSS Module
+   baru. Kalau `base.css` belum punya class yang cocok, tambahkan di sana dengan
+   nilai dari referensi — jangan mengarang token warna.
+2. **Nol hex di JSX & CSS Module.** Semua dari `tokens.css`. Pengecksiannya:
+   `grep -rnE "#[0-9A-Fa-f]{6}|rgba?\(" src --include=*.jsx` → yang boleh
+   tersisa hanya palet data tersimpan (lihat aturan 8).
+3. **Pilih token sesuai perannya, bukan hanya sesuai warnanya.** Setiap hue punya
+   tiga bentuk, dan mencampurkannya adalah sumber kontras buruk yang paling
+   sering:
+
+   | Peran | Token | Contoh |
+   |---|---|---|
+   | Isian besar / chart / titik | `--hue` | `background: var(--green)` |
+   | Teks | `--hue-ink` | `color: var(--green-ink)` |
+   | Latar bertint | `--hue-soft` | `background: var(--green-soft)` |
+   | Permukaan yang membawa teks putih | `--hue-fill` | `background: var(--red-fill)` |
+
+   `-fill` hanya ada untuk `blue`/`green`/`red`/`orange` (referensi hanya
+   menyediakannya untuk biru). Itu karena `-ink` **membalik** jadi nilai terang
+   di dark theme, jadi tidak bisa membawa teks putih di kedua tema —
+   putih di `--orange-ink` dark cuma 1.78:1. Jangan pakai `-ink` untuk
+   `background` tombol.
+
+   Warna transparan: pakai pasangan `-soft`. **Jangan `color + '18'`** — suffix
+   alpha hanya jalan untuk hex; begitu `color` jadi CSS var hasilnya invalid.
+4. **Pemappearance hidup di `<html>`, bukan di state React:**
+   `data-theme` · `data-density` · `data-radius` · `data-collapsed`.
+   `ThemeContext` hanya menulis atribut itu, **tidak boleh** inject custom
+   property inline (ada test yang menjaganya). `[data-collapsed]` juga
+   mengatur lebar sidebar + visibilitas label tanpa re-render.
+5. **Angka pakai `--font-mono` + `tabular-nums`** (kelas `.num`).
+6. **Ikon lewat `components/icons/NavIcon.jsx`** (Lucide). Kalau sebuah nama
+   tidak ada di map, komponen diam-diam render `null` — cek map-nya, jangan
+   mengarang nama. Ada check di Section 7.
+7. **Alias legacy di `tokens.css`** dipertahankan untuk gaya inline lama.
+   `--text-3` dan `--text-5` mengarah ke `--label-2`,
+   `--text-4` ke `--gray-ink`. `--text-6` adalah separator: hanya untuk dekorasi,
+   bukan teks. Gunakan `--label-2` untuk keterangan kecil dan `--label` di atas
+   isian gelap seperti `--surface-3`. Hapus alias setelah semua pemakai pindah.
+8. **Nilai warna yang tersimpan ke Firestore harus tetap hex.** Ini pengecualian
+   yang disengaja dan mudah dilanggar oleh refactor warna:
+   - `SettingsPage.jsx` → `COLORS` (pilihan warna kategori)
+   - `SettingsPage.jsx` → `DEFAULT_CATEGORY_COLOR` (kategori baru)
+   - `Budget/SectionEditModal.jsx` → palet warna section
+   - `Wallet/WalletFormModal.jsx` → warna per tipe dompet
+
+   Nilai-nilai ini ditulis ke dokumen lalu dirender apa adanya. Mengikatnya ke
+   `var(--blue)` akan menulis ulang data setiap kali tema berubah dan membuat
+   warna berbeda antar perangkat. Kalau `cat.color` mau dipakai sebagai
+   **dekorasi** (mis. tint ikon), itu aman; sebagai **teks** tidak — warna
+   kategori dipilih user dan bisa pastel.
+
+### Pola header yang dipakai di seluruh app
+| Kebutuhan | Markup |
+|---|---|
+| Judul halaman | `.largeTitleBlock` > `.largeTitle` + `.pageSubtitle` |
+| Judul kartu simple | `<h2 class="sectionTitle">` (uppercase, `--label-2`) |
+| Judul kartu + subjudul + aksi | `.cardHead` > `.cardTitle` + `.cardSub` + aksi |
+| Judul dengan ikon | `SectionTitle` di `pages/Dashboard/ScoreParts.jsx` (`variant="card"` untuk yang punya subjudul) |
+| Judul + tombol | `.seg` (Bulan Ini / Tahun Ini) |
+
+### Shell
+```
+.appShell > Sidebar + .appMain
+  .appMain  > Topbar (sticky) + .appScroll   ← yang di-scroll
+    .appScroll > .container > renderPage()
+```
+**Yang di-scroll adalah `window`, bukan `.appScroll`.** `.shell` cuma
+`min-height: 100vh` dan `.main` tidak dikunci, persis seperti referensi — jadi
+sidebar dan topbar menempel ke viewport. `.appScroll` karena itu **bukan**
+scroll container (cuma `overflow-x: clip` untuk menahan melebar). Konsekuensi:
+`Topbar` untuk `data-scrolled` harus baca `window.scrollY > 18`, bukan
+`addEventListener('scroll')` di `.appScroll` — yang itu tidak pernah fire.
+Referensi juga tidak mendefinisikan `--tabbar-h`; `base.css` menambahkannya
+dengan nilai `0px` di desktop dan `52px` di `≤768px`, karena apa pun yang
+harus menyingkir dari tab bar (launcher HelpChat, padding bawah scroll) butuh angkanya.
+
+### Lebar konten per halaman
+`--container-max` di referensi dikunci `1180px`. Itu pas untuk laptop, tapi di
+monitor 2000px membuang **32%** lebar layar (gutter 280px per sisi). Tiga lapis:
+
+| Lapis | Nilai | Untuk |
+|---|---|---|
+| container | 1180 → 1320/1480/1600 pada ≥1400/1640/1880 | batas atas, naik bersama jendela |
+| `.pageWide` | `min(1360px, --container-max)` | tabel & daftar |
+| `.pageMeasure` | `min(920px, --container-max)` | form & teks panjang |
+
+`min()` dipakai supaya kelas-kelas ini **hanya bisa mempersempit**, tidak
+pernah meluber di jendela kecil. Peta halaman → kelas ada di `PAGE_MEASURE`
+(`App.jsx`); `dashboard` sengaja tidak dipetakan karena dia punya grid
+dua kolom sendiri dan memang mau lebar penuh.
+
+`fire` dan `help` tetap `pageMeasure` dan **akan** terlihat "terperah" di layar
+2000px — itu memang pilihan yang benar (form panjang dan teks baca, keduanya
+tidak terbaca di 1600px), dan container-nya dipusatkan supaya ruang kosongnya
+terlihat sebagai margin yang disengaja, bukan bug.
+
+**Keseimbangan kolom dashboard:** "Transaksi Terbaru" pernah ada di rail kanan.
+Kolom kiri jadi 501px vs kanan 1202px, dan halaman terlihat miring setengah.
+Baris transaksi adalah konten terlebar di dashboard, jadi pindah ke kolom kiri.
+Rail kanan jadi `position: sticky` (hanya di ≥1024px) supaya skor tetap terlihat
+saat kolom lebar di-scroll.
+
+### Pengeksian visual
+Playwright (Chrome, bukan Chromium) dipakai untuk dua hal, keduanya harus
+lulus sebelum commit:
+1. **Responsif** — 13 halaman × 12 viewport (2000→360): nol overflow horizontal,
+   nol teks tergencet, nol label terpotong (`scrollWidth > clientWidth`), dan
+   nol konten "terperah" (container < 60% lebar available). Pengecualian yang
+   disahkan: `fire` dan `help`, yang memang `pageMeasure`.
+2. **Kontras** — 5 varian tema (light/dark × 3 density × 2 radius) × 13 halaman,
+   mengukur rasio WCAG AA. Compositing alpha background wajib, kalau tidak
+   `rgba(118,118,128,.12)` dianggap opaque dan hasilnya false positive di
+   mana-mana. Emoji harus dikecualikan (piktogram, bukan teks).
+
+   **Pengecualian yang diketahui:** `.tag` ("6 dompet") di `balanceCard` = 4.47:1
+   di dark mode, 0.03 di bawah 4.5. Itu nilai referensi apa adanya
+   (`--label-2` di atas `--fill-tertiary`) dan sengaja tidak diubah.
+
+## 4. Komponen Inti
 
 | Path | Peran |
 |---|---|
@@ -109,15 +258,34 @@ Hanya `getBalanceEffect()` yang boleh menentukan arah saldo:
 
 ---
 
-## 4. Command
+## 5. Command
 
 ```bash
 npm run dev         # Vite dev server :5173
 npm run build       # → dist/  (butuh @rolldown/binding-<platform>!)
-npm test            # vitest --run  (17 file, 316 test)
+npm run build:single # build + inline dist/ → ../budgetx.html (1 file mandiri)
+npm test            # vitest --run (23 file; browser checks optional)
 npm run lint        # ESLint flat config
 npm run preview     # serve build
 ```
+
+Pemeriksaan browser membutuhkan Vite yang aktif pada `UAT_URL` (default
+`http://localhost:5173`) dan Playwright. Jika Playwright terpasang di lokasi
+eksternal, jalankan test dengan `BUDGETX_PLAYWRIGHT_PATH=/path/to/playwright`.
+Tanpa Playwright, hanya pemeriksaan browser yang di-skip; unit/style test tetap
+berjalan. Fixture `src/__tests__/layout/modal-fixtures.jsx` tidak menulis data,
+dan tidak diimpor oleh bundle produksi.
+
+### Single-file build
+`scripts/build-single-html.mjs` men-inline `dist/` (JS, CSS, logo) jadi satu
+`<head>`-only HTML yang jalan dari `file://`. Dijaga
+`src/__tests__/deployment/single-html-build.test.js`. Dua jebakan yang sudah
+terkena dan tidak boleh dilupakan kalau skrip ini diedit ulang:
+- Semua `String.replace` **wajib** function replacer. Bundle minified penuh
+  `` $` ``/`$&`; sebagai string replacement pola itu ekspansi jadi HTML sekitar.
+- `/logo.png` di 5 komponen ditulis ulang ke global `__BUDGETX_LOGO__`; kalau
+  dibiarkan, logo 404 saat file berdiri sendiri.
+- `</script` di dalam bundle wajib di-escape → `<\/script`.
 
 ### 🚨 Setup trap: native binding
 `npm run build` dan `npm test` **gagal total** tanpa binding Rolldown native.
@@ -135,9 +303,9 @@ Hindari `--force` / `rm -rf node_modules` (npm optional-deps bug, bisa bikin loc
 
 ---
 
-## 5. Test Suite
+## 6. Test Suite
 
-17 file, **316 test — semua hijau** (per 29 Sep 2026). `setup.js` hanya berisi
+23 file, **412 test termasuk browser — semua hijau** (per 1 Okt 2026). `setup.js` hanya berisi
 `import '@testing-library/jest-dom'`.
 
 | Kategori | File | Catatan |
@@ -145,7 +313,7 @@ Hindari `--force` / `rm -rf node_modules` (npm optional-deps bug, bisa bikin loc
 | Property-based (fast-check) | 6 file, `numRuns: 100` | helpers, formatters, wallet, transactions, budget, persistence |
 | Unit | validator (104), firestoreService (51), helpers (41) | |
 | Komponen | ui (23), Sidebar (10), ThemeContext (8) | |
-| Deployment | firebase-config (9) | Baca `firebase.json`/`.firebaserc`/`firestore.rules` dari disk |
+| Deployment | firebase-config (9), single-html-build (6) | Baca `firebase.json`/`.firebaserc`/`firestore.rules` dari disk; single-html-build skip kalau `dist/` belum ada |
 
 **Mock Firebase** di `firestoreService.test.js:12-53` — `vi.mock` 3 modul
 (`firebase/firestore`, `../../config/firebase`, `../../data/defaults`).
@@ -171,12 +339,12 @@ Semuanya gagal karena test usang vs. perubahan WIP — testnya yang salah, bukan
 
 ---
 
-## 6. Status Saat Ini (hasil verifikasi 29 Sep 2026, setelah perbaikan)
+## 7. Status Saat Ini (hasil verifikasi 29 Sep 2026, setelah perbaikan)
 
 | Cek | Hasil |
 |---|---|
 | `npm run build` | ✅ sukses |
-| `npm test` | ✅ **316/316 pass**, 17/17 file |
+| `npm test` dengan Playwright | ✅ **412/412 pass**, 23/23 file (1 Okt 2026) |
 | `npm run lint` | ✅ **0 error, 0 warning** |
 
 ### ✅ Sudah diperbaiki
@@ -232,6 +400,119 @@ ke dalam `useMemo` agar deps-nya jujur. Diverifikasi: **1024 kasus, 0 mismatch**
 > ekuivalensi secara eksplisit (seperti 2 checks di atas atau smoke test sementara),
 > jangan mengandalkan "testsuite hijau" sebagai bukti.
 
+### 🟠 Gap tooling yang ditemukan (belum diperbaiki)
+**ESLint tidak menangkap komponen JSX yang tak terdefinisi.** `no-undef`
+tidak aktif untuk identifier yang dipakai sebagai `<Tag />`, jadi
+`<NavIcon name="check" />` di `AssetPage.jsx` **lolos `npm run lint` dan
+`npm run build`** dan baru meledak saat runtime sebagai
+`ReferenceError: NavIcon is not defined`. Refactor seperti ini bisa lolos
+semua gate statis dan hanya muncul saat user membuka halamannya.
+
+Perbaikannya butuh `eslint-plugin-react` dengan setting `react/jsx-no-undef`,
+atau test render per halaman. `App.jsx`, `TransactionsPage`, `BudgetPage`,
+`Dashboard` dan `FirePage` **tidak punya test komponen sama sekali**, jadi
+satu-satunya jaring pengaman mereka Playwright.
+
+### 🟠 Jebakan collapsed-sidebar (melewati test jsdom)
+Dua bug ini lolos `npm run lint`, `npm test`, **dan** `npm run build`, dan baru
+terlihat saat user dilaporkan — karena jsdom tidak pernah menerapkan
+`base.css`, jadi aturan `@media`/`[data-collapsed]` tidak pernah diuji.
+
+1. **Aturan hide yang terlalu luas.** Referensi menulis
+   `[data-collapsed='true'] .sidebarAction span { display: none; }` — selector
+   payung. Di sana aman karena markup-nya menaruh ikon sebagai anak langsung
+   `<button>` (bukan di dalam span). Ours membungkus ikon dengan
+   `<span class="navIcon">`, jadi aturan yang sama ikut menyembunyikan ikon:
+   ketiga tombol footer (Keluar / Mode / Ciutkan) render **seluruhnya kosong**
+   di rail 72px. Perbaikannya bukan menirusi ikon ke luar span, tapi memberi
+   kelas pada teksnya (`.sidebarActionLabel`) lalu mengganti selector payung
+   itu — jadi kalau aturannya kembali, test langsung gagal.
+2. **`.navGroupLabel` tidak pernah disembunyikan saat collapsed.** Group header
+   tetap dirender di rail 72px: "Ringkasan" butuh 85px dalam kotak 47px, jadi
+   terpotong jadi "RINGKA". Ini **bug di file referensi itu sendiri**; kita
+   menyimpang dengan menyembunyikan teksnya dan memberi garis pemisah per grup
+   (`.navGroup ~ .navGroup`), karena menyembunyikannya saja akan meratakan
+   keempat grup jadi satu daftar panjang.
+   Wrapper `class="navGroup"` ditambahkan khusus untuk itu.
+
+Verifikasi collapsed **wajib** di Playwright (tabel 2 state × 8 lebar), bukan
+hanya andalkan test. Ditambah guard `clipped` di sweep responsif: cek
+`scrollWidth > clientWidth + 1` untuk `.navGroupLabel`/`.navLabel`/
+`.sidebarActionLabel`, bukan cuma "lebar < 26px" seperti heuristic lama yang
+buta terhadap pemotongan di tengah kata.
+
+### 🟠 Migrasi CSS Module → `base.css`: jebakan yang sudah terjadi
+Sesi 30 Sep 2026 memindahkan halaman ke class global. Empat dari empat kegagalan
+tersembunyi — lolos lint, lolos build, lolos hitung-kelas — dan sekarang ditutup
+`src/__tests__/styles/global-classes.test.js` (5 test). **Jangan salin CSS
+verbatim.**
+
+1. **Lift verbatim menimpa selector yang sudah ada.** Menyalin 913 baris
+   `BudgetPage.module.css` ke `base.css` menimpa **24** selector, termasuk
+   `.allocBar` milik referensi — baris angka kecil di `.catRow` yang berubah
+   jadi bar status bertint 22px. Gejalanya tidak error, hanya "kelihatan
+   salah". Perbaikannya: lift **per rule**, lewati yang bentrok, lalu arahkan
+   JSX ke class yang benar-benar ada.
+2. **Nama yang Similar bukan nama yang sama.** Bar status bertintbagian diberi
+   `.allocStatus*`, tapi hanya `.allocBar*` yang ter-lift, jadi third variant
+   (`allocStatusValue`) tidak punya CSS sama sekali. Yang hilang justru saat
+   **deduplikasi**: `str.replace(a, b)` tanpa `count` menghapus **semua**
+   kemunculan, termasuk `.radioGroup` asli milik referensi, plus
+   `.tableCompact` / `.tableRowMuted` / `.ratioRow` yang ditambahkan di sesi
+   yang sama. Cek ulang semua class lifestyle setelah dedupe.
+3. **Regex selector-nya menelan komentar.** `^([^\s@}][^{]*?)\{` mencapture
+   baris `/* ── Judul ── */` sebagai prelude, hasil keluarnya `./* ── Judul ── */`
+   dan **build gagal** di minifier (`Expected identifier in class selector`).
+   Saring komentar dulu.
+4. **`min-width: auto` membatalkan `text-overflow`.** `.itemName` punya
+   `ellipsis` tapi lebarnya **0px** — sebagai flex item, `min-width` default
+   `auto` = lebar konten, jadi barisnya melebar sampai nama menyusut ke nol dan
+   **terpotong**, bukan terellipsis. Perlu `min-width: 0` di `.itemName` **dan**
+   di `.listRow`-nya. Fix sama untuk `.listRow:has(.allocInput)` yang jadi dua
+   baris di bawah 480px (nama + input 104px + dua tombol 44px ≈ 240px).
+5. **Guard kontras salah bisa.bohong.** `.sep` dilaporkan "undefined" padahal
+   ada sebagai `.sectionSpent .sep` — versi `definedClasses` hanya membaca
+   segmen pertama selector. Dan `className="sep"` berisi teks `"/"` lolos filter
+   karena `{'a / b'}` ikut diambil sebagai class. Dua-duanya sudah dikoreksi di
+   test; kalau test ini nanti gagal, perbaiki **test atau CSS-nya** — jangan
+   whitelist-kan.
+
+`Input`/`Select` sekarang memakai `.inputField`, tanpa default inline.
+Modifier seperti `.allocInput` bisa mengatur lebar/tinggi lewat CSS. Jika
+CSS Module mengomposisi kelas global lalu mengubah properti yang sama, gunakan
+selector modifier yang lebih spesifik; jangan bergantung pada urutan import.
+
+### 🟠 Jebakan yang sudah terjadi saat revamp 30 Sep 2026
+Semua sudah diperbaiki, tapi polanya mudah terulang:
+
+1. **Nama ikon yang tidak ada di map `NavIcon` render `null` diam-diam.**
+   Tidak ada error, tidak ada warning — ikonnya cuma hilang. Yang ditemukan:
+   `bolt` (Zap) dan `info` untuk Aksi Cepat + Rekomendasi, plus
+   `<NavIcon name={r.tone} />` di daftar Rekomendasi yang mengoper tone
+   (`Sehat`/`Perhatian`/`Bahaya`) sebagai nama ikon. Pola yang benar: petakan
+   tone → ikon (`tone === 'Sehat' ? 'check' : 'warning'`).
+   **Cek:** `grep -oE 'name="[a-zA-Z]+"' src/**/*.jsx` lalu bandingkan dengan
+   key di `src/components/icons/NavIcon.jsx`.
+2. **`color + '18'` untuk warna transparan.** Hex `+ '18'` (suffix alpha)
+   bekerja, `var(--x) + '18'` tidak — hasilnya CSS invalid dan warnanya hilang.
+   Gunakan pasangan `-soft` yang sudah ada di `tokens.css`.
+3. **Satu warna untuk dua peran.** Referensi pakai satu hex untuk arc donat
+   *dan* teks grade. Di sistem token HIG, `-ink` (teks) terlalu gelap untuk
+   arc tebal dan `-fill` terlalu terang untuk teks. `computeHealthRatios`
+   sekarang mengembalikan tiga: `ring` / `ink` / `soft`.
+4. **Threshold skor diduplikasi.** `ScoreDonut` punya ambang sendiri (70/40)
+   sementara `computeHealthRatios` pakai 80/60/40 — bisa tampil hijau tapi
+   tulis "Perlu Perhatian". Sekarang donat menerima `grade.ring`.
+5. **Nesting `scoreInfo`.** Teks harus di dalam `scoreInfo` yang dimensinya
+   sibling dari `scoreCircle` di dalam `scoreHero`. Kalau `scoreInfo` membungkus
+   keduanya, kolom teksnya sempit sekali.
+6. **Event scroll di `window`.** Yang ter-scroll adalah `.appScroll`, jadi
+   `Topbar` `data-scrolled` harus dengar `scroll` di elemen itu.
+7. **Handler yang meneruskan event ke prop bertipe data.**
+   `onClick={onAddTx}` mengirim `MouseEvent` sebagai argumen pertama — kalau
+   signature-nya `onAddTx(type = 'expense')`, event itu jadi `type`. Bungkus
+   `onClick={() => onAddTx()}`.
+
 ### 🟠 Gap yang ditemukan saat cleanup (belum diperbaiki)
 `validateInvestment(data, hasTransactions)` punya param `hasTransactions` yang tidak
 pernah dipakai. Param itu dihapus, tapi gap aslinya dicatat di JSDoc: **assetType
@@ -242,7 +523,7 @@ update di luar form itu tidak punya guard. Perbaikannya butuh parameter tambahan
 
 ---
 
-## 7. Menjalankan App Lokal & UAT
+## 8. Menjalankan App Lokal & UAT
 
 ### Dua mode
 | Mode | Pemicu | Persistensi | Risiko |
@@ -300,7 +581,7 @@ Ditulis sebagai smoke test sementara lalu dihapus (App tidak punya test):
 
 ---
 
-## 8. Temuan Teknis Penting (untuk Hindari Pengulangan)
+## 9. Temuan Teknis Penting (untuk Hindari Pengulangan)
 
 ### ✅ Terverifikasi: Supabase sudah MATI & sudah dibersihkan
 Bukti (semua dicek langsung, 29 Sep 2026):
@@ -368,7 +649,7 @@ Tersimpan hanya sebagai pelajaran kalau someday butuh backend lagi:
 
 ---
 
-## 9. Aturan Kerja Sama
+## 10. Aturan Kerja Sama
 
 1. **Jangan usulkan backend/API baru.** Firestore client SDK adalah arsitektur yang
    disengaja; ada test yang secara aktif memastikannya (`firestoreService.test.js:164`).

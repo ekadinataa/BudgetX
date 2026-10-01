@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageActions } from '../../context/pageActions';
 import { fmtFull, fmt, monthKey } from '../../utils/formatters';
 import {
   getCatById,
@@ -20,7 +21,6 @@ import CompareBarChart from '../../components/charts/CompareBarChart';
 import MonthCompareBar from '../../components/charts/MonthCompareBar';
 import DailyBarChart from '../../components/charts/DailyBarChart';
 import CycleSettingModal from './CycleSettingModal';
-import styles from './ReportsPage.module.css';
 
 /**
  * ReportsPage — Financial reports with charts, comparisons, and budget performance.
@@ -142,68 +142,58 @@ export default function ReportsPage({
     }
   });
 
+  const topbarActions = usePageActions(
+    <div className="toolbar">
+      <button className="btnGhost" onClick={() => setShowCycleDlg(true)}>
+        <NavIcon name="calendar" size={15} /> Siklus: tgl {cycleStart}
+      </button>
+      <Select aria-label="Periode laporan" value={period} onChange={(e) => setPeriod(e.target.value)} style={{ width: 'auto' }}>
+        {allPeriods.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+      </Select>
+    </div>,
+  );
+
+  // See BudgetPage: `display: contents` keeps `.container`'s flex `gap` working.
   return (
-    <div>
+    <div className="pageStack">
+      {topbarActions}
       {/* Page header */}
-      <div className={styles.pageHeader}>
+      <div className="largeTitleBlock">
         <div>
-          <h1 className={styles.pageTitle}>Laporan</h1>
-          <p className={styles.periodLabel}>{range.label}</p>
-        </div>
-        <div className={styles.headerActions}>
-          <button className={styles.cycleBtn} onClick={() => setShowCycleDlg(true)}>
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 3" />
-            </svg>
-            Siklus: tgl {cycleStart}
-          </button>
-          <Select value={period} onChange={(e) => setPeriod(e.target.value)} style={{ width: 'auto' }}>
-            {allPeriods.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </Select>
+          <h1 className="largeTitle">Laporan</h1>
+          <p className="reportPeriodLabel">{range.label}</p>
         </div>
       </div>
 
       {/* Cashflow summary */}
-      <div className={styles.cashGrid}>
-        <CashCard label="Total Pemasukan" value={income} color="#22C55E" icon="income" />
+      <div className="grid3">
+        <CashCard label="Total Pemasukan" value={income} color="var(--green-ink)" icon="income" />
         <CashCard
           label="Total Pengeluaran"
           value={expense}
-          color="#EF4444"
+          color="var(--red-ink)"
           icon="expense"
           sub={`${expDelta > 0 ? '+' : ''}${expDelta}% vs ${prevLabelShort}`}
-          subColor={expDelta > 0 ? '#EF4444' : '#22C55E'}
+          subColor={expDelta > 0 ? 'var(--red-ink)' : 'var(--green-ink)'}
         />
         <CashCard
           label="Net Cashflow"
           value={net}
-          color={net >= 0 ? '#4F6EF7' : '#EF4444'}
+          color={net >= 0 ? 'var(--blue)' : 'var(--red)'}
           icon={net >= 0 ? 'income' : 'expense'}
         />
       </div>
 
       {/* Charts row */}
-      <div className={styles.chartsGrid}>
+      <div className="reportCharts">
         {/* Pie chart */}
-        <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Pengeluaran per Kategori</h3>
+        <div className="card">
+          <h3 className="cardTitle contentTitle">Pengeluaran per Kategori</h3>
           {topCats.length === 0 ? (
-            <div className={styles.emptyState}>Tidak ada data</div>
+            <div className="reportEmpty">Tidak ada data</div>
           ) : (
             <div>
-              <div className={styles.pieChartWrap}>
+              <div className="reportPie">
                 <PieChart
                   slices={topCats.map((x) => ({
                     label: x.cat.name,
@@ -215,14 +205,14 @@ export default function ReportsPage({
               </div>
               <div style={{ marginTop: 16 }}>
                 {topCats.slice(0, 6).map((x) => (
-                  <div key={x.cat.id} className={styles.legendRow}>
-                    <div className={styles.legendLeft}>
-                      <div className={styles.legendDot} style={{ background: x.cat.color }} />
-                      <span className={styles.legendName}>{x.cat.name}</span>
+                  <div key={x.cat.id} className="reportLegendRow">
+                    <div className="reportLegendLeft">
+                      <div className="reportLegendDot" style={{ background: x.cat.color }} />
+                      <span className="reportLegendName">{x.cat.name}</span>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <span className={styles.legendAmount}>{fmtFull(x.amt)}</span>
-                      <span className={styles.legendPct}>
+                      <span className="reportLegendAmount">{fmtFull(x.amt)}</span>
+                      <span className="reportLegendPct">
                         {expense > 0 ? Math.round((x.amt / expense) * 100) : 0}%
                       </span>
                     </div>
@@ -234,15 +224,15 @@ export default function ReportsPage({
         </div>
 
         {/* Income vs Expense */}
-        <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Pemasukan vs Pengeluaran</h3>
+        <div className="card">
+          <h3 className="cardTitle contentTitle">Pemasukan vs Pengeluaran</h3>
           <CompareBarChart
-            a={{ label: 'Pemasukan', value: income, color: '#22C55E' }}
-            b={{ label: 'Pengeluaran', value: expense, color: '#EF4444' }}
+            a={{ label: 'Pemasukan', value: income, color: 'var(--green-ink)' }}
+            b={{ label: 'Pengeluaran', value: expense, color: 'var(--red-ink)' }}
             prev={{ label: prevLabelShort, value: prevExp, color: 'var(--text-6)' }}
           />
           <div style={{ marginTop: 20 }}>
-            <div className={styles.compareLabel}>
+            <div className="reportCompareLabel">
               Pengeluaran bulan ini vs {prevLabel}
             </div>
             <MonthCompareBar
@@ -256,18 +246,18 @@ export default function ReportsPage({
       </div>
 
       {/* Daily chart */}
-      <div className={`${styles.card} ${styles.dailyCard}`}>
-        <h3 className={styles.cardTitle}>Pengeluaran Harian</h3>
+      <div className="card">
+        <h3 className="cardTitle contentTitle">Pengeluaran Harian</h3>
         <DailyBarChart data={dailyExp} max={maxDaily} days={rangeDays} cycleStart={cycleStart} />
       </div>
 
       {/* Budget performance */}
-      <div className={styles.card}>
-        <div className={styles.perfHeader}>
-          <h3 className={styles.cardTitle} style={{ margin: 0 }}>
+      <div className="card">
+        <div className="cardHead reportHead">
+          <h3 className="cardTitle contentTitle" style={{ margin: 0 }}>
             Performa Anggaran
           </h3>
-          <span className={styles.perfSubtitle}>per seksi &amp; kategori</span>
+          <span className="reportSubtitle">per seksi &amp; kategori</span>
         </div>
 
         {['needs', 'wants', 'savings'].map((sec) => {
@@ -277,32 +267,32 @@ export default function ReportsPage({
           const pct = secData.total > 0 ? Math.round((spent / secData.total) * 100) : 0;
 
           return (
-            <div key={sec} className={styles.sectionBlock}>
+            <div key={sec} className="reportSectionBlock">
               {/* Section header */}
               <div
-                className={styles.sectionHeader}
-                style={{ background: sectionColor(sec) + '12' }}
+                className="reportSectionHead"
+                style={{ background: `color-mix(in srgb, ${sectionColor(sec)} 7%, transparent)` }}
               >
-                <div className={styles.sectionLeft}>
-                  <div className={styles.sectionDot} style={{ background: sectionColor(sec) }} />
-                  <span className={styles.sectionName}>{sectionLabel(sec)}</span>
+                <div className="reportSectionLeft">
+                  <div className="reportSectionDot" style={{ background: sectionColor(sec) }} />
+                  <span className="reportSectionName">{sectionLabel(sec)}</span>
                   {over && (
-                    <span className={styles.sectionOverflow}>
+                    <span className="reportOverflow">
                       <NavIcon name="warning" size={12} /> Melebihi!
                     </span>
                   )}
                 </div>
-                <div className={styles.sectionRight}>
-                  <span style={{ fontWeight: 700, color: over ? '#EF4444' : 'var(--text-1)' }}>
+                <div className="reportSectionRight">
+                  <span style={{ fontWeight: 700, color: over ? 'var(--red-ink)' : 'var(--text-1)' }}>
                     {fmtFull(spent)}
                   </span>
-                  <span className={styles.sectionSep}> / </span>
-                  <span className={styles.sectionAllocated}>{fmtFull(secData.total)}</span>
+                  <span className="reportMuted"> / </span>
+                  <span className="reportMuted">{fmtFull(secData.total)}</span>
                   <span
                     style={{
                       marginLeft: 8,
                       fontWeight: 700,
-                      color: over ? '#EF4444' : pct > 80 ? '#F59E0B' : '#22C55E',
+                      color: over ? 'var(--red-ink)' : pct > 80 ? 'var(--orange-ink)' : 'var(--green-ink)',
                     }}
                   >
                     {pct}%
@@ -311,7 +301,7 @@ export default function ReportsPage({
               </div>
 
               {/* Section progress bar */}
-              <div className={styles.sectionProgressWrap}>
+              <div className="reportSectionProgress">
                 <ProgressBar
                   value={spent}
                   max={secData.total}
@@ -322,7 +312,7 @@ export default function ReportsPage({
               </div>
 
               {/* Per-category rows */}
-              <div className={styles.catList}>
+              <div className="reportCategoryList">
                 {secData.cats.map((c) => {
                   const cat = getCat(c.id);
                   const cSpent = catSpend[c.id] || 0;
@@ -330,33 +320,33 @@ export default function ReportsPage({
                   const cPct = c.amt > 0 ? Math.round((cSpent / c.amt) * 100) : 0;
                   return (
                     <div key={c.id}>
-                      <div className={styles.catRow}>
-                        <div className={styles.catLeft}>
+                      <div className="reportCategoryRow">
+                        <div className="reportCategoryLeft">
                           <div
-                            className={styles.catDot}
+                            className="reportCategoryDot"
                             style={{ background: cat?.color || 'var(--text-6)' }}
                           />
-                          <span className={styles.catName}>{cat?.name || c.id}</span>
-                          {cOver && <span className={styles.catOverBadge}>OVER</span>}
+                          <span className="reportCategoryName">{cat?.name || c.id}</span>
+                          {cOver && <span className="reportCategoryOver">OVER</span>}
                         </div>
-                        <div className={styles.catRight}>
-                          <span className={styles.catAmounts}>
+                        <div className="reportCategoryRight">
+                          <span className="reportCategoryAmounts">
                             <span
                               style={{
                                 fontWeight: 600,
-                                color: cOver ? '#EF4444' : 'var(--text-2)',
+                                color: cOver ? 'var(--red-ink)' : 'var(--text-2)',
                               }}
                             >
                               {fmt(cSpent)}
                             </span>
-                            <span className={styles.catSep}> / </span>
+                            <span className="reportMuted"> / </span>
                             {fmt(c.amt)}
                           </span>
                           <span
                             style={{
                               fontSize: 11,
                               fontWeight: 700,
-                              color: cOver ? '#EF4444' : cPct > 80 ? '#F59E0B' : '#22C55E',
+                              color: cOver ? 'var(--red-ink)' : cPct > 80 ? 'var(--orange-ink)' : 'var(--green-ink)',
                               minWidth: 32,
                               textAlign: 'right',
                             }}
@@ -376,7 +366,7 @@ export default function ReportsPage({
                   );
                 })}
                 {secData.cats.length === 0 && (
-                  <div className={styles.catEmpty}>Belum ada kategori</div>
+                  <div className="reportCategoryEmpty">Belum ada kategori</div>
                 )}
               </div>
             </div>
@@ -386,30 +376,30 @@ export default function ReportsPage({
 
       {/* Amortized Recurring Items Analysis */}
       {recurringItems.length > 0 && (
-        <div className={styles.card} style={{ marginTop: 24 }}>
-          <div className={styles.perfHeader}>
-            <h3 className={styles.cardTitle} style={{ margin: 0 }}>
+        <div className="card">
+          <div className="cardHead reportHead">
+            <h3 className="cardTitle contentTitle" style={{ margin: 0 }}>
               📦 Biaya Berkala (Amortized)
             </h3>
-            <span className={styles.perfSubtitle}>biaya bulanan sebenarnya dari item berkala</span>
+            <span className="reportSubtitle">biaya bulanan sebenarnya dari item berkala</span>
           </div>
 
           {/* Amortized summary by section */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, margin: '16px 0' }}>
+          <div className="grid3" style={{ margin: '16px 0' }}>
             {['needs', 'wants', 'savings'].map((sec) => {
               const amortizedSections = getAmortizedBySection(recurringItems, categories);
               const val = amortizedSections[sec] || 0;
               return (
                 <div key={sec} style={{
                   padding: '12px 16px',
-                  background: sectionColor(sec) + '10',
+                  background: `color-mix(in srgb, ${sectionColor(sec)} 10%, transparent)`,
                   borderRadius: 10,
-                  border: `1px solid ${sectionColor(sec)}30`,
+                  border: '1px solid var(--separator)',
                 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-4)', textTransform: 'uppercase', marginBottom: 4 }}>
                     {sectionLabel(sec)}
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: sectionColor(sec) }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: sec === 'needs' ? 'var(--blue-ink)' : sec === 'wants' ? 'var(--orange-ink)' : 'var(--green-ink)' }}>
                     {fmtFull(Math.round(val))}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-4)' }}>/bulan</div>
@@ -428,10 +418,10 @@ export default function ReportsPage({
             alignItems: 'center',
             marginBottom: 16,
           }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--label)' }}>
               Total Biaya Berkala/Bulan
             </span>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#4F6EF7' }}>
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--blue-ink)' }}>
               {fmtFull(Math.round(getTotalAmortizedCost(recurringItems)))}
             </span>
           </div>
@@ -462,7 +452,7 @@ export default function ReportsPage({
           <div style={{
             marginTop: 16,
             padding: '12px 16px',
-            background: 'rgba(79, 110, 247, 0.08)',
+            background: 'var(--blue-soft)',
             borderRadius: 10,
             border: '1px solid rgba(79, 110, 247, 0.2)',
           }}>
@@ -503,18 +493,18 @@ export default function ReportsPage({
  */
 function CashCard({ label, value, color, icon, sub, subColor }) {
   return (
-    <div className={styles.cashCard}>
-      <div className={styles.cashCardHeader}>
-        <span className={styles.cashCardLabel}>{label}</span>
-        <span className={styles.cashCardIcon} style={{ color }}>
+    <div className="statCard">
+      <div className="reportCashHead">
+        <span className="statLabel">{label}</span>
+        <span className="reportCashIcon" style={{ color }}>
           <NavIcon name={icon} size={18} />
         </span>
       </div>
-      <div className={styles.cashCardValue} style={{ color }}>
+      <div className="statValue num" style={{ color }}>
         {fmtFull(value)}
       </div>
       {sub && (
-        <div className={styles.cashCardSub} style={{ color: subColor || 'var(--text-4)' }}>
+        <div className="statDetail reportDelta" style={{ color: subColor || 'var(--text-4)' }}>
           {sub}
         </div>
       )}

@@ -1,155 +1,158 @@
 import { useState } from 'react';
-import styles from './HelpChat.module.css';
+import NavIcon from '../icons/NavIcon';
 
+/**
+ * HelpChat — canned-answers help bubble.
+ *
+ * Rule-based, not an AI: FAQ_DATA below is a fixed list, there is no free-text
+ * input, and nothing is sent anywhere. Answers are chosen from the buttons.
+ *
+ * Styled with the design system's own primitives — a circular `.iconBtn`
+ * launcher and a `.modal` sheet — rather than the pre-revamp custom CSS, so it
+ * picks up density and radius automatically.
+ */
 const FAQ_DATA = [
   {
-    id: 'add-tx',
-    question: 'Cara tambah transaksi',
-    answer: 'Klik tombol + (biru) di bottom bar, atau buka menu Transaksi lalu klik "Tambah". Pilih tipe (Pengeluaran/Pemasukan/Transfer), isi jumlah, pilih kategori dan dompet, lalu simpan.',
+    q: 'Bagaimana cara menambah transaksi?',
+    a: 'Buka tab Transaksi lalu tekan tombol Tambah di kanan atas. Isi tanggal, dompet, kategori, dan nominal, lalu simpan.',
   },
   {
-    id: 'budget',
-    question: 'Cara atur budget',
-    answer: 'Buka menu Budget → klik "Atur Pemasukan" untuk set pendapatan bulanan → klik "Edit" di setiap seksi (Kebutuhan/Keinginan/Tabungan) untuk mengalokasikan per kategori. Gunakan panduan 50/30/20 sebagai acuan.',
+    q: 'Kenapa saldo dompet saya berubah sendiri?',
+    a: 'Setiap transaksi otomatis menyesuaikan saldo dompet yang terkait, termasuk transfer antar dompet.',
   },
   {
-    id: 'recurring',
-    question: 'Apa itu Barang Berkala?',
-    answer: 'Barang Berkala adalah fitur untuk tracking item yang dibeli secara berkala (skincare, shampo, pasta gigi, dll). BudgetX menghitung biaya bulanan sebenarnya (amortized cost) dan mengingatkan kapan harus beli ulang.',
+    q: 'Bagaimana cara mengatur budget?',
+    a: 'Di halaman Budget, tentukan Total Pemasukan lebih dulu, lalu alokasikan ke Kebutuhan, Keinginan, dan Tabungan.',
   },
   {
-    id: 'debt',
-    question: 'Cara catat utang/piutang',
-    answer: 'Buka menu Utang/Piutang → klik Tambah → pilih tipe (Utang = saya pinjam, Piutang = saya pinjamkan) → isi nama orang dan jumlah. Untuk mencicil, klik "Bayar" pada card utang. Bisa juga aktifkan bunga anuitas untuk pinjaman berbunga.',
+    q: 'Apa itu siklus budget?',
+    a: 'Siklus memindahkan awal bulan ke tanggal gajian. Aktifkan Penyesuaian Hari Libur agar tanggal gajian otomatis digeser ke hari kerja.',
   },
   {
-    id: 'invest',
-    question: 'Cara tracking investasi',
-    answer: 'Buka menu Investasi → klik Tambah → pilih jenis aset (Deposito, Saham, Crypto, Emas, dll) → isi detail. Untuk mencatat pembelian/penjualan, klik tombol "Beli" atau "Jual" pada card investasi.',
+    q: 'Bagaimana cara mencatat utang?',
+    a: 'Di Utang/Piutang, pilih tipe Utang atau Piutang, isi pihak dan nominal. Pembayaran bisa dicatat bertahap lewat tombol Bayar.',
   },
   {
-    id: 'fire',
-    question: 'Apa itu FIRE Calculator?',
-    answer: 'FIRE (Financial Independence, Retire Early) Calculator membantu merencanakan kapan Anda bisa pensiun dini. Masukkan data keuangan dan lihat proyeksi pertumbuhan portofolio dengan 3 skenario berbeda.',
+    q: 'Bagaimana cara mencatat investasi?',
+    a: 'Di Investasi, buat aset lalu catat pembelian dan penjualan. Untuk deposito, isi bunga dan jatuh tempo agar nilai diperbarui otomatis.',
   },
   {
-    id: 'export',
-    question: 'Cara export data',
-    answer: 'Buka Pengaturan → scroll ke bagian "Export Data" → pilih format JSON (backup lengkap) atau CSV (spreadsheet). File akan terdownload ke perangkat Anda.',
+    q: 'Bisakah data saya disinkronkan antar perangkat?',
+    a: 'Bisa, jika kamu sudah masuk dengan akun. Data disimpan di cloud dan mengikuti akun tersebut.',
   },
   {
-    id: 'theme',
-    question: 'Cara ganti tema',
-    answer: 'Desktop: klik tombol Dark/Light Mode di sidebar bawah. Mobile: tap avatar di pojok kanan atas → pilih Dark Mode/Light Mode dari menu dropdown.',
+    q: 'Bagaimana cara backup atau export data?',
+    a: 'Di Pengaturan, pilih Ekspor Data untuk mengunduh cadangan JSON atau ZIP berisi CSV per koleksi.',
   },
   {
-    id: 'reset',
-    question: 'Cara reset data',
-    answer: '⚠️ Hati-hati! Reset akan menghapus SEMUA data. Buka Pengaturan → scroll ke bawah → klik "Reset Data" → ketik "RESET" untuk konfirmasi. Pastikan export data dulu sebelum reset.',
+    q: 'Bagaimana cara mengimpor data?',
+    a: 'Di Pengaturan, gunakan Impor Cadangan dan pilih file JSON atau ZIP hasil ekspor sebelumnya. Ada mode Replace dan Append.',
   },
   {
-    id: 'contact',
-    question: 'Hubungi developer',
-    answer: 'BudgetX dikembangkan oleh tim BudgetX. Untuk pertanyaan, saran, atau laporan bug, hubungi kami melalui GitHub: github.com/ekadinataa/budgetku',
+    q: 'Bagaimana cara mereset semua data?',
+    a: 'Di Pengaturan, bagian Reset Data. Kamu akan diminta mengetik Delete untuk mengonfirmasi — ini demi keamanan.',
   },
 ];
 
 export default function HelpChat() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-
-  const handleSelectQuestion = (faq) => {
-    setMessages((prev) => [
-      ...prev,
-      { type: 'user', text: faq.question },
-      { type: 'bot', text: faq.answer },
-    ]);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
+  const [messages, setMessages] = useState(null);
 
   const handleOpen = () => {
     setOpen(true);
-    if (messages.length === 0) {
+    if (!messages) {
       setMessages([
-        { type: 'bot', text: 'Halo! 👋 Saya asisten BudgetX. Pilih topik di bawah atau tanyakan sesuatu tentang aplikasi ini.' },
+        { type: 'bot', text: 'Halo! Pilih topik yang ingin kamu ketahui.' },
       ]);
     }
   };
 
+  const pick = (item) => {
+    setMessages((prev) => [
+      ...(prev || []),
+      { type: 'user', text: item.q },
+      { type: 'bot', text: item.a },
+    ]);
+  };
+
   return (
     <>
-      {/* Chat Panel */}
+      <button
+        className="iconBtn helpLauncher"
+        type="button"
+        onClick={handleOpen}
+        aria-label="Bantuan"
+        style={{
+          position: 'fixed',
+          right: 'var(--s5)',
+          // Clear the mobile tab bar; at desktop width there is no tab bar and
+          // --tabbar-h collapses to 0 via the media query in App.css.
+          bottom: 'calc(var(--tabbar-h) + var(--s3) + env(safe-area-inset-bottom, 0px))',
+          background: 'var(--blue-fill)',
+          color: 'var(--accent-on)',
+          boxShadow: 'var(--elev-2)',
+          zIndex: 35,
+        }}
+      >
+        <NavIcon name="info" size={20} />
+      </button>
+
       {open && (
-        <div className={styles.panel}>
-          {/* Header */}
-          <div className={styles.panelHeader}>
-            <div className={styles.panelHeaderLeft}>
-              <span className={styles.botAvatar}>🤖</span>
-              <div>
-                <div className={styles.panelTitle}>Bantuan BudgetX</div>
-                <div className={styles.panelSubtitle}>Asisten virtual</div>
-              </div>
+        <div
+          className="overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Bantuan"
+          onClick={(e) => e.target === e.currentTarget && setOpen(false)}
+        >
+          <div className="modal" style={{ maxWidth: 420 }}>
+            <div className="modalHead">
+              <span className="modalTitle">Bantuan</span>
+              <button
+                className="iconBtn"
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Tutup"
+              >
+                <NavIcon name="close" size={18} />
+              </button>
             </div>
-            <button className={styles.closeBtn} onClick={handleClose} aria-label="Tutup bantuan">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Messages */}
-          <div className={styles.messages}>
-            {messages.map((msg, idx) => (
-              <div key={idx} className={msg.type === 'bot' ? styles.botMessage : styles.userMessage}>
-                {msg.type === 'bot' && <span className={styles.msgAvatar}>🤖</span>}
-                <div className={msg.type === 'bot' ? styles.botBubble : styles.userBubble}>
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Quick Actions */}
-          <div className={styles.quickActions}>
-            <div className={styles.quickActionsInner}>
-              {FAQ_DATA.map((faq) => (
-                <button
-                  key={faq.id}
-                  className={styles.quickBtn}
-                  onClick={() => handleSelectQuestion(faq)}
+            <div className="modalBody" style={{ display: 'grid', gap: 'var(--s3)' }}>
+              {(messages || []).map((m, i) => (
+                <div
+                  key={i}
+                  style={{
+                    justifySelf: m.type === 'user' ? 'end' : 'start',
+                    maxWidth: '86%',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--r-lg)',
+                    background: m.type === 'user' ? 'var(--blue-fill)' : 'var(--fill-quaternary)',
+                    color: m.type === 'user' ? '#fff' : 'var(--label)',
+                    fontSize: 'var(--t-footnote)',
+                    lineHeight: 1.4,
+                  }}
                 >
-                  {faq.question}
-                </button>
+                  {m.text}
+                </div>
               ))}
+              <div className="divider" />
+              <div style={{ display: 'grid', gap: 6 }}>
+                {FAQ_DATA.map((f) => (
+                  <button
+                    key={f.q}
+                    className="btnSmallGhost"
+                    type="button"
+                    style={{ justifyContent: 'flex-start', textAlign: 'left' }}
+                    onClick={() => pick(f)}
+                  >
+                    {f.q}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* Floating Button */}
-      <button
-        className={styles.floatingBtn}
-        onClick={open ? handleClose : handleOpen}
-        aria-label="Bantuan"
-        title="Bantuan"
-      >
-        {open ? (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        ) : (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-        )}
-      </button>
     </>
   );
 }

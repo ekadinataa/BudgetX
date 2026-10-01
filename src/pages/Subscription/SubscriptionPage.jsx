@@ -1,17 +1,16 @@
 import { useState, useMemo } from 'react';
-import { fmtFull, fmtDate } from '../../utils/formatters';
+import { fmtFull } from '../../utils/formatters';
 import {
   calcTotalMonthlyCost,
   calcTotalYearlyCost,
-  getDaysUntilDue,
   getUpcomingSubscriptions,
-  getBillingCycleLabel,
-  getSubscriptionCategoryInfo,
+  getDaysUntilDue,
 } from '../../utils/subscriptionHelpers';
 import NavIcon from '../../components/icons/NavIcon';
 import SubscriptionFormModal from './SubscriptionFormModal';
+import SubscriptionCard from './SubscriptionCard';
+import { usePageActions } from '../../context/pageActions';
 import PayModal from './PayModal';
-import styles from './SubscriptionPage.module.css';
 
 /**
  * SubscriptionPage — Manage recurring subscriptions and bills.
@@ -88,50 +87,61 @@ export default function SubscriptionPage({
     await onUpdateSubscription(item.id, { isActive: !item.isActive });
   };
 
+  const topbarActions = usePageActions(
+    <button className="btnPrimary" onClick={() => { setEditItem(null); setShowForm(true); }}>
+      <NavIcon name="plus" size={16} /> Tambah
+    </button>,
+  );
+
+  // `display: contents` so this wrapper does not become a single flex child of
+  // `.container`. As a plain `<div>` it absorbed the container's `gap` for the
+  // whole page, leaving every card below it flush against its neighbour — which
+  // is why the spacing read as cramped rather than merely tight. `{topbarActions}`
+  // is a portal and renders null, so nothing else depends on this element.
   return (
-    <div>
+    <div className="pageStack">
+      {topbarActions}
+
       {/* Page header */}
-      <div className={styles.pageHeader}>
+      <div className="largeTitleBlock">
         <div>
-          <h1 className={styles.pageTitle}>Langganan & Tagihan</h1>
-          <p className={styles.pageSubtitle}>
+          <h1 className="largeTitle">Langganan & Tagihan</h1>
+          <p className="pageSubtitle">
             Kelola langganan dan tagihan berkala (Netflix, Spotify, Listrik, dll)
           </p>
         </div>
-        <button className={styles.addBtn} onClick={() => { setEditItem(null); setShowForm(true); }}>
-          <NavIcon name="plus" size={16} /> Tambah
-        </button>
+
       </div>
 
       {/* Summary cards */}
-      <div className={styles.summaryGrid}>
-        <div className={styles.summaryCard}>
-          <div className={styles.summaryLabel}>Total Bulanan</div>
-          <div className={styles.summaryValue} style={{ color: '#4F6EF7' }}>
+      <div className="grid3">
+        <div className="statCard">
+          <div className="statLabel">Total Bulanan</div>
+          <div className="statValue num" style={{ color: 'var(--blue-ink)' }}>
             {fmtFull(Math.round(totalMonthly))}
           </div>
-          <div className={styles.summarySub}>
+          <div className="statDetail">
             dari {subscriptions.filter((s) => s.isActive).length} langganan aktif
           </div>
         </div>
-        <div className={styles.summaryCard}>
-          <div className={styles.summaryLabel}>Total Tahunan</div>
-          <div className={styles.summaryValue} style={{ color: '#A855F7' }}>
+        <div className="statCard">
+          <div className="statLabel">Total Tahunan</div>
+          <div className="statValue num" style={{ color: 'var(--purple-ink)' }}>
             {fmtFull(Math.round(totalYearly))}
           </div>
-          <div className={styles.summarySub}>estimasi setahun penuh</div>
+          <div className="statDetail">estimasi setahun penuh</div>
         </div>
-        <div className={styles.summaryCard}>
-          <div className={styles.summaryLabel}>Jatuh Tempo Segera</div>
-          <div className={styles.summaryValue} style={{ color: upcoming.length > 0 ? '#DC2626' : '#22C55E' }}>
+        <div className="statCard">
+          <div className="statLabel">Jatuh Tempo Segera</div>
+          <div className="statValue num" style={{ color: upcoming.length > 0 ? 'var(--red-ink)' : 'var(--green-ink)' }}>
             {upcoming.length}
           </div>
-          <div className={styles.summarySub}>dalam 7 hari ke depan</div>
+          <div className="statDetail">dalam 7 hari ke depan</div>
         </div>
       </div>
 
       {/* Filter tabs */}
-      <div className={styles.filters}>
+      <div className="seg">
         {[
           { key: 'all', label: 'Semua' },
           { key: 'active', label: 'Aktif' },
@@ -139,7 +149,8 @@ export default function SubscriptionPage({
         ].map((f) => (
           <button
             key={f.key}
-            className={`${styles.filterBtn} ${filter === f.key ? styles.filterBtnActive : ''}`}
+            className={filter === f.key ? 'segBtn segBtnActive' : 'segBtn'}
+            aria-pressed={filter === f.key}
             onClick={() => setFilter(f.key)}
           >
             {f.label}
@@ -149,25 +160,25 @@ export default function SubscriptionPage({
 
       {/* Empty state */}
       {subscriptions.length === 0 && (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>💳</div>
-          <div className={styles.emptyTitle}>Belum ada langganan</div>
-          <div className={styles.emptyDesc}>
+        <div className="emptyState">
+          <div className="emptyIcon">💳</div>
+          <div className="emptyTitle">Belum ada langganan</div>
+          <div className="emptyDesc">
             Tambahkan langganan dan tagihan berkala seperti Netflix, Spotify, Listrik, Internet, BPJS, dll.
             BudgetX akan menghitung total biaya dan mengingatkan saat jatuh tempo.
           </div>
-          <button className={styles.addBtn} onClick={() => setShowForm(true)} style={{ margin: '0 auto' }}>
-            <NavIcon name="plus" size={16} /> Tambah Langganan Pertama
+          <button className="btnPrimary" onClick={() => setShowForm(true)}>
+            <NavIcon name="plus" size={16} /> Tambah Pertama
           </button>
         </div>
       )}
 
       {/* Filtered empty state */}
       {subscriptions.length > 0 && filteredList.length === 0 && (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>🔍</div>
-          <div className={styles.emptyTitle}>Tidak ada data</div>
-          <div className={styles.emptyDesc}>
+        <div className="emptyState">
+          <div className="emptyIcon">🔍</div>
+          <div className="emptyTitle">Tidak ada data</div>
+          <div className="emptyDesc">
             Tidak ada langganan dengan filter yang dipilih.
           </div>
         </div>
@@ -204,93 +215,6 @@ export default function SubscriptionPage({
           onConfirm={handlePay}
         />
       )}
-    </div>
-  );
-}
-
-/**
- * SubscriptionCard — Single subscription display card.
- */
-function SubscriptionCard({ subscription, onEdit, onPay, onToggleActive }) {
-  const days = getDaysUntilDue(subscription.nextDueDate);
-  const catInfo = getSubscriptionCategoryInfo(subscription.category);
-  const cycleLabel = getBillingCycleLabel(subscription.billingCycle);
-
-  // Determine urgency classes
-  const getCardClass = () => {
-    if (!subscription.isActive) return '';
-    if (days < 0) return styles.cardOverdue;
-    if (days <= 7) return styles.cardSoon;
-    return '';
-  };
-
-  const getDueBadgeClass = () => {
-    if (days < 0) return styles.badgeOverdue;
-    if (days <= 7) return styles.badgeSoon;
-    return styles.badgeOk;
-  };
-
-  const getDueLabel = () => {
-    if (days < 0) return `Terlambat ${Math.abs(days)} hari`;
-    if (days === 0) return 'Hari ini';
-    if (days === 1) return 'Besok';
-    return `${days} hari lagi`;
-  };
-
-  return (
-    <div className={`${styles.card} ${getCardClass()}`}>
-      <div className={styles.cardRow}>
-        <div className={styles.cardIcon}>
-          {catInfo.emoji}
-        </div>
-
-        <div className={styles.cardInfo}>
-          <div className={styles.cardName}>{subscription.name}</div>
-          <div className={styles.cardMeta}>
-            <span>{catInfo.label}</span>
-            <span>·</span>
-            <span>{fmtDate(subscription.nextDueDate)}</span>
-            {subscription.isActive && (
-              <>
-                <span>·</span>
-                <span className={`${styles.badge} ${getDueBadgeClass()}`}>
-                  {getDueLabel()}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.cardRight}>
-          <div>
-            <div className={styles.cardAmount}>{fmtFull(subscription.amount)}</div>
-            <div className={styles.cardCycle}>{cycleLabel}</div>
-          </div>
-
-          <span className={`${styles.badge} ${subscription.isActive ? styles.badgeActive : styles.badgeInactive}`}>
-            {subscription.isActive ? 'Aktif' : 'Tidak Aktif'}
-          </span>
-
-          {subscription.isActive && (
-            <button className={styles.payBtn} onClick={onPay}>
-              Bayar
-            </button>
-          )}
-
-          <div className={styles.actions}>
-            <button className={styles.actionBtn} onClick={onEdit} title="Edit">
-              <NavIcon name="edit" size={14} />
-            </button>
-            <button
-              className={styles.actionBtn}
-              onClick={onToggleActive}
-              title={subscription.isActive ? 'Non-aktifkan' : 'Aktifkan'}
-            >
-              <NavIcon name={subscription.isActive ? 'close' : 'check'} size={14} />
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

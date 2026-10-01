@@ -35,24 +35,13 @@ export default function CycleSettingModal({ current, onClose, onSave }) {
         periode laporan akan dihitung dari tgl 25 bulan lalu hingga tgl 24 bulan berjalan.
       </p>
       <Field label="Tanggal Mulai Siklus">
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div className="dayGrid">
           {dayOptions.map((d) => (
             <button
               key={d}
+              className={day === d ? 'dayBtn dayBtnActive' : 'dayBtn'}
+              aria-pressed={day === d}
               onClick={() => setDay(d)}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 9,
-                border: '1.5px solid',
-                borderColor: day === d ? '#4F6EF7' : 'var(--border)',
-                background: day === d ? 'var(--bg-3)' : 'var(--bg-card)',
-                color: day === d ? '#4F6EF7' : 'var(--text-3)',
-                fontWeight: day === d ? 700 : 400,
-                cursor: 'pointer',
-                fontSize: 13,
-                fontFamily: 'inherit',
-              }}
             >
               {d}
             </button>
@@ -65,24 +54,8 @@ export default function CycleSettingModal({ current, onClose, onSave }) {
         </p>
       </Field>
       <button
+        className="btnPrimary"
         onClick={() => onSave(day)}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          padding: '9px 16px',
-          borderRadius: 8,
-          border: 'none',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          fontSize: 13.5,
-          fontWeight: 600,
-          background: '#4F6EF7',
-          color: 'white',
-          width: '100%',
-          transition: 'all 0.15s',
-        }}
       >
         Simpan
       </button>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { usePageActions } from '../../context/pageActions';
 import { fmtFull, fmtDate } from '../../utils/formatters';
 import {
   computeInvestmentMetrics,
@@ -14,7 +15,6 @@ import InvestmentFormModal from './InvestmentFormModal';
 import BuyModal from './BuyModal';
 import SellModal from './SellModal';
 import UpdateValueModal from './UpdateValueModal';
-import styles from './InvestmentPage.module.css';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -107,61 +107,67 @@ export default function InvestmentPage({
     setShowForm(true);
   };
 
+  const topbarActions = usePageActions(
+    <button className="btnPrimary" onClick={() => { setEditItem(null); setShowForm(true); }}>
+      <NavIcon name="plus" size={16} /> Tambah Investasi
+    </button>,
+  );
+
+  // See BudgetPage: `display: contents` keeps `.container`'s flex `gap` working.
   return (
-    <div>
+    <div className="pageStack">
+      {topbarActions}
       {/* Page header */}
-      <div className={styles.pageHeader}>
+      <div className="largeTitleBlock">
         <div>
-          <h1 className={styles.pageTitle}>Investasi</h1>
-          <p className={styles.pageSubtitle}>
+          <h1 className="largeTitle">Investasi</h1>
+          <p className="pageSubtitle">
             Kelola portofolio investasi Anda
           </p>
         </div>
-        <button className={styles.addBtn} onClick={() => { setEditItem(null); setShowForm(true); }}>
-          <NavIcon name="plus" size={16} /> Tambah
-        </button>
       </div>
 
       {/* Summary cards */}
       {investments.length > 0 && (
-        <div className={styles.summaryGrid}>
-          <div className={styles.summaryCard}>
-            <div className={styles.summaryLabel}>Total Nilai</div>
-            <div className={styles.summaryValue}>
+        <div className="statGrid">
+          <div className="statCard">
+            <div className="statLabel">Total Nilai</div>
+            <div className="statValue">
               {fmtFull(summary.totalValue)}
             </div>
-            <div className={styles.summarySub}>nilai pasar saat ini</div>
+            <div className="statDetail">nilai pasar saat ini</div>
           </div>
-          <div className={styles.summaryCard}>
-            <div className={styles.summaryLabel}>Total Modal</div>
-            <div className={styles.summaryValue}>
+          <div className="statCard">
+            <div className="statLabel">Total Modal</div>
+            <div className="statValue">
               {fmtFull(summary.totalCostBasis)}
             </div>
-            <div className={styles.summarySub}>total investasi</div>
+            <div className="statDetail">total investasi</div>
           </div>
-          <div className={styles.summaryCard}>
-            <div className={styles.summaryLabel}>Profit/Loss</div>
-            <div className={styles.summaryValue} style={{ color: summary.totalUnrealizedGain >= 0 ? '#22C55E' : '#EF4444' }}>
+          <div className="statCard">
+            <div className="statLabel">Profit/Loss</div>
+            <div className="statValue" style={{ color: summary.totalUnrealizedGain >= 0 ? 'var(--green-ink)' : 'var(--red-ink)' }}>
               {summary.totalUnrealizedGain >= 0 ? '+' : ''}{fmtFull(summary.totalUnrealizedGain)}
             </div>
-            <div className={styles.summarySub}>unrealized gain/loss</div>
+            <div className="statDetail">unrealized gain/loss</div>
           </div>
-          <div className={styles.summaryCard}>
-            <div className={styles.summaryLabel}>Return</div>
-            <div className={styles.summaryValue} style={{ color: summary.totalReturnPercentage >= 0 ? '#22C55E' : '#EF4444' }}>
+          <div className="statCard">
+            <div className="statLabel">Return</div>
+            <div className="statValue" style={{ color: summary.totalReturnPercentage >= 0 ? 'var(--green-ink)' : 'var(--red-ink)' }}>
               {summary.totalReturnPercentage >= 0 ? '+' : ''}{summary.totalReturnPercentage.toFixed(1)}%
             </div>
-            <div className={styles.summarySub}>persentase return</div>
+            <div className="statDetail">persentase return</div>
           </div>
         </div>
       )}
 
       {/* Filters */}
-      <div className={styles.filters}>
+      <div className="chipGroup">
         {FILTERS.map((f) => (
           <button
             key={f.key || 'all'}
-            className={`${styles.filterBtn} ${activeFilter === f.key ? styles.filterBtnActive : ''}`}
+            className="filterChip investFilter"
+            aria-pressed={activeFilter === f.key}
             onClick={() => setActiveFilter(f.key)}
           >
             {f.label}
@@ -171,13 +177,13 @@ export default function InvestmentPage({
 
       {/* Empty state */}
       {investments.length === 0 && (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>📈</div>
-          <div className={styles.emptyTitle}>Belum ada investasi</div>
-          <div className={styles.emptyDesc}>
+        <div className="card emptyState">
+          <div className="emptyIcon investEmptyIcon">📈</div>
+          <div className="emptyTitle">Belum ada investasi</div>
+          <div className="emptyDesc">
             Catat investasi Anda di sini. BudgetX akan otomatis melacak profit/loss dan membuat transaksi di dompet.
           </div>
-          <button className={styles.addBtn} onClick={() => setShowForm(true)} style={{ margin: '0 auto' }}>
+          <button className="btnPrimary" onClick={() => setShowForm(true)} style={{ margin: '0 auto' }}>
             <NavIcon name="plus" size={16} /> Tambah Pertama
           </button>
         </div>
@@ -262,31 +268,31 @@ function InvestmentCard({ investment, onEdit, onBuy, onSell, onUpdateValue }) {
   const sortedTxs = sortTransactionsByDate(investment.transactions || []);
 
   return (
-    <div className={styles.card}>
-      <div className={styles.cardRow}>
+    <div className="card">
+      <div className="investRow">
         <div
-          className={styles.cardIcon}
-          style={{ background: '#4F6EF718', color: '#4F6EF7' }}
+          className="recIcon investIcon"
+          style={{ background: 'var(--blue-soft)', color: 'var(--blue-ink)' }}
         >
           📊
         </div>
 
-        <div className={styles.cardInfo}>
-          <div className={styles.cardName}>{investment.name}</div>
-          <div className={styles.cardMeta}>
-            <span className={`${styles.badge} ${styles.badgeType}`}>
+        <div className="itemInfo">
+          <div className="itemName investName">{investment.name}</div>
+          <div className="investMeta">
+            <span className="badge badgeTransfer investBadge">
               {ASSET_TYPE_LABELS[investment.assetType] || investment.assetType}
             </span>
             {investment.tickerSymbol && <span>{investment.tickerSymbol}</span>}
             {investment.coinName && <span>{investment.coinName}</span>}
             {totalUnits > 0 && !isDeposito && <span>{totalUnits} unit</span>}
             {metrics.unrealizedGain !== 0 && (
-              <span className={`${styles.badge} ${metrics.unrealizedGain >= 0 ? styles.badgeGain : styles.badgeLoss}`}>
+              <span className={`badge investBadge ${metrics.unrealizedGain >= 0 ? 'badgeGain' : 'badgeLoss'}`}>
                 {metrics.unrealizedGain >= 0 ? '+' : ''}{metrics.returnPercentage.toFixed(1)}%
               </span>
             )}
             {maturityInfo && maturityInfo.daysLeft <= 0 && (
-              <span className={`${styles.badge} ${styles.badgeMatured}`}>Jatuh Tempo</span>
+              <span className="badge badgeSoon investBadge">Jatuh Tempo</span>
             )}
           </div>
           {isDeposito && maturityInfo && maturityInfo.daysLeft > 0 && (
@@ -296,28 +302,28 @@ function InvestmentCard({ investment, onEdit, onBuy, onSell, onUpdateValue }) {
           )}
         </div>
 
-        <div className={styles.cardRight}>
+        <div className="investRight">
           <div>
-            <div className={styles.cardAmount}>{fmtFull(metrics.currentValue)}</div>
-            <div className={styles.cardSub}>
+            <div className="investValue">{fmtFull(metrics.currentValue)}</div>
+            <div className="investSub">
               Modal: {fmtFull(metrics.costBasis)}
             </div>
             {metrics.unrealizedGain !== 0 && (
-              <div className={styles.cardSub} style={{ color: metrics.unrealizedGain >= 0 ? '#22C55E' : '#EF4444' }}>
+              <div className="investSub" style={{ color: metrics.unrealizedGain >= 0 ? 'var(--green-ink)' : 'var(--red-ink)' }}>
                 {metrics.unrealizedGain >= 0 ? '+' : ''}{fmtFull(metrics.unrealizedGain)}
               </div>
             )}
           </div>
 
-          <div className={styles.actions}>
-            <button className={`${styles.actionBtn} ${styles.actionBtnBuy}`} onClick={onBuy}>Beli</button>
+          <div className="investActions">
+            <button className="btnSmallGhost investBuy" onClick={onBuy}>Beli</button>
             {totalUnits > 0 && (
-              <button className={`${styles.actionBtn} ${styles.actionBtnSell}`} onClick={onSell}>Jual</button>
+              <button className="btnSmallGhost investSell" onClick={onSell}>Jual</button>
             )}
             {!isDeposito && (
-              <button className={styles.actionBtn} onClick={onUpdateValue}>Nilai</button>
+              <button className="btnSmallGhost" onClick={onUpdateValue}>Nilai</button>
             )}
-            <button className={styles.actionBtn} onClick={onEdit}>
+            <button className="btnSmallGhost" onClick={onEdit} aria-label={`Edit investasi ${investment.name}`}>
               <NavIcon name="edit" size={12} />
             </button>
           </div>
@@ -328,21 +334,21 @@ function InvestmentCard({ investment, onEdit, onBuy, onSell, onUpdateValue }) {
       {sortedTxs.length > 0 && (
         <>
           <button
-            className={styles.toggleBtn}
+            className="linkBtn investHistoryToggle"
             onClick={() => setShowHistory((v) => !v)}
           >
             {showHistory ? '▲ Sembunyikan' : '▼ Riwayat transaksi'} ({sortedTxs.length})
           </button>
           {showHistory && (
-            <div className={styles.txHistory}>
-              <div className={styles.txHistoryTitle}>Riwayat Transaksi</div>
+            <div className="investHistory">
+              <div className="investHistoryTitle">Riwayat Transaksi</div>
               {sortedTxs.map((tx) => (
-                <div key={tx.id} className={styles.txItem}>
-                  <span className={styles.txItemDate}>{fmtDate(tx.date)}</span>
-                  <span style={{ color: tx.type === 'buy' ? '#16A34A' : '#DC2626' }}>
+                <div key={tx.id} className="investHistoryRow">
+                  <span className="investHistoryDate">{fmtDate(tx.date)}</span>
+                  <span style={{ color: tx.type === 'buy' ? 'var(--green-ink)' : 'var(--red-ink)' }}>
                     {tx.type === 'buy' ? 'Beli' : 'Jual'} {tx.units} unit
                   </span>
-                  <span className={styles.txItemAmount}>
+                  <span className="investHistoryAmount">
                     {fmtFull(tx.totalAmount)}
                   </span>
                 </div>
