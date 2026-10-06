@@ -15,6 +15,11 @@ vi.mock('firebase/firestore', () => ({
   setDoc: vi.fn(async () => {}),
 }));
 vi.mock('../../services/firestoreService', () => ({
+  subscribeUserData: vi.fn((uid, handlers) => {
+    store.handlers = handlers;
+    for (const key of ['wallets', 'transactions', 'categories']) handlers[key](store.data[key] || []);
+    return () => { store.handlers = null; };
+  }),
   initUser: vi.fn(async () => {}),
   getWallets: vi.fn(async () => store.data.wallets || []),
   getTransactions: vi.fn(async () => store.data.transactions || []),
@@ -37,6 +42,7 @@ vi.mock('../../services/firestoreService', () => ({
       } else if (key === 'budgets') store.data.budgets = { ...store.data.budgets, ...value };
       else store.data[key] = value;
     }
+    for (const key of ['wallets', 'transactions', 'categories']) store.handlers?.[key](store.data[key] || []);
   }),
 }));
 vi.mock('../../services/exportService', async importOriginal => ({

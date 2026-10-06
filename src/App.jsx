@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 import { auth as firebaseAuth, db as firebaseDb } from './config/firebase';
@@ -35,6 +35,7 @@ import { validateInvestment, validateInvestmentTransaction, validateCurrentValue
 import * as api from './services/firestoreService';
 import { computeAppend } from './services/importService';
 import { normalizeBackupData } from './utils/backupHelpers';
+import { isCategoryOnlyChange } from './utils/transactionEdits';
 import './App.css';
 
 // Detect if Firebase is configured — if not, run in local-only mode
@@ -146,19 +147,29 @@ function App() {
     setTimeout(() => setToast(''), 4000);
   }, []);
 
-  // Fetch all data from API when authenticated
+  const sessionRef = useRef(null);
+  const fetchVersion = useRef(0);
+  const [loadedUid, setLoadedUid] = useState(null);
+  const [listenerRetry, setListenerRetry] = useState(0);
+  const uid = user?.uid;
+
+  // Only ancillary data is fetched; subscribed collections never accept stale reads.
   const fetchAllData = useCallback(async ({ initializeDefaults = true } = {}) => {
+    const session = sessionRef.current;
+    if (!session?.active) return;
+    const version = ++fetchVersion.current;
+    const current = () => session.active && sessionRef.current === session
+      && firebaseAuth?.currentUser?.uid === session.uid && version === fetchVersion.current;
+    session.fetched = false;
     setDataLoading(true);
     setDataError('');
     try {
       // Initialize default data for new users (no-op if already initialized)
       if (initializeDefaults) await api.initUser();
 
-      const [walletsData, txData, budgetsData, catsData, prefsData, recurringData, debtsData, investmentsData, fixedAssetsData, subscriptionsData] = await Promise.all([
-        api.getWallets(),
-        api.getTransactions(),
+      if (!current()) return;
+      const [budgetsData, prefsData, recurringData, debtsData, investmentsData, fixedAssetsData, subscriptionsData] = await Promise.all([
         api.getBudgets(),
-        api.getCategories(),
         api.getPreferences(),
         api.getRecurringItems(),
         api.getDebts(),
@@ -166,8 +177,7 @@ function App() {
         api.getFixedAssets(),
         api.getSubscriptions(),
       ]);
-      setWallets(walletsData);
-      setTransactions(txData);
+      if (!current()) return;
       setRecurringItems(recurringData);
       setDebts(debtsData);
       setInvestments(investmentsData);
@@ -187,7 +197,6 @@ function App() {
       } else {
         setBudgets(budgetsData || {});
       }
-      setCategories(catsData);
       if (prefsData) {
         const prefs = normalizeBackupData({ preferences: prefsData }).preferences;
         setDarkMode(prefs.darkMode);
@@ -203,35 +212,64 @@ function App() {
       }
       // Load FIRE settings from Firestore
       try {
-        const uid = firebaseAuth?.currentUser?.uid;
-        if (uid && firebaseDb) {
-          const fireDocRef = doc(firebaseDb, 'users', uid, 'preferences', 'fire');
+        if (firebaseDb) {
+          const fireDocRef = doc(firebaseDb, 'users', session.uid, 'preferences', 'fire');
           const fireSnap = await getDoc(fireDocRef);
+          if (!current()) return;
           setFireSettings(normalizeBackupData({
             fireSettings: fireSnap.exists() ? fireSnap.data() : undefined,
           }).fireSettings);
         }
       } catch { /* silent — fire settings are optional */ }
+      if (current()) {
+        session.fetched = true;
+        session.ready();
+      }
     } catch {
+      if (!current()) return;
       setDataError('Gagal memuat data. Periksa koneksi Anda.');
       showToast('Gagal memuat data dari server.');
-    } finally {
       setDataLoading(false);
     }
   }, [showToast]);
 
-  // When user becomes authenticated, fetch data unless the migration prompt
-  // is currently being shown.
   useEffect(() => {
-    if (user && !authLoading && !showMigrator) {
-      // Fetching keyed on Firebase auth state is a legitimate use of an effect:
-      // the trigger is an external system, not state derived from render. The
-      // rule flags the synchronous setDataLoading(true) at the top of
-      // fetchAllData(), which is what drives the loading spinner.
+    if (IS_LOCAL_MODE || !uid || authLoading || showMigrator) return;
+    const session = { uid, active: true, fetched: false, received: new Set() };
+    sessionRef.current = session;
+    const current = () => session.active && firebaseAuth?.currentUser?.uid === uid;
+    session.ready = () => {
+      if (current() && session.fetched && session.received.size === 3) {
+        setLoadedUid(uid);
+        setDataLoading(false);
+      }
+    };
+    const handlers = Object.fromEntries([
+      ['wallets', setWallets], ['transactions', setTransactions], ['categories', setCategories],
+    ].map(([key, set]) => [key, records => {
+      if (!current()) return;
+      set(records);
+      session.received.add(key);
+      session.ready();
+    }]));
+    const onError = () => {
+      if (!current()) return;
+      setDataError('Gagal menyinkronkan data. Periksa koneksi Anda.');
+      setDataLoading(false);
+      showToast('Gagal menyinkronkan data dari server.');
+    };
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = api.subscribeUserData(uid, handlers, onError);
+      // Auth is an external system; spinner follows its initialization.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchAllData();
-    }
-  }, [user, authLoading, showMigrator, fetchAllData]);
+    } catch { onError(); }
+    return () => {
+      session.active = false;
+      unsubscribe();
+    };
+  }, [uid, authLoading, showMigrator, fetchAllData, showToast, listenerRetry]);
 
   // Save preferences to API when they change (debounced via user interaction)
   const savePreferences = useCallback(async (prefs) => {
@@ -244,7 +282,7 @@ function App() {
   }, [user]);
 
   // Auto-persist preferences to Firestore whenever any preference value changes
-  const prefsInitialized = !dataLoading && user;
+  const prefsInitialized = !dataLoading && user && loadedUid === uid;
   useEffect(() => {
     if (!prefsInitialized || IS_LOCAL_MODE) return;
     // Debounce to batch rapid state changes (e.g., setPeriodMode + setCustomRanges in same handler)
@@ -317,7 +355,6 @@ function App() {
           <DataMigrator
             onComplete={() => {
               setMigrationChecked(true);
-              fetchAllData();
             }}
           />
         </div>
@@ -326,7 +363,7 @@ function App() {
   }
 
   // ── Data loading state ─────────────────────────────────────────────
-  if (!IS_LOCAL_MODE && dataLoading) {
+  if (!IS_LOCAL_MODE && (dataLoading || (loadedUid !== uid && !dataError))) {
     return (
       <ThemeProvider darkMode={darkMode} setDarkMode={handleSetDarkMode}>
         <div style={{
@@ -347,7 +384,7 @@ function App() {
     );
   }
 
-  if (!IS_LOCAL_MODE && dataError && wallets.length === 0) {
+  if (!IS_LOCAL_MODE && dataError && (loadedUid !== uid || wallets.length === 0)) {
     return (
       <ThemeProvider darkMode={darkMode} setDarkMode={handleSetDarkMode}>
         <div style={{
@@ -356,7 +393,7 @@ function App() {
         }}>
           <div style={{ color: 'var(--red-ink)', fontSize: 15 }}>{dataError}</div>
           <button
-            onClick={fetchAllData}
+            onClick={() => setListenerRetry(retry => retry + 1)}
             style={{
               padding: '10px 24px', borderRadius: 8, border: 'none',
               background: 'var(--blue-ink)', color: 'var(--accent-on)', fontSize: 14,
@@ -381,7 +418,6 @@ function App() {
     }
     try {
       const created = await api.createWallet(data);
-      setWallets((ws) => [...ws, created]);
       return created;
     } catch (err) {
       showToast(err.message || 'Gagal membuat dompet.');
@@ -398,7 +434,6 @@ function App() {
     }
     try {
       const updated = await api.updateWallet(id, data);
-      setWallets((ws) => ws.map((w) => (w.id === id ? updated : w)));
       return updated;
     } catch (err) {
       showToast(err.message || 'Gagal mengubah dompet.');
@@ -414,7 +449,6 @@ function App() {
     }
     try {
       await api.deleteWallet(id);
-      setWallets((ws) => ws.filter((w) => w.id !== id));
     } catch (err) {
       showToast(err.message || 'Gagal menghapus dompet.');
       throw err;
@@ -430,10 +464,6 @@ function App() {
     }
     try {
       const created = await api.createTransaction(data);
-      setTransactions((ts) => [created, ...ts]);
-      // Refresh wallets to get updated balances
-      const freshWallets = await api.getWallets();
-      setWallets(freshWallets);
       return created;
     } catch (err) {
       showToast(err.message || 'Gagal membuat transaksi.');
@@ -448,11 +478,10 @@ function App() {
       return { id, ...data };
     }
     try {
-      const updated = await api.updateTransaction(id, data);
-      setTransactions((ts) => ts.map((t) => (t.id === id ? updated : t)));
-      // Refresh wallets to get updated balances
-      const freshWallets = await api.getWallets();
-      setWallets(freshWallets);
+      const previous = transactions.find(tx => tx.id === id);
+      const updated = isCategoryOnlyChange(previous, data)
+        ? await api.updateTransactionCategory(id, data.categoryId)
+        : await api.updateTransaction(id, data);
       return updated;
     } catch (err) {
       showToast(err.message || 'Gagal mengubah transaksi.');
@@ -468,10 +497,6 @@ function App() {
     }
     try {
       await api.deleteTransaction(id);
-      setTransactions((ts) => ts.filter((t) => t.id !== id));
-      // Refresh wallets to get updated balances
-      const freshWallets = await api.getWallets();
-      setWallets(freshWallets);
     } catch (err) {
       showToast(err.message || 'Gagal menghapus transaksi.');
       throw err;
@@ -504,7 +529,6 @@ function App() {
     }
     try {
       const created = await api.createCategory(data);
-      setCategories((cs) => [...cs, created]);
       return created;
     } catch (err) {
       showToast(err.message || 'Gagal membuat kategori.');
@@ -520,7 +544,6 @@ function App() {
     }
     try {
       const updated = await api.updateCategory(id, data);
-      setCategories((cs) => cs.map((c) => (c.id === id ? updated : c)));
       return updated;
     } catch (err) {
       showToast(err.message || 'Gagal mengubah kategori.');
@@ -536,7 +559,6 @@ function App() {
     }
     try {
       await api.deleteCategory(id);
-      setCategories((cs) => cs.filter((c) => c.id !== id));
     } catch (err) {
       showToast(err.message || 'Gagal menghapus kategori.');
       throw err;
@@ -1339,34 +1361,10 @@ function App() {
     }
   };
 
-  // ── Wrapped setters that pass API-backed functions to child components ──
-  // These wrap the state setters so child components can call them the same way
-  // but the changes go through the API.
-
-  const apiSetWallets = (valOrFn) => {
-    // For direct state updates from child components that manage their own API calls
-    if (typeof valOrFn === 'function') {
-      setWallets(valOrFn);
-    } else {
-      setWallets(valOrFn);
-    }
-  };
-
-  const apiSetTransactions = (valOrFn) => {
-    if (typeof valOrFn === 'function') {
-      setTransactions(valOrFn);
-    } else {
-      setTransactions(valOrFn);
-    }
-  };
-
-  const apiSetCategories = (valOrFn) => {
-    if (typeof valOrFn === 'function') {
-      setCategories(valOrFn);
-    } else {
-      setCategories(valOrFn);
-    }
-  };
+  // Cloud children cannot replay balances or overwrite newer SDK snapshots.
+  const apiSetWallets = value => { if (IS_LOCAL_MODE) setWallets(value); };
+  const apiSetTransactions = value => { if (IS_LOCAL_MODE) setTransactions(value); };
+  const apiSetCategories = value => { if (IS_LOCAL_MODE) setCategories(value); };
 
   /** Callback passed to Dashboard to open the global add-transaction modal */
   const onAddTx = (type = 'expense') => {

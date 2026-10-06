@@ -30,7 +30,7 @@ export default function TxFormModal({ wallets, initial, onClose, onSave, categor
     date: initial?.date || TODAY,
     walletId: initial?.walletId || wallets[0]?.id || '',
     type: initial?.type || presetType,
-    categoryId: initial?.categoryId || 'c1',
+    categoryId: initial ? (initial.categoryId || '') : (filterCategoriesByTxType(categories, presetType)[0]?.id || ''),
     amount: initial?.amount ? String(initial.amount) : '',
     note: initial?.note || '',
     tags: initial?.tags ? initial.tags.join(', ') : '',

@@ -162,7 +162,7 @@ export default function TxCalendar({ transactions, categories }) {
                   <span className="itemInfo">
                     <span className="itemName truncate">{t.note || '—'}</span>
                     <span className="itemMeta">
-                      {cat ? cat.name : t.type === 'transfer' ? 'Transfer' : '—'}
+                      {cat ? cat.name : t.type === 'transfer' ? 'Transfer' : 'Belum dikategorikan'}
                     </span>
                   </span>
                   <span

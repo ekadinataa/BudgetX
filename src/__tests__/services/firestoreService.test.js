@@ -19,6 +19,7 @@ vi.mock('firebase/firestore', () => ({
     }
     return { _path: args.slice(1).join('/'), id: args[args.length - 1], _type: 'doc' };
   }),
+  onSnapshot: vi.fn(),
   getDocs: vi.fn(),
   getDoc: vi.fn(),
   addDoc: vi.fn(),
@@ -128,6 +129,58 @@ beforeEach(() => {
 // 1. API Compatibility — all 18 function names exported
 // Validates: Requirements 12.1
 // ══════════════════════════════════════════════════════════════════════════════
+
+describe('Realtime collections', () => {
+  it('subscribes only the authenticated UID, preserves extras and cleans up late callbacks', async () => {
+    const sdk = await import('firebase/firestore');
+    const api = await import('../../services/firestoreService.js');
+    const stops = [vi.fn(), vi.fn(), vi.fn()];
+    stops.forEach(stop => sdk.onSnapshot.mockReturnValueOnce(stop));
+    const handlers = { wallets: vi.fn(), transactions: vi.fn(), categories: vi.fn() };
+    const error = vi.fn();
+    const stop = api.subscribeUserData('test-user-123', handlers, error);
+    expect(sdk.onSnapshot.mock.calls.map(([ref]) => ref._path)).toEqual([
+      'users/test-user-123/wallets', 'users/test-user-123/transactions', 'users/test-user-123/categories',
+    ]);
+    const tx = { id: 'tx1', date: '2026-10-01', walletId: 'w1', type: 'expense', amount: 42, categoryId: null, mesh: { canonical_event_id: 'event1' }, category_status: 'unclassified', unknown: 7 };
+    sdk.onSnapshot.mock.calls[1][1](makeDocsSnapshot([tx]));
+    expect(handlers.transactions).toHaveBeenCalledWith([{ note: '', tags: [], toWalletId: null, ...tx }]);
+    stop();
+    stops.forEach(unsubscribe => expect(unsubscribe).toHaveBeenCalledOnce());
+    sdk.onSnapshot.mock.calls[1][1](makeDocsSnapshot([]));
+    sdk.onSnapshot.mock.calls[1][2](new Error('late'));
+    expect(handlers.transactions).toHaveBeenCalledTimes(1);
+    expect(error).not.toHaveBeenCalled();
+    expect(() => api.subscribeUserData('other-user', handlers, error)).toThrow('Not authenticated');
+  });
+});
+
+describe('Manual category overrides', () => {
+  it('marks a category override during financial edits without discarding mesh metadata', async () => {
+    getDoc.mockResolvedValue(makeDocSnapshot({ type: 'expense', amount: 42, walletId: 'w1', categoryId: null, mesh: { origin: 'email' } }));
+    await updateTransaction('mesh-tx', { date: '2026-10-01', type: 'expense', amount: 43, walletId: 'w1', categoryId: 'c2', note: 'changed', tags: [] });
+    expect(mockBatch.update.mock.calls[0][1]).toMatchObject({ category_source: 'manual', category_status: 'classified' });
+    expect(mockBatch.update.mock.calls[0][1]).not.toHaveProperty('mesh');
+    expect(mockBatch.update).toHaveBeenCalledTimes(3);
+  });
+  it('classifies or clears a category without any wallet reads or balance writes', async () => {
+    const api = await import('../../services/firestoreService.js');
+    await api.updateTransactionCategory('mesh-tx', ' c2 ');
+    expect(updateDoc).toHaveBeenCalledWith(expect.objectContaining({ _path: 'users/test-user-123/transactions/mesh-tx' }), {
+      categoryId: 'c2', category_source: 'manual', category_status: 'classified',
+    });
+    await api.updateTransactionCategory('mesh-tx', null);
+    expect(updateDoc).toHaveBeenLastCalledWith(expect.anything(), {
+      categoryId: null, category_source: 'manual', category_status: 'unclassified',
+    });
+    expect(getDoc).not.toHaveBeenCalled();
+    expect(writeBatch).not.toHaveBeenCalled();
+    expect(mockBatch.update).not.toHaveBeenCalled();
+    await expect(api.updateTransactionCategory('mesh-tx', {})).rejects.toThrow();
+    await expect(api.updateTransactionCategory('mesh-tx', 'x'.repeat(1001))).rejects.toThrow();
+    expect(updateDoc).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe('API compatibility', () => {
   it('exports all 18 expected function names', async () => {

@@ -405,7 +405,7 @@ export default function TransactionsPage({ wallets, setWallets, transactions, se
                 <div className="itemName truncate">{t.note}</div>
                 <div className="itemMeta">
                   <TxBadge type={t.type} />
-                  {cat && <span>{cat.name}</span>}
+                  {t.type !== 'transfer' && <span>{cat?.name || 'Belum dikategorikan'}</span>}
                   <span>·</span>
                   <span>{wallet?.name}{toW ? ` → ${toW.name}` : ''}</span>
                   {(t.tags || []).slice(0, 2).map((tag) => (

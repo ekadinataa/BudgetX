@@ -215,8 +215,12 @@ Tidak ada library state management. Seluruh state global disimpan sebagai `useSt
 Setiap operasi CRUD mengikuti pola:
 1. Validasi input client-side
 2. Panggil fungsi Firestore (jika authenticated) **atau** update localStorage langsung (local mode)
-3. Perbarui state React dengan data hasil operasi
+3. Mode lokal memperbarui state React langsung; mode cloud memakai `onSnapshot` untuk wallets, transactions, dan categories. Hasil CRUD tidak ditambahkan lagi ke state subscribed.
 4. Tampilkan toast notifikasi sukses/error
+
+Listener `subscribeUserData(uid, handlers, onError)` hanya membaca UID yang sedang login, dilepas saat logout/perubahan UID/unmount. Fetch awal hanya memuat koleksi lain dan preferensi; session guard mengabaikan hasil terlambat. UI menunggu tiga snapshot awal dan fetch preferensi sebelum membuka data akun.
+
+Edit kategori saja memakai `updateTransactionCategory(id, categoryId)` tanpa read/write dompet, dengan `category_source: 'manual'` dan `category_status: 'classified'`/`'unclassified'`. Edit finansial tetap memakai batch reverse/apply; perubahan kategori juga ditandai manual. Metadata mesh dan field tambahan tetap terbaca. Kategori kosong/tidak ditemukan tampil `Belum dikategorikan`, bukan kategori pemasukan `Lainnya`.
 
 ---
 

@@ -10,6 +10,7 @@ import {
   collection,
   doc,
   getDocs,
+  onSnapshot,
   getDoc,
   addDoc,
   updateDoc,
@@ -73,6 +74,42 @@ function getBalanceEffect(type, amount) {
   if (type === 'expense') return -amount;
   if (type === 'transfer') return -amount;
   return 0;
+}
+
+/** Legacy transaction fields remain explicit; mesh metadata and future extras survive. */
+function materializeTransaction(snapshot) {
+  return {
+    date: '', walletId: '', type: '', categoryId: null, amount: 0,
+    note: '', tags: [], toWalletId: null,
+    ...snapshot.data(), id: snapshot.id,
+  };
+}
+
+/** One listener set per authenticated UID. Snapshots, not write responses, own state. */
+export function subscribeUserData(uid, handlers, onError) {
+  if (!uid || uid !== getUid()) throw new Error('Not authenticated');
+  let active = true;
+  const stops = [];
+  const stop = () => {
+    active = false;
+    stops.forEach(unsubscribe => unsubscribe());
+  };
+  try {
+    for (const key of ['wallets', 'transactions', 'categories']) {
+      stops.push(onSnapshot(collection(db, 'users', uid, key), snapshot => {
+        if (!active || auth?.currentUser?.uid !== uid) return;
+        const records = snapshot.docs.map(d => key === 'transactions'
+          ? materializeTransaction(d) : { ...d.data(), id: d.id });
+        handlers[key](records);
+      }, error => {
+        if (active && auth?.currentUser?.uid === uid) onError(error);
+      }));
+    }
+  } catch (error) {
+    stop();
+    throw error;
+  }
+  return stop;
 }
 
 // ── Wallets ──────────────────────────────────────────────────────────
@@ -226,6 +263,23 @@ export async function createTransaction(data) {
   }
 }
 
+export async function updateTransactionCategory(id, categoryId) {
+  if (categoryId != null && (typeof categoryId !== 'string' || categoryId.length > 1000)) {
+    throw new Error('Kategori tidak valid');
+  }
+  const normalized = categoryId?.trim() || null;
+  const data = {
+    categoryId: normalized, category_source: 'manual',
+    category_status: normalized ? 'classified' : 'unclassified',
+  };
+  try {
+    await updateDoc(userDoc('transactions', id), data);
+    return { id, ...data };
+  } catch (error) {
+    throw new Error(`Failed to update transaction category: ${error.message}`);
+  }
+}
+
 export async function updateTransaction(id, data) {
   const trimmed = trimStrings(data);
   const error = validateTransaction(trimmed);
@@ -262,7 +316,12 @@ export async function updateTransaction(id, data) {
   try {
     const batch = writeBatch(db);
 
-    // 1. Update the transaction document
+    // A user category edit takes precedence over future mesh classification.
+    if ((oldTx.categoryId || null) !== newData.categoryId) {
+      newData.category_source = 'manual';
+      newData.category_status = newData.categoryId ? 'classified' : 'unclassified';
+    }
+    // 1. Update the transaction document; omitted mesh fields remain intact.
     batch.update(txRef, newData);
 
     // 2. Reverse old transaction's effect on source wallet

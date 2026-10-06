@@ -389,7 +389,7 @@ export default function Dashboard({
                         <span className="itemName truncate">{t.note || '—'}</span>
                         <span className="itemMeta">
                           {fmtDate(t.date)}
-                          {cat ? ` · ${cat.name}` : ''}
+                          {` · ${cat?.name || (t.type === 'transfer' ? 'Transfer' : 'Belum dikategorikan')}`}
                         </span>
                       </span>
                       <span
