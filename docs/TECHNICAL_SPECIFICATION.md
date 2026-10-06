@@ -288,11 +288,15 @@ Delete:   deleteTransaction + revert balance effect
   "id": "string (auto-generated)",
   "name": "string",
   "type": "bank | ewallet | credit | paylater | cash",
-  "balance": "number",
+  "balance": "number (signed: negatif = utang, positif = lebih bayar untuk kredit)",
+  "creditLimit": "number (optional, finite >= 0; plafon credit/paylater)",
+  "heldAmount": "number (optional, finite >= 0; hold credit/paylater)",
   "color": "string (hex)",
   "note": "string"
 }
 ```
+
+`outstanding = max(-balance, 0)` dan `availableLimit = max(creditLimit + balance - (heldAmount ?? 0), 0)` hanya dihitung di UI, **tidak disimpan**. Plafon yang tidak ada menghasilkan limit tersedia tidak diketahui, bukan 0 atau nilai saldo. Saldo positif legacy tidak dimigrasi menjadi plafon. Plafon/hold tidak termasuk aset/saldo bersih. Pembelian tetap expense `increment(-amount)`; pelunasan transfer ke kredit tetap `increment(amount)`; batch update/delete tetap reverse+apply. JSON v1, ZIP lengkap, CSV-only ZIP menjaga field opsional; CSV menambah kolom `Plafon,Hold` (kosong = tidak ada), impor memvalidasi angka finite >= 0.
 
 ### Transaction
 ```json

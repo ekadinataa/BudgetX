@@ -91,9 +91,9 @@ export function buildCsvStrings(data) {
   const walletTypeLabelMap = { bank: 'Bank', ewallet: 'E-Wallet', credit: 'Kartu Kredit', paylater: 'PayLater', cash: 'Tunai' };
 
   // Wallets CSV
-  const walletsHeader = 'ID,Nama,Tipe,Saldo,Warna,Catatan';
+  const walletsHeader = 'ID,Nama,Tipe,Saldo,Warna,Catatan,Plafon,Hold';
   const walletsRows = (data.wallets || []).map((w) =>
-    [w.id, w.name, walletTypeLabelMap[w.type] || w.type, w.balance, w.color, w.note || ''].map(escapeCsvField).join(',')
+    [w.id, w.name, walletTypeLabelMap[w.type] || w.type, w.balance, w.color, w.note || '', w.creditLimit, w.heldAmount].map(escapeCsvField).join(',')
   );
   const walletsCsv = BOM + [walletsHeader, ...walletsRows].join('\n');
 

@@ -1,5 +1,5 @@
 import { fmtFull, fmt, monthKey } from '../../utils/formatters';
-import { walletTypeLabel } from '../../utils/helpers';
+import { getCreditPosition, walletTypeLabel } from '../../utils/helpers';
 import WalletIcon from '../../components/ui/WalletIcon';
 import NavIcon from '../../components/icons/NavIcon';
 
@@ -61,7 +61,23 @@ export default function WalletCard({ wallet: w, transactions, onEdit, onDelete }
           <NavIcon name="trash" size={16} />
         </button>
       </div>
+      {(w.type === 'credit' || w.type === 'paylater') && <div className="walletCardFooterLabel">Saldo (negatif = utang, positif = lebih bayar)</div>}
       <div className="walletBalance num">{fmtFull(w.balance)}</div>
+      {(w.type === 'credit' || w.type === 'paylater') && (
+        <div className="pageStack">
+          {[
+            ['Plafon', w.creditLimit],
+            ['Outstanding', getCreditPosition(w).outstanding],
+            ['Limit tersedia', getCreditPosition(w).availableLimit],
+            ['Hold', w.heldAmount ?? 0],
+          ].map(([label, value]) => (
+            <div key={label} className="listRow">
+              <span className="walletCardFooterLabel">{label}</span>
+              <span className="num">{value == null ? 'Belum diatur' : fmtFull(value)}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="walletCardFooter">
         <div>
           <div className="walletCardFooterLabel">Pemasukan {monthLabel}</div>

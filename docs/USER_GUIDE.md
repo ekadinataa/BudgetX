@@ -141,7 +141,15 @@ Menu **Dompet** digunakan untuk mengelola semua rekening dan dompet kamu.
 | PayLater | Layanan bayar nanti | Kredivo, Akulaku, SPayLater |
 | Tunai | Uang cash fisik | Dompet, Celengan |
 
-> 💡 Kartu Kredit dan PayLater bisa memiliki saldo negatif (menunjukkan tagihan).
+Kartu Kredit dan PayLater memisahkan **Plafon** dari **Saldo**:
+- Saldo negatif = utang; saldo positif = lebih bayar; saldo 0 = belum ada utang.
+- Plafon dan Hold opsional, angka nonnegatif. Hold mencadangkan sebagian limit tanpa mengubah saldo.
+- **Outstanding** = maksimum dari `-saldo` dan 0.
+- **Limit tersedia** = maksimum dari `plafon + saldo - hold` dan 0; lebih bayar dapat membuat limit tersedia melebihi plafon.
+- Dompet lama tanpa plafon tetap menyimpan saldo yang sama; plafon/limit tersedia tampil **Belum diatur**, bukan otomatis diambil dari saldo positif.
+- Form edit menampilkan estimasi outstanding/limit tersedia. Kosong mempertahankan nilai sebelumnya; isi 0 untuk menolkan plafon/hold.
+- Pembelian dicatat sebagai Pengeluaran dari dompet kredit. Pelunasan dicatat sebagai Transfer dari bank ke dompet kredit, bukan pengeluaran kedua.
+- Plafon/hold tidak menambah aset atau saldo bersih. Cadangan JSON/ZIP dan CSV dompet mempertahankan kedua nilai.
 
 ### 4.3 Edit dan Hapus Dompet
 

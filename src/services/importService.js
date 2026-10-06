@@ -131,7 +131,9 @@ export function validateEntities(data) {
   // Validate wallets
   if (Array.isArray(data.wallets)) {
     data.wallets.forEach((wallet, i) => {
-      const err = validateWallet(wallet);
+      const err = ('outstanding' in wallet || 'availableLimit' in wallet)
+        ? 'Outstanding dan limit tersedia harus dihitung, bukan disimpan'
+        : validateWallet(wallet);
       if (err) errors.push(`Dompet #${i + 1}: ${err}`);
     });
   }
@@ -774,7 +776,14 @@ export function parseCsvZip(zipBytes) {
     balance: parseFloat(row.Saldo || row.balance) || 0,
     color: row.Warna || row.color,
     note: row.Catatan || row.note || '',
+    ...Object.fromEntries([['creditLimit', row.Plafon ?? row.creditLimit], ['heldAmount', row.Hold ?? row.heldAmount]]
+      .filter(([, value]) => value !== undefined && value.trim() !== '')
+      .map(([field, value]) => [field, Number(value)])),
   }));
+  for (const wallet of wallets) {
+    const error = validateWallet(wallet);
+    if (error) throw new Error(error);
+  }
 
   // Parse transactions (headers: ID,Tanggal,Dompet,Tipe,Kategori,Jumlah,Catatan,Tag,Dompet Tujuan,_walletId,_categoryId,_toWalletId)
   const txRaw = parseCsv(decoder.decode(files['transactions.csv']));

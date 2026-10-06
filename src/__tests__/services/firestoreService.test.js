@@ -188,6 +188,23 @@ describe('No backend dependency', () => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('Wallet CRUD', () => {
+  it('preserves credit fields on create/update but never writes derived metrics', async () => {
+    addDoc.mockResolvedValueOnce({ id: 'credit' });
+    const data = { name: 'BRI', type: 'credit', balance: -400, color: '#112233', note: '', creditLimit: 1000, heldAmount: 100 };
+    const input = { ...data, outstanding: 400, availableLimit: 500 };
+    expect(await createWallet(input)).toEqual({ id: 'credit', ...data });
+    expect(addDoc.mock.calls[0][1]).toEqual(data);
+    expect(await updateWallet('credit', input)).toEqual({ id: 'credit', ...data });
+    expect(updateDoc.mock.calls[0][1]).toEqual(data);
+  });
+
+  it('rejects invalid optional wallet numbers before any cloud writes', async () => {
+    const data = { name: 'BRI', type: 'credit', balance: 0, color: '#112233' };
+    await expect(createWallet({ ...data, creditLimit: Infinity })).rejects.toThrow();
+    await expect(updateWallet('credit', { ...data, heldAmount: -1 })).rejects.toThrow();
+    expect(addDoc).not.toHaveBeenCalled();
+    expect(updateDoc).not.toHaveBeenCalled();
+  });
   it('getWallets returns array with ids from Firestore docs', async () => {
     getDocs.mockResolvedValueOnce(
       makeDocsSnapshot([
@@ -749,6 +766,19 @@ describe('initUser', () => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe('migrateData', () => {
+  it('preserves credit snapshot without replay while dropping derived fields', async () => {
+    const wallet = { id: 'credit', name: 'BRI', type: 'credit', balance: -400, creditLimit: 1000, heldAmount: 100, color: '#112233' };
+    getDoc.mockResolvedValueOnce(makeDocSnapshot({}));
+    await migrateData({ wallets: [{ ...wallet, outstanding: 400, availableLimit: 500 }] });
+    const { id, ...stored } = wallet;
+    expect(mockBatch.set).toHaveBeenCalledWith(expect.objectContaining({ _path: `users/test-user-123/wallets/${id}` }), stored);
+    expect(mockBatch.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid credit snapshot numbers before committing batches', async () => {
+    await expect(migrateData({ wallets: [{ id: 'credit', heldAmount: -1 }], preferences: {} })).rejects.toThrow();
+    expect(mockBatch.commit).not.toHaveBeenCalled();
+  });
   it('restores every collection, nested histories, preferences and FIRE at the original paths', async () => {
     const data = normalizeBackupData({
       wallets: [{ id: 'w_demo', balance: 900000 }],

@@ -4,6 +4,9 @@ import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { WALLET_TYPES } from '../../utils/constants';
+import { getCreditPosition } from '../../utils/helpers';
+import { fmtFull } from '../../utils/formatters';
+import { validateWallet } from '../../services/validator';
 
 /** Predefined color palette for wallet color picker */
 const COLORS = [
@@ -35,13 +38,25 @@ export default function WalletFormModal({ title, initial = {}, onClose, onSave }
     balance: initial.balance != null ? String(initial.balance) : '',
     color: initial.color || '#4F6EF7',
     note: initial.note || '',
+    creditLimit: initial.creditLimit != null ? String(initial.creditLimit) : '',
+    heldAmount: initial.heldAmount != null ? String(initial.heldAmount) : '',
   });
-
+  const [error, setError] = useState(null);
+  const isCredit = form.type === 'credit' || form.type === 'paylater';
+  const { creditLimit, heldAmount, ...base } = form;
+  const data = { ...base, balance: Number(form.balance) };
+  for (const [field, value] of Object.entries({ creditLimit, heldAmount })) {
+    // Blank keeps an existing value; new/legacy wallets stay optional.
+    if (isCredit && value !== '') data[field] = Number(value);
+    else if (initial[field] !== undefined) data[field] = initial[field];
+  }
+  const position = getCreditPosition(data);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSave = () => {
-    if (!form.name.trim()) return;
-    onSave(form);
+    const validation = validateWallet(data);
+    setError(validation);
+    if (!validation) onSave(data);
   };
 
   return (
@@ -62,14 +77,30 @@ export default function WalletFormModal({ title, initial = {}, onClose, onSave }
           ))}
         </Select>
       </Field>
-      <Field label="Saldo Awal">
+      <Field label={isCredit ? 'Saldo (negatif = utang, positif = lebih bayar)' : 'Saldo Awal'}>
         <Input
+          aria-label="Saldo"
           type="number"
           value={form.balance}
           onChange={set('balance')}
           placeholder="0"
         />
       </Field>
+      {isCredit && <>
+        <Field label="Plafon">
+          <Input aria-label="Plafon" type="number" min="0" step="any" value={form.creditLimit} onChange={set('creditLimit')} placeholder="Belum diatur" />
+        </Field>
+        <Field label="Hold">
+          <Input aria-label="Hold" type="number" min="0" step="any" value={form.heldAmount} onChange={set('heldAmount')} placeholder="0" />
+        </Field>
+        <p className="walletCardFooterLabel">Plafon bukan saldo/aset. Kosong mempertahankan nilai lama; isi 0 untuk menolkan.</p>
+        {[['Outstanding', position.outstanding], ['Limit tersedia', position.availableLimit]].map(([label, value]) => (
+          <div className="listRow" key={label}>
+            <span>{label}</span><span className="num">{value == null ? 'Belum diatur' : fmtFull(value)}</span>
+          </div>
+        ))}
+      </>}
+      {error && <div className="fieldError" role="alert">{error}</div>}
       <Field label="Warna">
         <div className="swatches">
           {COLORS.map((c) => (

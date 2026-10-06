@@ -93,6 +93,9 @@ export async function createWallet(data) {
 
   const { name, type, balance, color, note } = trimmed;
   const walletData = { name, type, balance, color, note: note || '' };
+  for (const field of ['creditLimit', 'heldAmount']) {
+    if (trimmed[field] !== undefined) walletData[field] = trimmed[field];
+  }
 
   try {
     const docRef = await addDoc(userCol('wallets'), walletData);
@@ -109,6 +112,9 @@ export async function updateWallet(id, data) {
 
   const { name, type, balance, color, note } = trimmed;
   const walletData = { name, type, balance, color, note: note || '' };
+  for (const field of ['creditLimit', 'heldAmount']) {
+    if (trimmed[field] !== undefined) walletData[field] = trimmed[field];
+  }
 
   try {
     await updateDoc(userDoc('wallets', id), walletData);
@@ -870,7 +876,12 @@ export async function migrateData(data) {
     // Wallets
     if (Array.isArray(wallets)) {
       for (const wallet of wallets) {
-        const { id, ...rest } = wallet;
+        for (const field of ['creditLimit', 'heldAmount']) {
+          if (wallet[field] !== undefined && (!Number.isFinite(wallet[field]) || wallet[field] < 0)) {
+            throw new Error(`${field} harus berupa angka nonnegatif dan terbatas`);
+          }
+        }
+        const { id, outstanding, availableLimit, ...rest } = wallet;
         if (id) {
           const ref = doc(db, 'users', uid, 'wallets', id);
           operations.push({ ref, data: rest });

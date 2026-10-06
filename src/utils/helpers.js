@@ -70,12 +70,16 @@ export function getWalletById(id, wallets) {
   return wallets.find((w) => w.id === id);
 }
 
-/**
- * Return the Indonesian display label for a wallet type.
- *
- * @param {string} type - One of 'bank', 'ewallet', 'credit', 'paylater', 'cash'
- * @returns {string} Human-readable label
- */
+/** Credit metrics are derived only; a missing legacy plafon remains unknown. */
+export function getCreditPosition(wallet) {
+  return {
+    outstanding: Math.max(-wallet.balance, 0),
+    availableLimit: wallet.creditLimit === undefined
+      ? null
+      : Math.max(wallet.creditLimit + wallet.balance - (wallet.heldAmount ?? 0), 0),
+  };
+}
+
 export function walletTypeLabel(type) {
   const map = {
     bank: 'Bank',

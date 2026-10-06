@@ -58,6 +58,11 @@ function walletSchema(body) {
   if (typeof body.balance !== 'number' || Number.isNaN(body.balance)) {
     return 'Balance must be a valid number';
   }
+  for (const field of ['creditLimit', 'heldAmount']) {
+    if (body[field] !== undefined && (!Number.isFinite(body[field]) || body[field] < 0)) {
+      return `${field} harus berupa angka nonnegatif dan terbatas`;
+    }
+  }
   if (!body.color || !HEX_COLOR_REGEX.test(body.color)) {
     return 'Color must be a valid hex color (e.g. #FF0000)';
   }

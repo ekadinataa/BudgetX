@@ -46,6 +46,7 @@ export default function WalletPage({
       balance: parseFloat(data.balance) || 0,
       color: data.color,
       note: data.note || '',
+      ...Object.fromEntries(['creditLimit', 'heldAmount'].filter(field => data[field] !== undefined).map(field => [field, data[field]])),
     };
     try {
       if (onCreateWallet) {
@@ -65,6 +66,7 @@ export default function WalletPage({
       balance: parseFloat(data.balance) || 0,
       color: data.color,
       note: data.note || '',
+      ...Object.fromEntries(['creditLimit', 'heldAmount'].filter(field => data[field] !== undefined).map(field => [field, data[field]])),
     };
     try {
       if (onUpdateWallet) {

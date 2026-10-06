@@ -129,7 +129,7 @@ Sisa Hari Ini = Budget Harian − Total Pengeluaran Hari Ini
 | Transfer | Pindahkan saldo antar dompet; otomatis buat transaksi transfer |
 | Ringkasan | Total Saldo Bersih, Total Aset (saldo positif), Total Hutang (saldo negatif) |
 
-**Tampilan Kartu Dompet:** Nama, tipe, saldo, pemasukan/pengeluaran bulan ini dengan warna header sesuai pilihan pengguna.
+**Tampilan Kartu Dompet:** Nama, tipe, saldo, pemasukan/pengeluaran bulan ini dengan warna header sesuai pilihan pengguna. Kartu Kredit/PayLater menampilkan plafon, outstanding, limit tersedia, hold. Form tambah/edit memisahkan plafon/hold nonnegatif dari saldo bertanda (negatif = utang, positif = lebih bayar), dengan estimasi outstanding/limit tersedia. Plafon bukan aset. Saldo dompet lama tanpa plafon tidak diubah otomatis; limit tampil Belum diatur. Pengeluaran mengurangi saldo, pelunasan transfer masuk menambah saldo.
 
 ---
 
