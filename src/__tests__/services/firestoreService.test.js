@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Mock firebase/firestore SDK ──────────────────────────────────────────────
 
+const mockTransaction = { get: vi.fn(), set: vi.fn(), update: vi.fn() };
+
 const mockBatch = {
   set: vi.fn(),
   update: vi.fn(),
@@ -27,6 +29,7 @@ vi.mock('firebase/firestore', () => ({
   deleteDoc: vi.fn(),
   setDoc: vi.fn(),
   writeBatch: vi.fn(() => mockBatch),
+  runTransaction: vi.fn(async (_db, callback) => callback(mockTransaction)),
   increment: vi.fn((val) => ({ _type: 'increment', value: val })),
   query: vi.fn((...args) => args[0]),
   where: vi.fn((field, op, val) => ({ _type: 'where', field, op, val })),
@@ -123,6 +126,7 @@ beforeEach(() => {
   mockBatch.update.mockClear();
   mockBatch.delete.mockClear();
   mockBatch.commit.mockResolvedValue(undefined);
+  mockTransaction.get.mockReset();
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -165,12 +169,13 @@ describe('Manual category overrides', () => {
   });
   it('classifies or clears a category without any wallet reads or balance writes', async () => {
     const api = await import('../../services/firestoreService.js');
+    mockTransaction.get.mockResolvedValue(makeDocSnapshot({ type: 'expense' }));
     await api.updateTransactionCategory('mesh-tx', ' c2 ');
-    expect(updateDoc).toHaveBeenCalledWith(expect.objectContaining({ _path: 'users/test-user-123/transactions/mesh-tx' }), {
+    expect(mockTransaction.update).toHaveBeenCalledWith(expect.objectContaining({ _path: 'users/test-user-123/transactions/mesh-tx' }), {
       categoryId: 'c2', category_source: 'manual', category_status: 'classified',
     });
     await api.updateTransactionCategory('mesh-tx', null);
-    expect(updateDoc).toHaveBeenLastCalledWith(expect.anything(), {
+    expect(mockTransaction.update).toHaveBeenLastCalledWith(expect.anything(), {
       categoryId: null, category_source: 'manual', category_status: 'unclassified',
     });
     expect(getDoc).not.toHaveBeenCalled();
@@ -178,7 +183,8 @@ describe('Manual category overrides', () => {
     expect(mockBatch.update).not.toHaveBeenCalled();
     await expect(api.updateTransactionCategory('mesh-tx', {})).rejects.toThrow();
     await expect(api.updateTransactionCategory('mesh-tx', 'x'.repeat(1001))).rejects.toThrow();
-    expect(updateDoc).toHaveBeenCalledTimes(2);
+    expect(mockTransaction.update).toHaveBeenCalledTimes(2);
+    expect(mockTransaction.get.mock.calls.every(([ref]) => ref._path === 'users/test-user-123/transactions/mesh-tx')).toBe(true);
   });
 });
 
@@ -247,8 +253,10 @@ describe('Wallet CRUD', () => {
     const input = { ...data, outstanding: 400, availableLimit: 500 };
     expect(await createWallet(input)).toEqual({ id: 'credit', ...data });
     expect(addDoc.mock.calls[0][1]).toEqual(data);
+    mockTransaction.get.mockResolvedValueOnce(makeDocSnapshot(data));
     expect(await updateWallet('credit', input)).toEqual({ id: 'credit', ...data });
-    expect(updateDoc.mock.calls[0][1]).toEqual(data);
+    const { balance, ...metadata } = data;
+    expect(mockTransaction.update.mock.calls[0][1]).toEqual(metadata);
   });
 
   it('rejects invalid optional wallet numbers before any cloud writes', async () => {
@@ -293,13 +301,13 @@ describe('Wallet CRUD', () => {
     expect(addDoc).not.toHaveBeenCalled();
   });
 
-  it('updateWallet validates then calls updateDoc', async () => {
-    updateDoc.mockResolvedValueOnce(undefined);
-
+  it('updateWallet validates metadata inside an atomic wallet read without assigning balance', async () => {
     const data = { name: 'Updated', type: 'bank', balance: 500, color: '#112233' };
+    mockTransaction.get.mockResolvedValueOnce(makeDocSnapshot(data));
     const result = await updateWallet('w1', data);
 
-    expect(updateDoc).toHaveBeenCalledTimes(1);
+    expect(mockTransaction.update).toHaveBeenCalledTimes(1);
+    expect(mockTransaction.update.mock.calls[0][1]).not.toHaveProperty('balance');
     expect(result.id).toBe('w1');
     expect(result.name).toBe('Updated');
   });

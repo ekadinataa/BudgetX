@@ -1,0 +1,71 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import WalletFormModal from '../../pages/Wallet/WalletFormModal';
+
+const wallet = { id: 'w1', name: 'BCA', type: 'bank', balance: 100, color: '#2563EB', note: '' };
+afterEach(cleanup);
+it('requires confirmation and a separate reason before saving a changed balance', async () => {
+  const save = vi.fn();
+  render(<WalletFormModal title="Edit Dompet" initial={wallet} currentBalance={100} onClose={vi.fn()} onSave={save} />);
+  fireEvent.change(screen.getByRole('spinbutton', { name: 'Saldo' }), { target: { value: '150' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }));
+  expect(save).not.toHaveBeenCalled();
+  expect(screen.getByRole('dialog', { name: 'Konfirmasi Penyesuaian Saldo' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Konfirmasi Penyesuaian' }));
+  expect(save).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveTextContent('Alasan');
+  fireEvent.change(screen.getByRole('textbox', { name: 'Alasan perubahan' }), { target: { value: '  Cocokkan saldo bank  ' } });
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Konfirmasi Penyesuaian' })));
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({ balance: 150, note: '' }), { expectedBalance: 100, reason: 'Cocokkan saldo bank' });
+});
+it('cancels without saving and shows a negative difference', () => {
+  const save = vi.fn();
+  render(<WalletFormModal title="Edit Dompet" initial={wallet} onClose={vi.fn()} onSave={save} />);
+  fireEvent.change(screen.getByRole('spinbutton', { name: 'Saldo' }), { target: { value: '50' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }));
+  expect(screen.getByText(/^−/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Batal' }));
+  expect(screen.getByRole('dialog', { name: 'Edit Dompet' })).toBeInTheDocument();
+  expect(save).not.toHaveBeenCalled();
+});
+it('requires a fresh review if the live balance changes during confirmation', async () => {
+  const save = vi.fn();
+  const props = { title: 'Edit Dompet', initial: wallet, onClose: vi.fn(), onSave: save };
+  const view = render(<WalletFormModal {...props} currentBalance={100} />);
+  fireEvent.change(screen.getByRole('spinbutton', { name: 'Saldo' }), { target: { value: '150' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Alasan perubahan' }), { target: { value: 'Koreksi' } });
+  view.rerender(<WalletFormModal {...props} currentBalance={120} />);
+  expect(screen.getByRole('button', { name: 'Konfirmasi Penyesuaian' })).toBeDisabled();
+  expect(screen.getByRole('alert')).toHaveTextContent('Saldo dompet berubah');
+  fireEvent.click(screen.getByRole('button', { name: 'Tinjau Ulang Saldo' }));
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Konfirmasi Penyesuaian' })));
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({ balance: 150 }), { expectedBalance: 120, reason: 'Koreksi' });
+});
+it('keeps a failed confirmation open and disables duplicate submits while pending', async () => {
+  let reject;
+  const save = vi.fn(() => new Promise((_, fail) => { reject = fail; }));
+  render(<WalletFormModal title="Edit Dompet" initial={wallet} onClose={vi.fn()} onSave={save} />);
+  fireEvent.change(screen.getByRole('spinbutton', { name: 'Saldo' }), { target: { value: '50' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Alasan perubahan' }), { target: { value: 'Koreksi' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Konfirmasi Penyesuaian' }));
+  expect(screen.getByRole('button', { name: 'Menyimpan…' })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Menyimpan…' }));
+  expect(save).toHaveBeenCalledOnce();
+  await act(async () => reject(new Error('Jaringan terputus')));
+  expect(screen.getByRole('alert')).toHaveTextContent('Jaringan terputus');
+  expect(screen.getByRole('dialog', { name: 'Konfirmasi Penyesuaian Saldo' })).toBeInTheDocument();
+});
+it('saves new opening balances and metadata-only edits without confirmation', async () => {
+  const save = vi.fn();
+  const props = { onClose: vi.fn(), onSave: save };
+  const view = render(<WalletFormModal {...props} title="Tambah Dompet" initial={{ ...wallet, id: undefined }} />);
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Simpan' })));
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({ balance: 100 }));
+  view.unmount();
+  render(<WalletFormModal {...props} title="Edit Dompet" initial={wallet} />);
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Simpan' })));
+  expect(save).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole('dialog', { name: 'Konfirmasi Penyesuaian Saldo' })).not.toBeInTheDocument();
+});

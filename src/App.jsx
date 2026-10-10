@@ -36,6 +36,8 @@ import * as api from './services/firestoreService';
 import { computeAppend } from './services/importService';
 import { normalizeBackupData } from './utils/backupHelpers';
 import { isCategoryOnlyChange } from './utils/transactionEdits';
+import { buildWalletAdjustment } from './utils/walletAdjustment';
+import { validateWallet } from './services/validator';
 import './App.css';
 
 // Detect if Firebase is configured — if not, run in local-only mode
@@ -426,14 +428,21 @@ function App() {
   };
 
   /** Update a wallet via API (or locally) and update local state */
-  const handleUpdateWallet = async (id, data) => {
+  const handleUpdateWallet = async (id, data, adjustment) => {
     if (IS_LOCAL_MODE) {
-      const updated = { ...data, id, balance: parseFloat(data.balance) || 0 };
-      setWallets((ws) => ws.map((w) => (w.id === id ? { ...w, ...updated } : w)));
+      const error = validateWallet(data);
+      if (error) throw new Error(error);
+      const previous = wallets.find(w => w.id === id);
+      if (!previous) throw new Error('Dompet tidak ditemukan.');
+      const transaction = buildWalletAdjustment(previous, data, adjustment);
+      const updated = { ...previous, ...data, id };
+      // React batches both setters; persistence sees the wallet and audit together.
+      setWallets(ws => ws.map(w => w.id === id ? updated : w));
+      if (transaction) setTransactions(ts => [{ id: crypto.randomUUID(), ...transaction }, ...ts]);
       return updated;
     }
     try {
-      const updated = await api.updateWallet(id, data);
+      const updated = await api.updateWallet(id, data, adjustment);
       return updated;
     } catch (err) {
       showToast(err.message || 'Gagal mengubah dompet.');
@@ -473,6 +482,9 @@ function App() {
 
   /** Update a transaction via API (or locally) and update local state */
   const handleUpdateTransaction = async (id, data) => {
+    if (data.type === 'adjustment' || transactions.find(tx => tx.id === id)?.type === 'adjustment') {
+      throw new Error('Penyesuaian saldo tidak dapat diedit. Buat penyesuaian baru dari dompet.');
+    }
     if (IS_LOCAL_MODE) {
       setTransactions((ts) => ts.map((t) => (t.id === id ? { ...t, ...data } : t)));
       return { id, ...data };
@@ -492,6 +504,10 @@ function App() {
   /** Delete a transaction via API (or locally) and update local state */
   const handleDeleteTransaction = async (id) => {
     if (IS_LOCAL_MODE) {
+      const previous = transactions.find(tx => tx.id === id);
+      if (previous?.type === 'adjustment') {
+        setWallets(ws => ws.map(w => w.id === previous.walletId ? { ...w, balance: w.balance - previous.amount } : w));
+      }
       setTransactions((ts) => ts.filter((t) => t.id !== id));
       return;
     }
@@ -1224,7 +1240,7 @@ function App() {
       const balanceEffects = {}; // walletId → net balance change
       for (const tx of (csvTransactions || [])) {
         const amt = tx.amount || 0;
-        if (tx.type === 'income') {
+        if (tx.type === 'income' || tx.type === 'adjustment') {
           balanceEffects[tx.walletId] = (balanceEffects[tx.walletId] || 0) + amt;
         } else if (tx.type === 'expense') {
           balanceEffects[tx.walletId] = (balanceEffects[tx.walletId] || 0) - amt;
@@ -1266,21 +1282,9 @@ function App() {
         }
       } else {
         try {
-          // Migrate new categories and transactions via API
-          const migratePayload = {
-            wallets: [],
-            transactions: csvTransactions || [],
-            budgets: {},
-            categories: newCategories || [],
-          };
-          await api.migrateData(migratePayload);
-          // Update wallet balances in Firestore
-          for (const w of wallets) {
-            const effect = balanceEffects[w.id];
-            if (effect) {
-              await api.updateWallet(w.id, { ...w, balance: w.balance + effect });
-            }
-          }
+          // Import records and their balance effects atomically, without inventing
+          // extra wallet-adjustment transactions or overwriting live balances.
+          await api.importCSVData({ transactions: csvTransactions || [], newCategories: newCategories || [] });
           await fetchAllData();
           return { added: csvTransactions.length, skipped: 0, categoriesCreated };
         } catch (err) {

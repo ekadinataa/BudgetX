@@ -153,7 +153,14 @@ Kartu Kredit dan PayLater memisahkan **Plafon** dari **Saldo**:
 
 ### 4.3 Edit dan Hapus Dompet
 
-- **Edit:** Klik dompet → ubah informasi → Simpan
+- **Edit:** Klik tombol Edit pada dompet → ubah informasi → Simpan.
+- Jika saldo berubah, dialog **Konfirmasi Penyesuaian Saldo** menampilkan saldo sebelumnya, saldo baru, dan selisih bertanda +/−. Isi **alasan perubahan** (wajib, maksimal 1000 karakter), lalu konfirmasi; Batal tidak menyimpan perubahan.
+- Riwayat transaksi mencatat **Penyesuaian Saldo**, termasuk alasan dan saldo sebelum/sesudah. Penyesuaian memengaruhi saldo, tetapi tidak dihitung sebagai pemasukan, pengeluaran, atau pemakaian budget.
+- Saldo awal saat membuat dompet tidak menghasilkan penyesuaian. Edit nama/warna/catatan/plafon/hold tanpa perubahan saldo juga tidak menghasilkan transaksi.
+- Jika saldo berubah karena sinkronisasi saat dialog terbuka, klik **Tinjau Ulang Saldo** sebelum konfirmasi. Gagal menyimpan akan mempertahankan dialog dan menampilkan error.
+- Penyesuaian tidak dapat diedit atau diberi kategori dari form transaksi biasa. Menghapusnya membalik efek selisih pada saldo saat ini.
+- Untuk transaksi nyata yang lupa dicatat, gunakan **Tambah Transaksi** agar laporan dan budget tetap akurat.
+- Impor CSV cloud menyimpan transaksi dan perubahan saldo bersama. Jika file melebihi batas 500 operasi (termasuk kategori baru dan pembaruan dompet), pecah CSV menjadi bagian lebih kecil; file terlalu besar ditolak tanpa perubahan data.
 - **Hapus:** Klik dompet → tombol Hapus → konfirmasi
 
 > ⚠️ Menghapus dompet tidak menghapus transaksi yang terkait.

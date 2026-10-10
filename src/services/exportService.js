@@ -87,7 +87,7 @@ export function buildCsvStrings(data) {
   (data.categories || []).forEach((c) => { categoryMap[c.id] = c.name; });
 
   const sectionLabelMap = { needs: 'Kebutuhan', wants: 'Keinginan', savings: 'Tabungan', income: 'Pemasukan' };
-  const typeLabelMap = { income: 'Pemasukan', expense: 'Pengeluaran', transfer: 'Transfer' };
+  const typeLabelMap = { income: 'Pemasukan', expense: 'Pengeluaran', transfer: 'Transfer', adjustment: 'Penyesuaian Saldo' };
   const walletTypeLabelMap = { bank: 'Bank', ewallet: 'E-Wallet', credit: 'Kartu Kredit', paylater: 'PayLater', cash: 'Tunai' };
 
   // Wallets CSV
@@ -98,7 +98,7 @@ export function buildCsvStrings(data) {
   const walletsCsv = BOM + [walletsHeader, ...walletsRows].join('\n');
 
   // Transactions CSV
-  const txHeader = 'ID,Tanggal,Dompet,Tipe,Kategori,Jumlah,Catatan,Tag,Dompet Tujuan,_walletId,_categoryId,_toWalletId';
+  const txHeader = 'ID,Tanggal,Dompet,Tipe,Kategori,Jumlah,Catatan,Tag,Dompet Tujuan,_walletId,_categoryId,_toWalletId,Saldo Sebelum,Saldo Sesudah';
   const txRows = (data.transactions || []).map((t) =>
     [
       t.id,
@@ -113,6 +113,8 @@ export function buildCsvStrings(data) {
       t.walletId,
       t.categoryId || '',
       t.toWalletId || '',
+      t.balanceBefore,
+      t.balanceAfter,
     ].map(escapeCsvField).join(',')
   );
   const transactionsCsv = BOM + [txHeader, ...txRows].join('\n');

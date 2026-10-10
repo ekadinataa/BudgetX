@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { rpShort, fmtDate } from '../../utils/formatters';
 import { getCatById, getCatIcon } from '../../utils/helpers';
 import NavIcon from '../../components/icons/NavIcon';
+import AmountText from '../../components/ui/AmountText';
 
 const DAY_HEADERS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
@@ -106,6 +107,7 @@ export default function TxCalendar({ transactions, categories }) {
             types[t.type] =
               t.type === 'income' ? 'var(--green)'
                 : t.type === 'transfer' ? 'var(--blue)'
+                  : t.type === 'adjustment' ? 'var(--gray)'
                   : 'var(--red)';
           });
           return (
@@ -124,7 +126,7 @@ export default function TxCalendar({ transactions, categories }) {
               <span>{day}</span>
               {list.length > 0 && (
                 <span className="calDots">
-                  {Object.keys(types).slice(0, 3).map((k) => (
+                  {Object.keys(types).slice(0, 4).map((k) => (
                     <span key={k} className="calDot" style={{ background: types[k] }} />
                   ))}
                 </span>
@@ -162,10 +164,12 @@ export default function TxCalendar({ transactions, categories }) {
                   <span className="itemInfo">
                     <span className="itemName truncate">{t.note || '—'}</span>
                     <span className="itemMeta">
-                      {cat ? cat.name : t.type === 'transfer' ? 'Transfer' : 'Belum dikategorikan'}
+                      {t.type === 'adjustment' ? 'Penyesuaian Saldo' : cat ? cat.name : t.type === 'transfer' ? 'Transfer' : 'Belum dikategorikan'}
                     </span>
                   </span>
-                  <span
+                  {t.type === 'adjustment' ? (
+                    <span className="itemAmount num"><AmountText type={t.type} amount={t.amount} /></span>
+                  ) : <span
                     className="itemAmount num"
                     style={{
                       color:
@@ -176,7 +180,7 @@ export default function TxCalendar({ transactions, categories }) {
                   >
                     {t.type === 'income' ? '+' : t.type === 'transfer' ? '' : '−'}
                     {rpShort(t.amount)}
-                  </span>
+                  </span>}
                 </div>
               );
             })}

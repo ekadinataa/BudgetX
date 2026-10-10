@@ -9,6 +9,7 @@ import { computeNetWorth, computeHealthRatios } from '../../utils/assetHelpers';
 import { useAuth } from '../../context/AuthContext';
 import { usePageActions } from '../../context/pageActions';
 import NavIcon from '../../components/icons/NavIcon';
+import AmountText from '../../components/ui/AmountText';
 import ScoreDonut, { RatioBar, SectionTitle } from './ScoreParts';
 
 const SECTIONS = [
@@ -389,10 +390,12 @@ export default function Dashboard({
                         <span className="itemName truncate">{t.note || '—'}</span>
                         <span className="itemMeta">
                           {fmtDate(t.date)}
-                          {` · ${cat?.name || (t.type === 'transfer' ? 'Transfer' : 'Belum dikategorikan')}`}
+                          {` · ${t.type === 'adjustment' ? 'Penyesuaian Saldo' : cat?.name || (t.type === 'transfer' ? 'Transfer' : 'Belum dikategorikan')}`}
                         </span>
                       </span>
-                      <span
+                      {t.type === 'adjustment' ? (
+                        <span className="itemAmount num"><AmountText type={t.type} amount={t.amount} /></span>
+                      ) : <span
                         className="itemAmount num"
                         style={{
                           color:
@@ -403,7 +406,7 @@ export default function Dashboard({
                       >
                         {t.type === 'income' ? '+' : t.type === 'transfer' ? '' : '−'}
                         {rp(t.amount)}
-                      </span>
+                      </span>}
                     </div>
                   );
                 })}

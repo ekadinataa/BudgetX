@@ -57,6 +57,15 @@ BudgetKu berjalan sebagai Single Page Application client-side dengan persistensi
 
 ## 4. Modul Fitur
 
+### Penyesuaian saldo dompet existing
+
+- Perubahan saldo memerlukan konfirmasi saldo sebelumnya, saldo target, selisih +/−, dan alasan wajib (maksimal 1000 karakter).
+- Konfirmasi menghasilkan satu transaksi **Penyesuaian Saldo** dan pembaruan saldo secara bersama; Batal tidak mengubah data.
+- Penyesuaian tidak masuk pemasukan/pengeluaran/budget, tetapi ditampilkan pada riwayat transaksi dan memengaruhi saldo/aset/utang.
+- Saldo awal serta perubahan metadata/plafon/hold tanpa perubahan saldo tidak menghasilkan transaksi. Saldo kartu kredit/PayLater tetap bertanda, terpisah dari plafon dan hold.
+- Saldo concurrent yang berubah memerlukan tinjauan/konfirmasi ulang; gagal simpan tidak menutup dialog.
+- Alasan dan saldo sebelum/sesudah tersedia dalam cadangan. Form transaksi biasa tidak dapat mengedit penyesuaian; penghapusan membalik efek saldo.
+
 ### 4.1 Autentikasi
 
 **Deskripsi:** Sistem autentikasi berbasis Firebase Authentication dengan email/password.

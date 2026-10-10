@@ -513,6 +513,9 @@ const TYPE_MAP = {
   'EXPENSE': 'expense',
   'INCOME': 'income',
   'TRANSFER': 'transfer',
+  'ADJUSTMENT': 'adjustment',
+  'adjustment': 'adjustment',
+  'Penyesuaian Saldo': 'adjustment',
 };
 
 /**
@@ -626,8 +629,9 @@ export function parseTransactionCsv(csvString, existingWallets, existingCategori
   const baseTimestamp = Date.now();
   const transactions = rows.map((row, index) => {
     const tipe = (row['Tipe'] || '').trim();
-    const isTransfer = tipe === 'TRANSFER';
     const type = TYPE_MAP[tipe] || 'expense';
+    const isTransfer = type === 'transfer';
+    const isAdjustment = type === 'adjustment';
     const dompet = (row['Dompet'] || '').trim();
     const keDompet = (row['Ke Dompet'] || '').trim();
     const subKategori = (row['Sub Kategori'] || '').trim();
@@ -638,11 +642,14 @@ export function parseTransactionCsv(csvString, existingWallets, existingCategori
       date: (row['Tanggal'] || '').trim(),
       walletId: walletByName[dompet] || '',
       type,
-      categoryId: resolveCategoryId(subKategori, kategori, isTransfer),
-      amount: Math.abs(parseFloat(row['Jumlah']) || 0),
+      categoryId: resolveCategoryId(subKategori, kategori, isTransfer || isAdjustment),
+      amount: isAdjustment ? Number(row['Jumlah']) : Math.abs(parseFloat(row['Jumlah']) || 0),
       note: (row['Catatan'] || '').trim(),
       tags: [],
       toWalletId: isTransfer && keDompet ? (walletByName[keDompet] || null) : null,
+      ...(isAdjustment ? Object.fromEntries([['balanceBefore', row['Saldo Sebelum'] ?? row.balanceBefore], ['balanceAfter', row['Saldo Sesudah'] ?? row.balanceAfter]]
+        .filter(([, value]) => value !== undefined && value.trim() !== '')
+        .map(([field, value]) => [field, Number(value)])) : {}),
     };
   });
 
@@ -667,15 +674,16 @@ export function parseCsv(csvString) {
   let inQuotes = false;
   const lines = [];
 
-  // Split into lines respecting quoted fields
+  // Split into lines respecting quoted fields; retain quotes for parseRow.
   for (let i = 0; i < content.length; i++) {
     const ch = content[i];
     if (ch === '"') {
       if (inQuotes && content[i + 1] === '"') {
-        current += '"';
+        current += '""';
         i++; // skip escaped quote
       } else {
         inQuotes = !inQuotes;
+        current += ch;
       }
     } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
       if (ch === '\r' && content[i + 1] === '\n') i++; // skip \r\n
@@ -787,7 +795,7 @@ export function parseCsvZip(zipBytes) {
 
   // Parse transactions (headers: ID,Tanggal,Dompet,Tipe,Kategori,Jumlah,Catatan,Tag,Dompet Tujuan,_walletId,_categoryId,_toWalletId)
   const txRaw = parseCsv(decoder.decode(files['transactions.csv']));
-  const typeLabelReverse = { 'Pemasukan': 'income', 'Pengeluaran': 'expense', 'Transfer': 'transfer' };
+  const typeLabelReverse = { 'Pemasukan': 'income', 'Pengeluaran': 'expense', 'Transfer': 'transfer', 'Penyesuaian Saldo': 'adjustment' };
   const transactions = txRaw.map((row) => ({
     id: row.ID || row.id,
     date: row.Tanggal || row.date,
@@ -798,6 +806,9 @@ export function parseCsvZip(zipBytes) {
     note: row.Catatan || row.note || '',
     tags: (row.Tag || row.tags) ? (row.Tag || row.tags).split('|').filter(Boolean) : [],
     toWalletId: (row['_toWalletId'] || row.toWalletId) || null,
+    ...Object.fromEntries([['balanceBefore', row['Saldo Sebelum'] ?? row.balanceBefore], ['balanceAfter', row['Saldo Sesudah'] ?? row.balanceAfter]]
+      .filter(([, value]) => value !== undefined && value.trim() !== '')
+      .map(([field, value]) => [field, Number(value)])),
   }));
 
   // Parse categories (headers: ID,Nama,Bagian,Warna)

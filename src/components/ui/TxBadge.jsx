@@ -30,6 +30,11 @@ export default function TxBadge({ type }) {
       color: 'var(--indigo-ink)',
       label: 'Transfer',
     },
+    adjustment: {
+      bg: 'var(--gray-soft)',
+      color: 'var(--gray-ink)',
+      label: 'Penyesuaian Saldo',
+    },
   };
 
   const s = map[type] || map.expense;

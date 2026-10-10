@@ -60,6 +60,7 @@ export default function TransactionsPage({ wallets, setWallets, transactions, se
     { value: 'income', label: 'Pemasukan', color: 'var(--green-ink)' },
     { value: 'expense', label: 'Pengeluaran', color: 'var(--red-ink)' },
     { value: 'transfer', label: 'Transfer', color: 'var(--indigo-ink)' },
+    { value: 'adjustment', label: 'Penyesuaian Saldo', color: 'var(--gray-ink)' },
   ];
   const catOpts = categories.map((c) => ({ value: c.id, label: c.name, color: c.color }));
   const tagOpts = allTags.map((t) => ({ value: t, label: `#${t}` }));
@@ -405,21 +406,27 @@ export default function TransactionsPage({ wallets, setWallets, transactions, se
                 <div className="itemName truncate">{t.note}</div>
                 <div className="itemMeta">
                   <TxBadge type={t.type} />
-                  {t.type !== 'transfer' && <span>{cat?.name || 'Belum dikategorikan'}</span>}
+                  {t.type !== 'transfer' && t.type !== 'adjustment' && <span>{cat?.name || 'Belum dikategorikan'}</span>}
                   <span>·</span>
                   <span>{wallet?.name}{toW ? ` → ${toW.name}` : ''}</span>
                   {(t.tags || []).slice(0, 2).map((tag) => (
                     <span key={tag} className="tag">#{tag}</span>
                   ))}
                 </div>
+                {t.type === 'adjustment' && expandedTxId === t.id && (
+                  <div className="itemMeta">
+                    <span className="num">Saldo sebelum: {fmtFull(t.balanceBefore)}</span>
+                    <span className="num">Saldo sesudah: {fmtFull(t.balanceAfter)}</span>
+                  </div>
+                )}
               </div>
               <div className="itemAmount">
                 <AmountText type={t.type} amount={t.amount} />
               </div>
               <div className={expandedTxId === t.id ? 'rowActions rowActionsVisible' : 'rowActions'}>
-                <button className="iconBtn" aria-label={`Edit transaksi ${t.note}`} onClick={(e) => { e.stopPropagation(); setEditTx(t); }}>
+                {t.type !== 'adjustment' && <button className="iconBtn" aria-label={`Edit transaksi ${t.note}`} onClick={(e) => { e.stopPropagation(); setEditTx(t); }}>
                   <NavIcon name="edit" size={15} />
-                </button>
+                </button>}
                 <button className="iconBtn iconBtnDanger" aria-label={`Hapus transaksi ${t.note}`} onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }}>
                   <NavIcon name="trash" size={15} />
                 </button>

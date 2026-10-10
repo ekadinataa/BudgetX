@@ -55,7 +55,7 @@ function walletSchema(body) {
   if (!WALLET_TYPES.includes(body.type)) {
     return `Wallet type must be one of: ${WALLET_TYPES.join(', ')}`;
   }
-  if (typeof body.balance !== 'number' || Number.isNaN(body.balance)) {
+  if (!Number.isFinite(body.balance)) {
     return 'Balance must be a valid number';
   }
   for (const field of ['creditLimit', 'heldAmount']) {
@@ -72,7 +72,7 @@ function walletSchema(body) {
   return null;
 }
 
-const TRANSACTION_TYPES = ['income', 'expense', 'transfer'];
+const TRANSACTION_TYPES = ['income', 'expense', 'transfer', 'adjustment'];
 
 function transactionSchema(body) {
   if (!body.date || typeof body.date !== 'string' || !DATE_REGEX.test(body.date)) {
@@ -87,7 +87,17 @@ function transactionSchema(body) {
   if (body.categoryId !== null && body.categoryId !== undefined && typeof body.categoryId !== 'string') {
     return 'Category ID must be a string or null';
   }
-  if (typeof body.amount !== 'number' || Number.isNaN(body.amount) || body.amount <= 0) {
+  if (body.type === 'adjustment') {
+    if (typeof body.note !== 'string' || !body.note.trim()) return 'Alasan penyesuaian saldo wajib diisi';
+    if (body.categoryId !== null || body.toWalletId !== null || !Array.isArray(body.tags) || body.tags.length) {
+      return 'Penyesuaian saldo tidak boleh memiliki kategori, tujuan, atau tag';
+    }
+    if (!Number.isFinite(body.amount) || body.amount === 0) return 'Jumlah penyesuaian harus berupa angka terbatas dan tidak nol';
+    if (!Number.isFinite(body.balanceBefore) || !Number.isFinite(body.balanceAfter) || body.balanceAfter - body.balanceBefore !== body.amount) {
+      return 'Saldo sebelum dan sesudah penyesuaian tidak valid';
+    }
+  }
+  if (typeof body.amount !== 'number' || Number.isNaN(body.amount) || (body.type === 'adjustment' ? body.amount === 0 : body.amount <= 0)) {
     return 'Amount must be a positive number';
   }
   if (typeof body.note !== 'string') {

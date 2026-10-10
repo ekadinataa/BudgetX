@@ -1,0 +1,28 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { STORAGE_KEY } from '../../utils/constants';
+vi.mock('../../config/firebase', () => ({ auth: null, db: null }));
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: null, loading: false }) }));
+import App from '../../App';
+const wallet = { id: 'w1', name: 'BCA', type: 'bank', balance: 100, color: '#2563EB', note: '' };
+afterEach(() => { cleanup(); localStorage.clear(); });
+const saved = () => JSON.parse(localStorage.getItem(STORAGE_KEY));
+it('persists a wallet change and exactly one signed audit transaction together locally', async () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ page: 'wallet', wallets: [wallet], transactions: [], categories: [], budgets: {} }));
+  render(<App />);
+  fireEvent.click(screen.getByRole('button', { name: 'Edit BCA' }));
+  fireEvent.change(screen.getByRole('spinbutton', { name: 'Saldo' }), { target: { value: '150' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan' }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Alasan perubahan' }), { target: { value: 'Cocokkan rekening' } });
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Konfirmasi Penyesuaian' })));
+  expect(saved().wallets[0].balance).toBe(150);
+  expect(saved().transactions).toHaveLength(1);
+  expect(saved().transactions[0]).toMatchObject({ walletId: 'w1', type: 'adjustment', amount: 50, note: 'Cocokkan rekening', balanceBefore: 100, balanceAfter: 150 });
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  fireEvent.click(within(screen.getByRole('complementary')).getByRole('button', { name: 'Transaksi' }));
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: /^Hapus transaksi/ })));
+  expect(saved().wallets[0].balance).toBe(100);
+  expect(saved().transactions).toHaveLength(0);
+  vi.restoreAllMocks();
+});

@@ -20,12 +20,14 @@ export default function AmountText({ type, amount, size = 14 }) {
     income: 'var(--green-ink)',
     expense: 'var(--red-ink)',
     transfer: 'var(--indigo-ink)',
+    adjustment: 'var(--gray-ink)',
   };
 
   const prefixMap = {
     income: '+',
     expense: '-',
     transfer: '↔',
+    adjustment: amount < 0 ? '-' : '+',
   };
 
   const color = colorMap[type] || colorMap.expense;
@@ -41,7 +43,7 @@ export default function AmountText({ type, amount, size = 14 }) {
       }}
     >
       {prefix}
-      {fmtFull(amount)}
+      {fmtFull(type === 'adjustment' ? Math.abs(amount) : amount)}
     </span>
   );
 }

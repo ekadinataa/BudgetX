@@ -17,6 +17,7 @@ import {
   deleteDoc,
   setDoc,
   writeBatch,
+  runTransaction,
   increment,
   query,
   where,
@@ -31,6 +32,7 @@ import {
   trimStrings,
 } from './validator';
 import { CATEGORIES } from '../data/defaults';
+import { buildWalletAdjustment } from '../utils/walletAdjustment.js';
 import { BACKUP_EXTRA_KEYS, normalizeBackupData } from '../utils/backupHelpers.js';
 
 // ── Internal helpers ─────────────────────────────────────────────────
@@ -70,7 +72,7 @@ function userDoc(sub, id) {
  * transfer → −amount (source wallet)
  */
 function getBalanceEffect(type, amount) {
-  if (type === 'income') return amount;
+  if (type === 'income' || type === 'adjustment') return amount;
   if (type === 'expense') return -amount;
   if (type === 'transfer') return -amount;
   return 0;
@@ -142,20 +144,33 @@ export async function createWallet(data) {
   }
 }
 
-export async function updateWallet(id, data) {
+export async function updateWallet(id, data, adjustment = {}) {
+  const uid = getUid();
+  // Capture every reference before awaiting; retries must stay scoped to this UID.
+  const walletRef = doc(db, 'users', uid, 'wallets', id);
+  const txRef = doc(collection(db, 'users', uid, 'transactions'));
   const trimmed = trimStrings(data);
-  const error = validateWallet(trimmed);
-  if (error) throw new Error(error);
-
-  const { name, type, balance, color, note } = trimmed;
-  const walletData = { name, type, balance, color, note: note || '' };
-  for (const field of ['creditLimit', 'heldAmount']) {
-    if (trimmed[field] !== undefined) walletData[field] = trimmed[field];
-  }
-
   try {
-    await updateDoc(userDoc('wallets', id), walletData);
-    return { id, ...walletData };
+    return await runTransaction(db, async transaction => {
+      if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+      const snapshot = await transaction.get(walletRef);
+      if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+      if (!snapshot.exists()) throw new Error('Dompet tidak ditemukan');
+      const current = { ...snapshot.data(), id };
+      const audit = buildWalletAdjustment(current, trimmed, adjustment);
+      const error = validateWallet({ ...current, ...trimmed });
+      if (error) throw new Error(error);
+      const walletData = {};
+      for (const field of ['name', 'type', 'color', 'note', 'creditLimit', 'heldAmount']) {
+        if (trimmed[field] !== undefined) walletData[field] = trimmed[field];
+      }
+      if (audit) {
+        walletData.balance = increment(audit.amount);
+        transaction.set(txRef, audit);
+      }
+      transaction.update(walletRef, walletData);
+      return { ...current, ...walletData, balance: audit ? audit.balanceAfter : current.balance, id };
+    });
   } catch (err) {
     throw new Error(`Failed to update wallet: ${err.message}`);
   }
@@ -218,6 +233,7 @@ export async function getTransactions(filters = {}) {
 
 export async function createTransaction(data) {
   const trimmed = trimStrings(data);
+  if (trimmed?.type === 'adjustment') throw new Error('Penyesuaian saldo hanya dapat dibuat melalui edit dompet.');
   const error = validateTransaction(trimmed);
   if (error) throw new Error(error);
 
@@ -273,8 +289,17 @@ export async function updateTransactionCategory(id, categoryId) {
     category_status: normalized ? 'classified' : 'unclassified',
   };
   try {
-    await updateDoc(userDoc('transactions', id), data);
-    return { id, ...data };
+    const uid = getUid();
+    const txRef = doc(db, 'users', uid, 'transactions', id);
+    return await runTransaction(db, async transaction => {
+      if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+      const snapshot = await transaction.get(txRef);
+      if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+      if (!snapshot.exists()) throw new Error('Transaksi tidak ditemukan');
+      if (snapshot.data().type === 'adjustment') throw new Error('Penyesuaian saldo tidak dapat diedit.');
+      transaction.update(txRef, data);
+      return { id, ...data };
+    });
   } catch (error) {
     throw new Error(`Failed to update transaction category: ${error.message}`);
   }
@@ -282,6 +307,7 @@ export async function updateTransactionCategory(id, categoryId) {
 
 export async function updateTransaction(id, data) {
   const trimmed = trimStrings(data);
+  if (trimmed?.type === 'adjustment') throw new Error('Penyesuaian saldo hanya dapat dibuat melalui edit dompet.');
   const error = validateTransaction(trimmed);
   if (error) throw new Error(error);
 
@@ -299,6 +325,9 @@ export async function updateTransaction(id, data) {
   } catch (err) {
     throw new Error(`Failed to read transaction: ${err.message}`);
   }
+
+  if (oldTx.type === 'adjustment') throw new Error('Penyesuaian saldo tidak dapat diedit. Hapus untuk membalikkan penyesuaian.');
+  if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
 
   const { date, walletId, type, categoryId, amount, note, tags, toWalletId } = trimmed;
 
@@ -376,6 +405,22 @@ export async function deleteTransaction(id) {
   }
 
   try {
+    if (txData.type === 'adjustment') {
+      // Re-read inside the transaction: concurrent deletion must not reverse twice.
+      return await runTransaction(db, async transaction => {
+        if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+        const snapshot = await transaction.get(txRef);
+        if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+        if (!snapshot.exists()) return { success: true };
+        const current = snapshot.data();
+        if (current.type !== 'adjustment') throw new Error('Transaksi berubah. Muat ulang sebelum menghapus.');
+        transaction.update(doc(db, 'users', uid, 'wallets', current.walletId), {
+          balance: increment(-getBalanceEffect(current.type, current.amount)),
+        });
+        transaction.delete(txRef);
+        return { success: true };
+      });
+    }
     const batch = writeBatch(db);
 
     // 1. Delete the transaction
@@ -919,6 +964,48 @@ export async function deleteFixedAsset(id) {
     return { success: true };
   } catch (err) {
     throw new Error(`Failed to delete fixed asset: ${err.message}`);
+  }
+}
+
+/** Import new CSV records with balance effects, unlike snapshot-only migrateData. */
+export async function importCSVData({ transactions = [], newCategories = [] }) {
+  const uid = getUid();
+  if (!Array.isArray(transactions) || !Array.isArray(newCategories)) throw new Error('Data impor CSV tidak valid.');
+  const effects = new Map();
+  const addEffect = (walletId, amount) => {
+    const total = (effects.get(walletId) || 0) + amount;
+    if (!Number.isFinite(total)) throw new Error('Jumlah impor harus berupa angka terbatas.');
+    effects.set(walletId, total);
+  };
+  const validId = id => typeof id === 'string' && id.trim() !== '' && !id.includes('/') && id.length <= 1000;
+  const records = transactions.map(({ id, ...data }) => {
+    if (!validId(id) || !validId(data.walletId) || (data.type === 'transfer' && !validId(data.toWalletId))) throw new Error('ID transaksi/dompet impor tidak valid.');
+    const error = validateTransaction(data);
+    if (error) throw new Error(error);
+    if (!Number.isFinite(data.amount)) throw new Error('Jumlah impor harus berupa angka terbatas.');
+    addEffect(data.walletId, getBalanceEffect(data.type, data.amount));
+    if (data.type === 'transfer') addEffect(data.toWalletId, data.amount);
+    return { ref: doc(db, 'users', uid, 'transactions', id), data };
+  });
+  for (const { id, ...data } of newCategories) {
+    if (!validId(id)) throw new Error('ID kategori impor tidak valid.');
+    const error = validateCategory(data);
+    if (error) throw new Error(error);
+    records.push({ ref: doc(db, 'users', uid, 'categories', id), data });
+  }
+  const balanceUpdates = [...effects].filter(([, amount]) => amount !== 0).map(([id, amount]) => ({
+    ref: doc(db, 'users', uid, 'wallets', id), data: { balance: increment(amount) },
+  }));
+  // Keep this import atomic: never partially persist a batch larger than the SDK limit.
+  if (records.length + balanceUpdates.length > 500) throw new Error('Impor CSV terlalu besar. Pecah file menjadi bagian lebih kecil (maksimal 500 operasi per impor).');
+  try {
+    const batch = writeBatch(db);
+    for (const record of records) batch.set(record.ref, record.data);
+    for (const update of balanceUpdates) batch.update(update.ref, update.data);
+    await batch.commit();
+    return { success: true, imported: transactions.length };
+  } catch (error) {
+    throw new Error(`Gagal mengimpor CSV: ${error.message}`);
   }
 }
 

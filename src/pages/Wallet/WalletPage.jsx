@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { fmtFull } from '../../utils/formatters';
 import { computeWalletAggregates } from '../../utils/helpers';
+import { buildWalletAdjustment } from '../../utils/walletAdjustment';
 import { WALLET_TYPES } from '../../utils/constants';
 import NavIcon from '../../components/icons/NavIcon';
 import { usePageActions } from '../../context/pageActions';
@@ -59,7 +60,7 @@ export default function WalletPage({
   };
 
   /** Edit an existing wallet */
-  const handleEditWallet = async (data) => {
+  const handleEditWallet = async (data, adjustment) => {
     const walletData = {
       name: data.name,
       type: data.type,
@@ -68,13 +69,18 @@ export default function WalletPage({
       note: data.note || '',
       ...Object.fromEntries(['creditLimit', 'heldAmount'].filter(field => data[field] !== undefined).map(field => [field, data[field]])),
     };
-    try {
-      if (onUpdateWallet) {
-        await onUpdateWallet(editWallet.id, walletData);
-      } else {
-        setWallets((ws) => ws.map((w) => w.id === editWallet.id ? { ...w, ...walletData } : w));
-      }
-    } catch { /* error shown via toast */ }
+    const live = wallets.find(w => w.id === editWallet.id);
+    if (!live) throw new Error('Dompet tidak ditemukan.');
+    if (!adjustment) walletData.balance = live.balance;
+    if (onUpdateWallet) {
+      if (adjustment) await onUpdateWallet(editWallet.id, walletData, adjustment);
+      else await onUpdateWallet(editWallet.id, walletData);
+    } else {
+      const transaction = buildWalletAdjustment(live, walletData, adjustment);
+      setWallets((ws) => ws.map((w) => w.id === editWallet.id ? { ...w, ...walletData } : w));
+      if (transaction) setTransactions(ts => [{ id: crypto.randomUUID(), ...transaction }, ...ts]);
+    }
+    // Failed saves propagate to the form and keep it open for retry.
     setEditWallet(null);
   };
 
@@ -220,6 +226,7 @@ export default function WalletPage({
         <WalletFormModal
           title="Edit Dompet"
           initial={editWallet}
+          currentBalance={wallets.find(w => w.id === editWallet.id)?.balance}
           onClose={() => setEditWallet(null)}
           onSave={handleEditWallet}
         />

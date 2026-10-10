@@ -22,6 +22,14 @@
 | Linting | ESLint | 9.x |
 | Package Manager | npm | — |
 
+### Penyesuaian saldo dompet
+
+`updateWallet(id, data, { expectedBalance, reason })` mencatat perubahan saldo dompet existing sebagai transaksi `type: adjustment`. `amount` adalah selisih **bertanda**, bukan nominal absolut; `balanceBefore`, `balanceAfter`, tanggal lokal, dan `note` (alasan wajib, maksimal 1000 karakter) menyimpan konteks audit. Kategori dan dompet tujuan kosong. Saldo awal tidak dibuat sebagai transaksi.
+
+Cloud memakai `runTransaction` untuk membaca saldo, memeriksa saldo yang telah dikonfirmasi, lalu memperbarui saldo dengan `increment(delta)` dan membuat transaksi audit secara atomik. Berbeda dari batch transaksi biasa, penyesuaian memerlukan pemeriksaan read/compare agar sinkronisasi concurrent tidak tertimpa. Edit metadata tidak menulis saldo. State cloud tetap dimiliki snapshot. Lokal membatch pembaruan dompet dan audit dalam satu render/persistensi.
+
+Transaksi penyesuaian dikecualikan dari agregasi income/expense/budget, tetap tampil dalam riwayat, dan tidak dapat diedit lewat transaksi biasa. Penghapusan memakai pemeriksaan atomik agar concurrent delete tidak membalik saldo dua kali. Cadangan JSON/ZIP/CSV mempertahankan type, amount, alasan, dan saldo sebelum/sesudah. Impor CSV cloud menggunakan batch pencatatan transaksi dan increment saldo, bukan edit saldo dompet yang akan menciptakan audit tambahan. Seluruh record divalidasi sebelum write; impor di atas 500 operasi (transaksi + kategori baru + pembaruan dompet) ditolak sebelum perubahan agar tidak menghasilkan impor parsial.
+
 ### Keputusan Arsitektur Utama
 
 | Keputusan | Alasan |

@@ -31,7 +31,7 @@ const COLORS = [
  *
  * Requirements: 3.3, 3.4, 3.5
  */
-export default function WalletFormModal({ title, initial = {}, onClose, onSave }) {
+export default function WalletFormModal({ title, initial = {}, currentBalance, onClose, onSave }) {
   const [form, setForm] = useState({
     name: initial.name || '',
     type: initial.type || 'bank',
@@ -53,14 +53,65 @@ export default function WalletFormModal({ title, initial = {}, onClose, onSave }
   const position = getCreditPosition(data);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const [confirmation, setConfirmation] = useState(null);
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const close = () => { if (!saving) onClose(); };
+  const persist = async (adjustment) => {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      if (adjustment) await onSave(data, adjustment);
+      else await onSave(data);
+    } catch (err) {
+      setError(err.message || 'Gagal menyimpan dompet. Silakan coba lagi.');
+    } finally {
+      setSaving(false);
+    }
+  };
   const handleSave = () => {
     const validation = validateWallet(data);
     setError(validation);
-    if (!validation) onSave(data);
+    if (validation) return;
+    if (initial.id && data.balance !== initial.balance) {
+      setConfirmation({ expectedBalance: currentBalance ?? initial.balance });
+    } else {
+      persist();
+    }
+  };
+  const confirm = () => {
+    if (!reason.trim()) return setError('Alasan perubahan wajib diisi.');
+    if (reason.trim().length > 1000) return setError('Alasan maksimal 1000 karakter.');
+    if (currentBalance != null && currentBalance !== confirmation.expectedBalance) {
+      return setError('Saldo dompet berubah. Tinjau ulang saldo sebelum melanjutkan.');
+    }
+    persist({ ...confirmation, reason: reason.trim() });
   };
 
+  if (confirmation) {
+    const delta = data.balance - confirmation.expectedBalance;
+    const stale = currentBalance != null && currentBalance !== confirmation.expectedBalance;
+    return <Modal title="Konfirmasi Penyesuaian Saldo" onClose={close}>
+      <p>{initial.name}: perubahan ini dicatat sebagai Penyesuaian Saldo, bukan pemasukan atau pengeluaran, dan tidak memakai budget.</p>
+      {[
+        ['Saldo sebelumnya', fmtFull(confirmation.expectedBalance)],
+        ['Saldo baru', fmtFull(data.balance)],
+        ['Selisih', `${delta >= 0 ? '+' : '−'}${fmtFull(Math.abs(delta))}`],
+      ].map(([label, value]) => <div className="listRow" key={label}><span>{label}</span><strong className="num">{value}</strong></div>)}
+      {isCredit && <p className="walletCardFooterLabel">Saldo negatif berarti utang. Saldo bertambah mengurangi utang; saldo berkurang menambah utang. Plafon dan hold tidak menghasilkan transaksi.</p>}
+      <Field label="Alasan perubahan (wajib)">
+        <Input aria-label="Alasan perubahan" value={reason} onChange={e => setReason(e.target.value)} maxLength={1000} placeholder="cth. Mencocokkan saldo rekening" disabled={saving} />
+      </Field>
+      {(error || stale) && <div className="fieldError" role="alert">{stale ? 'Saldo dompet berubah. Tinjau ulang saldo sebelum melanjutkan.' : error}</div>}
+      {stale && <button className="btnGhost" disabled={saving} onClick={() => { setConfirmation({ expectedBalance: currentBalance }); setError(null); }}>Tinjau Ulang Saldo</button>}
+      <button className="btnGhost" disabled={saving} onClick={() => { setConfirmation(null); setError(null); }}>Batal</button>
+      <button className="btnPrimary" disabled={saving || stale} onClick={confirm}>{saving ? 'Menyimpan…' : 'Konfirmasi Penyesuaian'}</button>
+    </Modal>;
+  }
+
   return (
-    <Modal title={title} onClose={onClose}>
+    <Modal title={title} onClose={close}>
       <Field label="Nama Dompet">
         <Input
           value={form.name}
@@ -122,8 +173,8 @@ export default function WalletFormModal({ title, initial = {}, onClose, onSave }
           placeholder="cth. 4 digit terakhir"
         />
       </Field>
-      <button className="btnPrimary" onClick={handleSave}>
-        Simpan
+      <button className="btnPrimary" disabled={saving} onClick={handleSave}>
+        {saving ? 'Menyimpan…' : 'Simpan'}
       </button>
     </Modal>
   );
