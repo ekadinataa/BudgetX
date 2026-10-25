@@ -845,15 +845,17 @@ describe('migrateData', () => {
       wallets: [{ id: 'w_demo', balance: 900000 }],
       transactions: [{ id: 't_demo', amount: 100000, type: 'expense', walletId: 'w_demo' }],
       ...Object.fromEntries(BACKUP_EXTRA_KEYS.map(key => [key, [{ id: `${key}_demo`, history: [{ transactionId: 't_demo' }] }]])),
+      wishlistGroups: [{ id: 'wishlistGroups_demo', title: 'Ruang kerja', targetBudget: 4000000, targetDate: '2026-12-31', createdAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z', items: [{ id: 'wish-monitor', groupId: 'wishlistGroups_demo', name: 'Monitor', price: 2000000, marketplaceName: '', productUrl: '', priority: 'high', createdAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z' }] }],
       preferences: { darkMode: true, density: 'compact' },
       fireSettings: { currentAssets: 2000000 },
     });
     const result = await migrateData(data);
-    expect(result.imported).toBe(9);
+    expect(result.imported).toBe(BACKUP_EXTRA_KEYS.length + 4);
     for (const key of BACKUP_EXTRA_KEYS) {
+      const { id, ...stored } = data[key][0];
       expect(mockBatch.set).toHaveBeenCalledWith(
-        expect.objectContaining({ _path: `users/test-user-123/${key}/${key}_demo` }),
-        { history: [{ transactionId: 't_demo' }] },
+        expect.objectContaining({ _path: `users/test-user-123/${key}/${id}` }),
+        stored,
       );
     }
     expect(mockBatch.set).toHaveBeenCalledWith(expect.objectContaining({ _path: 'users/test-user-123/preferences/prefs' }), data.preferences);
@@ -958,13 +960,14 @@ describe('Backup replacement reset', () => {
       getDocs.mockResolvedValueOnce({ docs: [{ ref: { _path: `users/test-user-123/${keys[i]}/old` } }] });
     }
     await resetUserData({ initializeDefaults: false });
-    expect(getDocs).toHaveBeenCalledTimes(10);
-    expect(mockBatch.delete).toHaveBeenCalledTimes(10);
+    expect(getDocs).toHaveBeenCalledTimes(keys.length);
+    expect(mockBatch.delete).toHaveBeenCalledTimes(keys.length);
     expect(mockBatch.set).not.toHaveBeenCalled();
   });
 
   it('keeps the normal reset behavior of recreating default categories', async () => {
-    for (let i = 0; i < 11; i++) getDocs.mockResolvedValueOnce(makeDocsSnapshot([]));
+    // Reset scans every collection, then initUser queries categories once more.
+    for (let i = 0; i < BACKUP_ARRAY_KEYS.length + 3; i++) getDocs.mockResolvedValueOnce(makeDocsSnapshot([]));
     getDoc.mockResolvedValueOnce(makeDocSnapshot(null, false));
     await resetUserData();
     expect(mockBatch.set).toHaveBeenCalledTimes(19);

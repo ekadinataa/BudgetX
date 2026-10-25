@@ -1,0 +1,40 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import WishlistPage from '../../pages/Wishlist/WishlistPage';
+afterEach(cleanup);
+const stamp = '2026-10-01T00:00:00.000Z';
+const legacy = { id: 'i1', groupId: 'g1', name: 'Komputer', price: 100000, marketplaceName: 'Toko Lama', productUrl: 'https://example.com/item', priority: 'medium', createdAt: stamp, updatedAt: stamp };
+const group = { id: 'g1', title: 'Meja', targetBudget: 1000000, targetDate: '2026-12-31', createdAt: stamp, updatedAt: stamp, items: [legacy] };
+it('updates notes through immutable item IDs without submitting removed reference fields or optimistic notes', async () => {
+  const onUpdateItem = vi.fn().mockResolvedValue(legacy);
+  render(<WishlistPage wishlistGroups={[group]} onUpdateItem={onUpdateItem} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Buka Meja' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Edit item Komputer' }));
+  expect(screen.getByLabelText('Catatan (opsional)')).toHaveValue('');
+  fireEvent.change(screen.getByLabelText('Catatan (opsional)'), { target: { value: '  Baris 1\nBaris 2  ' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan Item' }));
+  await screen.findByRole('button', { name: 'Tambah Item' });
+  expect(onUpdateItem).toHaveBeenCalledWith('g1', 'i1', { name: 'Komputer', price: 100000, notes: 'Baris 1\nBaris 2', priority: 'medium' });
+  expect(screen.queryByText('Baris 1\nBaris 2')).not.toBeInTheDocument();
+  expect(screen.queryByRole('link')).not.toBeInTheDocument();
+});
+it('hides old marketplace/link UI without mutating the legacy item', () => {
+  const before = structuredClone(group);
+  render(<WishlistPage wishlistGroups={[group]} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Buka Meja' }));
+  expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  expect(screen.queryByText('Toko Lama')).not.toBeInTheDocument();
+  expect(group).toEqual(before);
+});
+it.each(['x'.repeat(1001), ' ' + 'x'.repeat(1000), ' '.repeat(1001)])('rejects oversized raw notes before calling any create handler', notes => {
+  const onCreateItem = vi.fn();
+  render(<WishlistPage wishlistGroups={[group]} onCreateItem={onCreateItem} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Buka Meja' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Tambah Item' }));
+  fireEvent.change(screen.getByLabelText('Nama item'), { target: { value: 'Lampu' } });
+  fireEvent.change(screen.getByLabelText('Harga (Rp)'), { target: { value: '100' } });
+  fireEvent.change(screen.getByLabelText('Catatan (opsional)'), { target: { value: notes } });
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan Item' }));
+  expect(screen.getByRole('alert')).toHaveTextContent(/Catatan.*1000/);
+  expect(onCreateItem).not.toHaveBeenCalled();
+});

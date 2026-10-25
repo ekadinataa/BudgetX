@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import demoBackup from '../../../public/demo/budgetx-demo-agustus-oktober-2026.json';
 import { BACKUP_ARRAY_KEYS, normalizeBackupData } from '../../utils/backupHelpers';
 
@@ -15,6 +15,11 @@ vi.mock('firebase/firestore', () => ({
   setDoc: vi.fn(async () => {}),
 }));
 vi.mock('../../services/firestoreService', () => ({
+  subscribeWishlistGroups: vi.fn((uid, onData) => {
+    store.wishlistHandler = onData;
+    onData(store.data.wishlistGroups || []);
+    return () => { store.wishlistHandler = null; };
+  }),
   subscribeUserData: vi.fn((uid, handlers) => {
     store.handlers = handlers;
     for (const key of ['wallets', 'transactions', 'categories']) handlers[key](store.data[key] || []);
@@ -43,6 +48,7 @@ vi.mock('../../services/firestoreService', () => ({
       else store.data[key] = value;
     }
     for (const key of ['wallets', 'transactions', 'categories']) store.handlers?.[key](store.data[key] || []);
+    store.wishlistHandler?.(store.data.wishlistGroups || []);
   }),
 }));
 vi.mock('../../services/exportService', async importOriginal => ({
@@ -82,9 +88,39 @@ async function importBackup(data, mode) {
 }
 
 describe('Authenticated App backup integration (mocked cloud; no network writes)', () => {
+  it('blocks complete export until the current Wishlist snapshot arrives, then includes its embedded items', async () => {
+    store.data.wishlistGroups = structuredClone(demoBackup.data.wishlistGroups);
+    let receive;
+    api.subscribeWishlistGroups.mockImplementationOnce((_uid, onData) => { receive = onData; return vi.fn(); });
+    render(<App />);
+    await openSettings();
+    expect(screen.getByRole('button', { name: 'Ekspor', exact: true })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Ekspor', exact: true }));
+    expect(downloadJson).not.toHaveBeenCalled();
+    expect(screen.getByText(/Memuat wishlist untuk cadangan/)).toBeInTheDocument();
+    await act(async () => receive(store.data.wishlistGroups));
+    expect(screen.getByRole('button', { name: 'Ekspor', exact: true })).not.toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Ekspor', exact: true }));
+    expect(downloadJson.mock.calls[0][0].data.wishlistGroups).toEqual(store.data.wishlistGroups);
+  });
+  it('blocks complete export on listener failure and retries Wishlist sync without exporting an empty fallback', async () => {
+    store.data.wishlistGroups = structuredClone(demoBackup.data.wishlistGroups);
+    let fail;
+    api.subscribeWishlistGroups.mockImplementationOnce((_uid, _onData, onError) => { fail = onError; return vi.fn(); });
+    render(<App />);
+    await openSettings();
+    await act(async () => fail(new Error('permission-denied')));
+    expect(screen.getByRole('button', { name: 'Ekspor', exact: true })).toBeDisabled();
+    expect(screen.getByText(/Cadangan lengkap dan Append wishlist belum tersedia/)).toBeInTheDocument();
+    expect(downloadJson).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Coba Lagi Sinkronisasi Wishlist' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ekspor', exact: true })).not.toBeDisabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Ekspor', exact: true }));
+    expect(downloadJson.mock.calls[0][0].data.wishlistGroups).toEqual(store.data.wishlistGroups);
+  });
   it('replaces every menu, reloads cloud preferences, and exports the complete state again', async () => {
     render(<App />);
-    const data = structuredClone(demoBackup.data);
+    const data = normalizeBackupData(structuredClone(demoBackup.data));
     Object.assign(data.preferences, { darkMode: true, density: 'compact', radius: 'round', collapsed: true, yearMode: true });
     await importBackup(data, 'replace');
     expect(api.resetUserData).toHaveBeenCalledWith({ initializeDefaults: false });
@@ -128,6 +164,22 @@ describe('Authenticated App backup integration (mocked cloud; no network writes)
     expect(store.data.preferences).toEqual(originalPreferences);
     expect(store.data.fireSettings.currentAssets).toBe(42);
     for (const key of ['recurringItems', 'subscriptions', 'debts', 'investments', 'fixedAssets']) expect(store.data[key]).toEqual(demoBackup.data[key]);
+  });
+
+  it.each([
+    ['oversized UTF-8', '界'.repeat(501)],
+    ['reserved', '__reserved__'],
+    ['reserved multiline', '__a\nb__'],
+  ])('rejects %s Wishlist group document IDs before offering cloud restore', async (_label, invalidId) => {
+    const invalidGroup = structuredClone(demoBackup.data.wishlistGroups[0]);
+    invalidGroup.id = invalidId;
+    for (const item of invalidGroup.items) item.groupId = invalidId;
+    render(<App />);
+    await upload({ ...demoBackup.data, wishlistGroups: [invalidGroup] });
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Data tidak valid'));
+    expect(api.resetUserData).not.toHaveBeenCalled();
+    expect(api.migrateData).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: 'Impor Data' })).not.toBeInTheDocument();
   });
 
   it('rejects malformed optional data before deleting or writing cloud records', async () => {

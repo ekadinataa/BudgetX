@@ -186,6 +186,16 @@
       { "id": "demo-a-laptop", "name": "Laptop kerja", "category": "elektronik", "purchasePrice": 8000000, "currentValue": 7200000, "purchaseDate": "2026-08-18", "note": "Pembelian tercatat di transaksi Agustus — data demo", "createdAt": "2026-08-18" },
       { "id": "demo-a-motor", "name": "Sepeda motor", "category": "kendaraan", "purchasePrice": 18000000, "currentValue": 15000000, "purchaseDate": "2026-06-15", "note": "Aset yang sudah dimiliki sebelum periode demo", "createdAt": "2026-08-01" }
     ],
+    "wishlistGroups": [
+      {
+        "id": "demo-wishlist-workspace", "title": "Setup Ruang Kerja", "targetBudget": 4000000, "targetDate": "2026-12-31", "createdAt": "2026-10-01T08:00:00.000Z", "updatedAt": "2026-10-01T08:00:00.000Z",
+        "items": [
+          { "id": "demo-wish-monitor", "groupId": "demo-wishlist-workspace", "name": "Monitor", "price": 2000000, "marketplaceName": "Tokopedia", "productUrl": "", "priority": "high", "createdAt": "2026-10-01T08:00:00.000Z", "updatedAt": "2026-10-01T08:00:00.000Z" },
+          { "id": "demo-wish-chair", "groupId": "demo-wishlist-workspace", "name": "Kursi kerja", "price": 1200000, "marketplaceName": "Shopee", "productUrl": "", "priority": "high", "createdAt": "2026-10-01T08:01:00.000Z", "updatedAt": "2026-10-01T08:01:00.000Z" },
+          { "id": "demo-wish-lamp", "groupId": "demo-wishlist-workspace", "name": "Lampu meja", "price": 300000, "marketplaceName": "", "productUrl": "", "priority": "low", "createdAt": "2026-10-01T08:02:00.000Z", "updatedAt": "2026-10-01T08:02:00.000Z" }
+        ]
+      }
+    ],
     "preferences": {
       "darkMode": false, "cycleStart": 1, "salaryAdjust": false, "page": "dashboard", "periodMode": "month", "customRanges": [], "density": "standard", "radius": "soft", "collapsed": false, "yearMode": false
     },

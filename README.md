@@ -13,6 +13,7 @@
 | 💰 **Dompet** | Kelola banyak rekening (Bank, E-Wallet, Kredit, PayLater, Tunai) |
 | 📊 **Transaksi** | Catat pemasukan, pengeluaran, transfer dengan emoji kategori |
 | 📋 **Budget** | Alokasi anggaran 50/30/20 dengan 3 mode periode |
+| 📝 **Wishlist** | Kelompok rencana pembelian, target anggaran/tanggal, estimasi harga, catatan, dan prioritas; tanpa mengubah saldo/transaksi |
 | 📦 **Barang Berkala** | Track item periodik (skincare, shampo, dll) + biaya amortisasi |
 | 💳 **Utang/Piutang** | Cicilan dengan bunga anuitas + tabel amortisasi |
 | 📈 **Investasi** | Portfolio tracking (Deposito, Saham, Crypto, Emas, Reksadana, dll) |
@@ -53,7 +54,7 @@ Buka http://localhost:5173 — app berjalan full tanpa akun (data di localStorag
 ### Data demo siap impor
 
 [Unduh demo Agustus–Oktober 2026](https://budgetx.web.app/demo/budgetx-demo-agustus-oktober-2026.json)
-untuk mengisi semua menu. Pada akun khusus demo, buka **Pengaturan → Impor Cadangan → Pilih File**,
+untuk mencoba semua menu, termasuk contoh kelompok Wishlist. Pada akun khusus demo, buka **Pengaturan → Impor Cadangan → Pilih File**,
 lalu pilih **Ganti Semua (Replace)**. Panduan dan rincian dataset ada di [Data Demo](docs/DEMO_DATA.md).
 
 ### Dengan Firebase
@@ -140,6 +141,12 @@ BudgetX mendukung dark mode dan light mode dengan transisi yang smooth. Toggle d
 
 - **Desktop:** Sidebar navigation
 - **Mobile:** Bottom nav + FAB (+) + Hero card + Quick menu
+
+Wishlist tersedia di sidebar desktop dan **Pengaturan → Wishlist** pada mobile.
+Target Wishlist adalah batas biaya rencana, bukan tabungan atau alokasi Budget.
+Cadangan JSON dan `backup.json` dalam ZIP menyertakan kelompok beserta item;
+Replace mengganti seluruh Wishlist, Append melewati ID kelompok yang sudah ada.
+Cadangan lama tanpa Wishlist dipulihkan sebagai daftar kosong.
 
 ---
 

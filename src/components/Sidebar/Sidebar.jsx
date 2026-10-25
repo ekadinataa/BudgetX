@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { id: 'recurring', label: 'Berkala', icon: 'recurring' },
   { id: 'subscription', label: 'Langganan', icon: 'subscription' },
   { id: 'debt', label: 'Utang/Piutang', icon: 'debt' },
+  { id: 'wishlist', label: 'Wishlist', icon: 'wishlist' },
   { id: 'invest', label: 'Investasi', icon: 'invest' },
   { id: 'asset', label: 'Aset', icon: 'asset' },
   { id: 'report', label: 'Laporan', icon: 'report' },
@@ -24,7 +25,7 @@ const NAV_ITEMS = [
 
 const NAV_GROUPS = [
   { label: 'Ringkasan', items: ['dashboard', 'wallet', 'tx', 'budget'] },
-  { label: 'Komitmen', items: ['recurring', 'subscription', 'debt'] },
+  { label: 'Komitmen', items: ['recurring', 'subscription', 'debt', 'wishlist'] },
   { label: 'Aset', items: ['invest', 'asset'] },
   { label: 'Analisa', items: ['report', 'settings', 'help'] },
 ];

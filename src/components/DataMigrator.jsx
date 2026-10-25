@@ -32,6 +32,8 @@ export default function DataMigrator({ onComplete }) {
   const txCount = localData.transactions?.length || 0;
   const catCount = localData.categories?.length || 0;
   const budgetCount = localData.budgets ? Object.keys(localData.budgets).length : 0;
+  const wishlistGroups = localData.wishlistGroups || [];
+  const wishlistItemCount = wishlistGroups.reduce((count, group) => count + (group.items?.length || 0), 0);
 
   const handleMigrate = async () => {
     setMigrating(true);
@@ -42,6 +44,7 @@ export default function DataMigrator({ onComplete }) {
         transactions: localData.transactions || [],
         budgets: localData.budgets || {},
         categories: localData.categories || [],
+        wishlistGroups,
       });
       localStorage.removeItem(STORAGE_KEY);
       onComplete();
@@ -52,6 +55,8 @@ export default function DataMigrator({ onComplete }) {
   };
 
   const handleDecline = () => {
+    // Closing a pending migration must not destroy its recoverable source.
+    if (migrating) return;
     // Remove localStorage data so the prompt doesn't appear again
     localStorage.removeItem(STORAGE_KEY);
     onComplete();
@@ -77,6 +82,8 @@ export default function DataMigrator({ onComplete }) {
         <div>{txCount} transaksi</div>
         <div>{catCount} kategori</div>
         <div>{budgetCount} budget bulanan</div>
+        <div>{wishlistGroups.length} kelompok wishlist</div>
+        <div>{wishlistItemCount} item wishlist</div>
       </div>
 
       {error && (

@@ -19,6 +19,7 @@ BudgetX adalah aplikasi pengelola keuangan pribadi berbasis web yang dirancang k
 - 📈 Memantau portofolio investasi
 - 🔥 Merencanakan pensiun dini dengan FIRE Calculator
 - 📋 Melihat laporan keuangan visual
+- 📝 Mengelompokkan rencana pembelian dengan target anggaran dan tanggal di Wishlist
 
 ### Cara Akses
 
@@ -65,6 +66,7 @@ Jika kamu tidak ingin membuat akun, aplikasi tetap bisa digunakan sepenuhnya. Da
 - Bottom navigation bar di bawah layar (Dashboard, Transaksi, +, Laporan, Pengaturan)
 - Tombol **"+"** (FAB) di tengah untuk tambah transaksi cepat
 - Tap avatar/ikon di pojok kanan atas untuk menu tambahan (Dompet, Budget, Berkala, Utang, Investasi)
+- Untuk Wishlist, buka **Pengaturan → Wishlist**. Di desktop, gunakan menu **Wishlist** pada sidebar.
 
 ---
 
@@ -653,6 +655,47 @@ Performa per bagian (Kebutuhan/Keinginan/Tabungan):
 
 ## 13. Pengaturan
 
+### Wishlist: merencanakan pembelian tanpa mengubah saldo
+
+1. Buka **Wishlist** (sidebar desktop atau **Pengaturan → Wishlist** pada handphone).
+2. Pilih **Buat Wishlist**, isi **Judul wishlist**, **Target dana (Rp)**, dan
+   **Tanggal target** di bagian **Jadwal target**, lalu **Simpan Wishlist**.
+   Popup kelompok baru terbuka dengan total Rp0.
+3. Pilih **Tambah Item**. Isi nama, **Harga (Rp)**, **Urgensi / prioritas**
+   Tinggi/Sedang/Rendah, serta **Catatan (opsional)**, lalu **Simpan Item**.
+   Catatan bisa beberapa baris, maksimal 1000 karakter, dan tampil di detail item.
+4. Klik kartu kelompok untuk melihat seluruh item, total harga dan sisa anggaran.
+   Bar membandingkan harga item dengan target, bukan dana terkumpul. Jika total
+   melebihi target, nominal **Melebihi Anggaran** ditampilkan; rencana tetap boleh
+   disimpan. Harga diisi manual, bukan diambil dari marketplace.
+5. Gunakan **Edit Wishlist** atau **Hapus** pada footer popup detail untuk aksi
+   kelompok. Total harga tetap terlihat saat daftar item digulir. Tombol edit/hapus
+   item berada di baris item. Penghapusan membutuhkan konfirmasi; hapus kelompok
+   menghapus seluruh item di dalamnya.
+6. Saat **Edit Wishlist**, tanggal tetap disimpan meski **Jadwal target** tertutup.
+   Buka bagian itu untuk mengubah tanggal, lalu pilih **Simpan Perubahan**.
+
+Halaman utama menampilkan tiga ringkasan: **Kelompok Wishlist**, **Target Dana**
+(total target seluruh kelompok), dan **Total Harga Item** (estimasi seluruh item).
+Kartu kelompok menampilkan judul, jumlah item, total harga, dan target dana;
+seluruh kartu dapat diklik atau dibuka dengan keyboard. Tanggal target dan
+selisih anggaran tetap tersedia di popup detail.
+
+Target Anggaran adalah batas biaya rencana, **bukan dana terkumpul/tabungan**.
+Wishlist tidak memilih dompet, tidak mencatat transaksi, dan tidak memengaruhi
+Budget, Laporan, aset/net worth, health score, atau FIRE. Catatan tampil sebagai
+teks biasa, bukan HTML atau tautan aktif. Tanggal lampau boleh dimasukkan dan
+ditandai **Lewat Target**, hari ini **Target Hari Ini**; tidak ada pengeluaran
+otomatis atau reminder. Item diurutkan dari prioritas tinggi ke rendah.
+
+Nama/judul/catatan maksimal 1000 karakter. Harga dan anggaran wajib rupiah
+bulat positif; angka/total yang terlalu besar untuk dihitung akurat ditolak.
+Data lama dengan referensi marketplace tetap kompatibel dalam cadangan, tetapi
+field marketplace/tautan tidak lagi ditampilkan. Bila gagal simpan, input tetap
+tersedia untuk dicoba lagi.
+Bila gagal sinkronisasi Wishlist, gunakan **Coba Lagi** pada halaman tersebut;
+menu keuangan lain tetap dapat digunakan.
+
 ### 13.1 Export Data
 
 **Format JSON:**
@@ -661,7 +704,8 @@ Performa per bagian (Kebutuhan/Keinginan/Tabungan):
 3. File `.json` otomatis terdownload
 
 Cadangan mencakup dompet, transaksi, anggaran, kategori, barang berkala,
-langganan, utang/piutang, investasi, aset tetap, preferensi tampilan/periode,
+langganan, utang/piutang, investasi, aset tetap, kelompok Wishlist beserta item,
+target dan referensinya, preferensi tampilan/periode,
 dan setelan FIRE, termasuk riwayat pembayaran dan pembelian.
 
 **Format CSV:**
@@ -681,6 +725,18 @@ dan setelan FIRE, termasuk riwayat pembayaran dan pembelian.
 
 Cadangan JSON v1 dan ZIP CSV-only lama tetap didukung. Saldo akhir dompet
 dipulihkan apa adanya; transaksi cadangan tidak diterapkan ulang ke saldo.
+
+Wishlist ikut dalam JSON dan `backup.json` pada ZIP (tanpa CSV Wishlist terpisah).
+Replace mengganti seluruh Wishlist; cadangan lama tanpa Wishlist membuatnya
+kosong. Append melewati kelompok dengan ID yang sudah ada, bukan mengganti item
+kelompok tersebut. Migrasi lokal ke akun juga menyertakan kelompok/item;
+data lokal tetap tersedia bila migrasi gagal. Reset data mencakup Wishlist.
+
+Pada akun cloud, ekspor cadangan lengkap dan Append menunggu sinkronisasi
+Wishlist berhasil. Bila masih memuat atau gagal, data belum dianggap kosong;
+lihat status di Pengaturan dan pilih **Coba Lagi Sinkronisasi Wishlist** bila
+tersedia. Append tidak menimpa kelompok yang sudah ada, termasuk kelompok
+yang baru muncul dari perangkat lain saat impor berlangsung.
 
 Untuk mencoba semua menu, unduh [data demo Agustus–Oktober 2026](https://budgetx.web.app/demo/budgetx-demo-agustus-oktober-2026.json)
 dan ikuti [panduan akun demo](DEMO_DATA.md).

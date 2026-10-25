@@ -1,5 +1,6 @@
 import {
   Home,
+  ListChecks,
   Receipt,
   Wallet,
   PieChart,
@@ -51,6 +52,7 @@ export default function NavIcon({ name, size = 20, ...rest }) {
 
   const icons = {
     dashboard: <Home {...props} />,
+    wishlist: <ListChecks {...props} />,
     wallet: <Wallet {...props} />,
     tx: <Receipt {...props} />,
     budget: <PieChart {...props} />,

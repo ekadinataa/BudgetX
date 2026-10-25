@@ -33,6 +33,7 @@ const TITLES = {
   recurring: 'Langganan Rutin',
   subscription: 'Subscription',
   debt: 'Utang & Piutang',
+  wishlist: 'Wishlist',
   invest: 'Investasi',
   asset: 'Aset Tetap',
   report: 'Laporan',
@@ -78,7 +79,7 @@ export default function Topbar({ page, onAddTx, user, actions }) {
             callers that already hold the node. */}
         <span id={PAGE_ACTIONS_ID} className="topbarActionsSlot" />
         {actions}
-        {onAddTx && (
+        {onAddTx && page !== 'wishlist' && (
           <button
             className="iconBtn"
             type="button"

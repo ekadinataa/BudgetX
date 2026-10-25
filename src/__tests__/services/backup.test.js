@@ -17,6 +17,7 @@ function makeData() {
     debts: [{ id: 'd1', type: 'utang', personName: 'Orang Demo', totalAmount: 500000, remainingAmount: 400000, walletId: 'w1', status: 'active', payments: [{ amount: 100000, principalPart: 100000, date: '2026-09-01', transactionId: 't1' }] }],
     investments: [{ id: 'i1', name: 'Emas Demo', assetType: 'emas', currentValue: 1100000, transactions: [{ id: 'it1', type: 'buy', date: '2026-08-01', units: 1, pricePerUnit: 1000000, totalAmount: 1000000, walletId: 'w1', walletTxId: 't1' }] }],
     fixedAssets: [{ id: 'a1', name: 'Laptop Demo', category: 'elektronik', purchasePrice: 5000000, currentValue: 4000000 }],
+    wishlistGroups: [{ id: 'g1', title: 'Ruang kerja', targetBudget: 4000000, targetDate: '2026-12-31', createdAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z', items: [{ id: 'wish-monitor', groupId: 'g1', name: 'Monitor', price: 2000000, marketplaceName: 'Tokopedia', productUrl: 'https://example.com/monitor', priority: 'high', createdAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z' }] }],
     preferences: { ...DEFAULT_BACKUP_PREFERENCES, darkMode: true, cycleStart: 25, salaryAdjust: true, density: 'compact', radius: 'round', collapsed: true, yearMode: true, periodMode: 'range', customRanges: [{ id: 'range1', start: '2026-08-01', end: '2026-10-31' }] },
     fireSettings: { ...DEFAULT_FIRE_SETTINGS, currentAge: 30, currentAssets: 1100000, allocation: { pokok: 50, hiburan: 15, fire: 30, emas: 5 } },
   };
@@ -56,7 +57,7 @@ describe('Complete JSON backups', () => {
   it.each(BACKUP_ARRAY_KEYS)('rejects duplicate IDs in %s before a destructive restore', key => {
     const data = makeData();
     data[key].push({ ...data[key][0] });
-    expect(validateEntities(data)).toMatchObject({ valid: false, errors: [expect.stringContaining('ID duplikat')] });
+    expect(validateEntities(data)).toMatchObject({ valid: false, errors: expect.arrayContaining([expect.stringContaining('ID duplikat')]) });
   });
 
   it.each(BACKUP_EXTRA_KEYS)('rejects non-array optional data in %s', key => {
@@ -108,7 +109,7 @@ describe('Append backups', () => {
     existing.wallets = [{ ...incoming.wallets[0], balance: 123 }];
     const { toAdd, counts } = computeAppend(incoming, existing);
     expect(toAdd.wallets).toEqual([]);
-    expect(counts).toEqual({ added: 8, skipped: 1 });
+    expect(counts).toEqual({ added: BACKUP_ARRAY_KEYS.length, skipped: 1 });
     for (const key of BACKUP_EXTRA_KEYS) expect(toAdd[key]).toEqual(incoming[key]);
     expect(toAdd).not.toHaveProperty('preferences');
     expect(toAdd).not.toHaveProperty('fireSettings');
@@ -118,7 +119,7 @@ describe('Append backups', () => {
   it('is idempotent for every menu when importing the same file twice', () => {
     const data = makeData();
     const { toAdd, counts } = computeAppend(data, data);
-    expect(counts).toEqual({ added: 0, skipped: 9 });
+    expect(counts).toEqual({ added: 0, skipped: BACKUP_ARRAY_KEYS.length + 1 });
     for (const key of BACKUP_ARRAY_KEYS) expect(toAdd[key]).toEqual([]);
     expect(toAdd.budgets).toEqual({});
   });

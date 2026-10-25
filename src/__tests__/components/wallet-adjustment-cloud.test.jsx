@@ -6,6 +6,7 @@ vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: state.user
 vi.mock('firebase/firestore', () => ({ doc: vi.fn(), getDoc: vi.fn(async () => ({ exists: () => false })), setDoc: vi.fn() }));
 vi.mock('../../services/firestoreService', () => ({
   initUser: vi.fn(async () => {}),
+  subscribeWishlistGroups: vi.fn((uid, onData) => { onData([]); return vi.fn(); }),
   subscribeUserData: vi.fn((uid, handlers) => { state.listeners.push(handlers); return vi.fn(); }),
   getBudgets: vi.fn(async () => ({})), getPreferences: vi.fn(async () => ({ page: 'wallet' })),
   getRecurringItems: vi.fn(async () => []), getDebts: vi.fn(async () => []), getInvestments: vi.fn(async () => []),

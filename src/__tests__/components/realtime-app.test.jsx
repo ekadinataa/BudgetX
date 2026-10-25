@@ -7,6 +7,7 @@ vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: state.user
 vi.mock('firebase/firestore', () => ({ doc: vi.fn(), getDoc: vi.fn(async () => ({ exists: () => false })), setDoc: vi.fn() }));
 vi.mock('../../services/firestoreService', () => ({
   initUser: vi.fn(async () => {}),
+  subscribeWishlistGroups: vi.fn((uid, onData) => { onData([]); return vi.fn(); }),
   subscribeUserData: vi.fn((uid, handlers, error) => {
     const stop = vi.fn();
     state.listeners.push({ uid, handlers, error, stop });

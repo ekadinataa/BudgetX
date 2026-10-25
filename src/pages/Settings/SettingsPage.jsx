@@ -63,6 +63,10 @@ export default function SettingsPage({
   debts = [],
   investments = [],
   fixedAssets = [],
+  wishlistGroups = [],
+  wishlistLoading = false,
+  wishlistError = '',
+  onRetryWishlist,
   fireSettings,
   onImportData,
   showToast,
@@ -108,9 +112,13 @@ export default function SettingsPage({
 
   // ── Export handler ─────────────────────────────────────────────────
   const handleExport = async () => {
+    if (wishlistLoading || wishlistError) {
+      showToast?.('Tunggu sinkronisasi wishlist berhasil sebelum membuat cadangan lengkap.');
+      return;
+    }
     setExporting(true);
     try {
-      const data = normalizeBackupData({ wallets, transactions, budgets, categories, preferences, recurringItems, subscriptions, debts, investments, fixedAssets, fireSettings });
+      const data = normalizeBackupData({ wallets, transactions, budgets, categories, preferences, recurringItems, subscriptions, debts, investments, fixedAssets, wishlistGroups, fireSettings });
       if (exportFormat === 'json') {
         const budgetkuJson = buildBudgetXJson(data);
         downloadJson(budgetkuJson);
@@ -576,6 +584,14 @@ export default function SettingsPage({
             >
               🔥 Kalkulator FIRE
             </button>
+            <button
+              type="button"
+              className="btnPrimary"
+              onClick={() => setPage('wishlist')}
+              style={{ marginLeft: 8, marginBottom: 8 }}
+            >
+              <NavIcon name="wishlist" size={16} /> Wishlist
+            </button>
           </div>
         )}
 
@@ -586,6 +602,9 @@ export default function SettingsPage({
             Unduh cadangan lengkap semua menu, termasuk preferensi dan setelan FIRE.
             ZIP berisi tabel CSV dan cadangan JSON lengkap.
           </p>
+
+          {wishlistLoading && <p className="settingsDesc" role="status">Memuat wishlist untuk cadangan lengkap. Ekspor dan Append wishlist menunggu sinkronisasi.</p>}
+          {wishlistError && <div className="errorBox" role="alert"><p>{wishlistError} Cadangan lengkap dan Append wishlist belum tersedia.</p>{onRetryWishlist && <button type="button" className="btnGhost" onClick={onRetryWishlist}>Coba Lagi Sinkronisasi Wishlist</button>}</div>}
 
           {/* Format selector */}
           <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
@@ -632,7 +651,7 @@ export default function SettingsPage({
           <button
             className="btnPrimary"
             onClick={handleExport}
-            disabled={exporting}
+            disabled={exporting || wishlistLoading || Boolean(wishlistError)}
             style={{ opacity: exporting ? 0.6 : 1, cursor: exporting ? 'not-allowed' : 'pointer' }}
           >
             {exporting ? (

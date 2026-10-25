@@ -32,6 +32,7 @@ serta setelan FIRE. Menggabungkan file yang sama lagi tidak membuat duplikat.
 | Utang/piutang | 2 catatan aktif beserta riwayat pembayaran |
 | Investasi | 2: reksa dana dan emas, dengan transaksi pembelian tertaut |
 | Aset tetap | 2: laptop kerja dan sepeda motor |
+| Wishlist | Setup Ruang Kerja: 3 item, estimasi Rp3,5 juta, target Rp4 juta pada 31 Desember 2026; tanpa efek saldo/transaksi |
 | FIRE | Usia 28, target 45, pemasukan Rp12 juta, pengeluaran Rp6 juta, aset investasi Rp4,63 juta |
 | Tampilan | Terang, kerapatan standar, sudut lembut, periode bulanan |
 

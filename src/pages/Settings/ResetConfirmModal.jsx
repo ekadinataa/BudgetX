@@ -68,6 +68,7 @@ export default function ResetConfirmModal({ onConfirm, onClose }) {
         <li>Transaksi (transactions)</li>
         <li>Anggaran (budgets)</li>
         <li>Kategori (categories)</li>
+        <li>Kelompok wishlist beserta seluruh itemnya</li>
         <li>Preferensi (preferences)</li>
       </ul>
 

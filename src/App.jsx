@@ -14,6 +14,7 @@ import DebtPage from './pages/Debt/DebtPage';
 import InvestmentPage from './pages/Investment/InvestmentPage';
 import AssetPage from './pages/Asset/AssetPage';
 import SubscriptionPage from './pages/Subscription/SubscriptionPage';
+import WishlistPage from './pages/Wishlist/WishlistPage';
 import ReportsPage from './pages/Reports/ReportsPage';
 import SettingsPage from './pages/Settings/SettingsPage';
 import FirePage from './pages/Fire/FirePage';
@@ -38,6 +39,8 @@ import { normalizeBackupData } from './utils/backupHelpers';
 import { isCategoryOnlyChange } from './utils/transactionEdits';
 import { buildWalletAdjustment } from './utils/walletAdjustment';
 import { validateWallet } from './services/validator';
+import { validateWishlistGroup } from './services/wishlistValidator';
+import { prepareWishlistGroup, prepareWishlistItem } from './utils/wishlistHelpers';
 import './App.css';
 
 // Detect if Firebase is configured — if not, run in local-only mode
@@ -70,6 +73,7 @@ const PAGE_MEASURE = {
   invest: 'pageWide',
   recurring: 'pageWide',
   subscription: 'pageWide',
+  wishlist: 'pageWide',
 };
 
 function App() {
@@ -112,6 +116,8 @@ function App() {
   const [investments, setInvestments] = useState(savedLocal?.investments || []);
   const [fixedAssets, setFixedAssets] = useState(savedLocal?.fixedAssets || []);
   const [subscriptions, setSubscriptions] = useState(savedLocal?.subscriptions || []);
+  const [wishlistGroups, setWishlistGroups] = useState(savedLocal?.wishlistGroups || []);
+  const localWishlistRef = useRef(savedLocal?.wishlistGroups || []);
   const [fireSettings, setFireSettings] = useState(savedLocal?.fireSettings || DEFAULT_FIRE_SETTINGS);
 
   // Loading & error states
@@ -139,9 +145,9 @@ function App() {
   useEffect(() => {
     if (!IS_LOCAL_MODE) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      page, wallets, transactions, budgets, categories, darkMode, density, radius, collapsed, yearMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, subscriptions, fireSettings,
+      page, wallets, transactions, budgets, categories, darkMode, density, radius, collapsed, yearMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, subscriptions, wishlistGroups, fireSettings,
     }));
-  }, [page, wallets, transactions, budgets, categories, darkMode, density, radius, collapsed, yearMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, subscriptions, fireSettings]);
+  }, [page, wallets, transactions, budgets, categories, darkMode, density, radius, collapsed, yearMode, cycleStart, salaryAdjust, periodMode, customRanges, recurringItems, debts, investments, fixedAssets, subscriptions, wishlistGroups, fireSettings]);
 
   // Show toast notification
   const showToast = useCallback((msg) => {
@@ -153,7 +159,12 @@ function App() {
   const fetchVersion = useRef(0);
   const [loadedUid, setLoadedUid] = useState(null);
   const [listenerRetry, setListenerRetry] = useState(0);
+  const [wishlistStatus, setWishlistStatus] = useState({ uid: null, loading: !IS_LOCAL_MODE, error: '' });
+  const [wishlistRetry, setWishlistRetry] = useState(0);
   const uid = user?.uid;
+  const wishlistReady = IS_LOCAL_MODE || (
+    wishlistStatus.uid === uid && !wishlistStatus.loading && !wishlistStatus.error
+  );
 
   // Only ancillary data is fetched; subscribed collections never accept stale reads.
   const fetchAllData = useCallback(async ({ initializeDefaults = true } = {}) => {
@@ -272,6 +283,31 @@ function App() {
       unsubscribe();
     };
   }, [uid, authLoading, showMigrator, fetchAllData, showToast, listenerRetry]);
+
+  // Independent listener: Wishlist failures must never block financial readiness.
+  useEffect(() => {
+    if (IS_LOCAL_MODE) return;
+    let active = true;
+    const current = () => active && firebaseAuth?.currentUser?.uid === uid;
+    // External auth/session changes invalidate the previous account's display.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWishlistGroups([]);
+    setWishlistStatus({ uid, loading: Boolean(uid), error: '' });
+    if (!uid || authLoading || showMigrator) return;
+    const onData = groups => {
+      if (!current()) return;
+      setWishlistGroups(groups);
+      setWishlistStatus({ uid, loading: false, error: '' });
+    };
+    const onError = () => {
+      if (!current()) return;
+      setWishlistStatus({ uid, loading: false, error: 'Gagal memuat wishlist. Periksa koneksi Anda.' });
+    };
+    let unsubscribe = () => {};
+    try { unsubscribe = api.subscribeWishlistGroups(uid, onData, onError); }
+    catch { onError(); }
+    return () => { active = false; unsubscribe(); };
+  }, [uid, authLoading, showMigrator, wishlistRetry]);
 
   // Save preferences to API when they change (debounced via user interaction)
   const savePreferences = useCallback(async (prefs) => {
@@ -410,6 +446,62 @@ function App() {
   }
 
   // ── Helpers for API-backed state updates ───────────────────────────
+
+  // Wishlist is planning data only: never call wallet/transaction handlers.
+  const handleCreateWishlistGroup = async (data) => {
+    if (!IS_LOCAL_MODE) return api.createWishlistGroup(data);
+    const created = prepareWishlistGroup({ ...data, id: crypto.randomUUID() });
+    localWishlistRef.current = [...localWishlistRef.current, created];
+    setWishlistGroups(localWishlistRef.current);
+    return created;
+  };
+
+  const saveLocalWishlistGroup = (updated) => {
+    const error = validateWishlistGroup(updated);
+    if (error) throw new Error(error);
+    localWishlistRef.current = localWishlistRef.current.map(group => group.id === updated.id ? updated : group);
+    setWishlistGroups(localWishlistRef.current);
+    return updated;
+  };
+  const requireLocalWishlistGroup = (id) => {
+    const group = localWishlistRef.current.find(group => group.id === id);
+    if (!group) throw new Error('Wishlist tidak ditemukan.');
+    return group;
+  };
+  const handleUpdateWishlistGroup = async (id, data) => {
+    if (!IS_LOCAL_MODE) return api.updateWishlistGroup(id, data);
+    const group = requireLocalWishlistGroup(id);
+    return saveLocalWishlistGroup(prepareWishlistGroup(data, group));
+  };
+  const handleCreateWishlistItem = async (groupId, data) => {
+    if (!IS_LOCAL_MODE) return api.createWishlistItem(groupId, data);
+    const group = requireLocalWishlistGroup(groupId);
+    const created = prepareWishlistItem({ ...data, id: crypto.randomUUID() }, groupId);
+    saveLocalWishlistGroup({ ...group, items: [...group.items, created], updatedAt: created.updatedAt });
+    return created;
+  };
+  const handleUpdateWishlistItem = async (groupId, itemId, data) => {
+    if (!IS_LOCAL_MODE) return api.updateWishlistItem(groupId, itemId, data);
+    const group = requireLocalWishlistGroup(groupId);
+    const previous = group.items.find(item => item.id === itemId);
+    if (!previous) throw new Error('Item wishlist tidak ditemukan.');
+    const updated = prepareWishlistItem(data, groupId, previous);
+    saveLocalWishlistGroup({ ...group, items: group.items.map(item => item.id === itemId ? updated : item), updatedAt: updated.updatedAt });
+    return updated;
+  };
+
+  const handleDeleteWishlistItem = async (groupId, itemId) => {
+    if (!IS_LOCAL_MODE) return api.deleteWishlistItem(groupId, itemId);
+    const group = requireLocalWishlistGroup(groupId);
+    if (!group.items.some(item => item.id === itemId)) throw new Error('Item wishlist tidak ditemukan.');
+    saveLocalWishlistGroup({ ...group, items: group.items.filter(item => item.id !== itemId), updatedAt: new Date().toISOString() });
+  };
+  const handleDeleteWishlistGroup = async (id) => {
+    if (!IS_LOCAL_MODE) return api.deleteWishlistGroup(id);
+    requireLocalWishlistGroup(id);
+    localWishlistRef.current = localWishlistRef.current.filter(group => group.id !== id);
+    setWishlistGroups(localWishlistRef.current);
+  };
 
   /** Create a wallet via API (or locally) and update local state */
   const handleCreateWallet = async (data) => {
@@ -1205,8 +1297,14 @@ function App() {
 
   /** Reset all user data, reload defaults, and navigate to dashboard */
   const handleResetData = async () => {
-    await api.resetUserData();
-    await fetchAllData();
+    if (IS_LOCAL_MODE) {
+      // The local reset uses the same complete replacement contract, with empty
+      // records and default categories/preferences; it must not contact Firebase.
+      await handleImportData({ categories: CATEGORIES }, 'replace');
+    } else {
+      await api.resetUserData();
+      await fetchAllData();
+    }
     setPage('dashboard');
     showToast('Data berhasil direset.');
   };
@@ -1307,6 +1405,8 @@ function App() {
         setDebts(data.debts);
         setInvestments(data.investments);
         setFixedAssets(data.fixedAssets);
+        localWishlistRef.current = data.wishlistGroups;
+        setWishlistGroups(data.wishlistGroups);
         setFireSettings(data.fireSettings);
         const prefs = data.preferences;
         setDarkMode(prefs.darkMode);
@@ -1336,8 +1436,9 @@ function App() {
         }
       }
     } else {
-      // Append mode
-      const existingData = { wallets, transactions, budgets, categories, recurringItems, subscriptions, debts, investments, fixedAssets };
+      // Append must deduplicate against a successful snapshot for this UID.
+      if (!wishlistReady) throw new Error('Tunggu sinkronisasi wishlist berhasil sebelum Append cadangan.');
+      const existingData = { wallets, transactions, budgets, categories, recurringItems, subscriptions, debts, investments, fixedAssets, wishlistGroups };
       const { toAdd, counts } = computeAppend(importData, existingData);
 
       if (IS_LOCAL_MODE) {
@@ -1350,13 +1451,16 @@ function App() {
         setDebts((items) => [...items, ...(toAdd.debts || [])]);
         setInvestments((items) => [...items, ...(toAdd.investments || [])]);
         setFixedAssets((items) => [...items, ...(toAdd.fixedAssets || [])]);
+        localWishlistRef.current = [...localWishlistRef.current, ...(toAdd.wishlistGroups || [])];
+        setWishlistGroups(localWishlistRef.current);
         return counts;
       } else {
         // Authenticated mode: migrate only new items, then refresh
         try {
-          await api.migrateData(toAdd);
+          const result = await api.migrateData(toAdd, { appendWishlist: true });
           await fetchAllData();
-          return counts;
+          const concurrentSkips = result?.wishlistSkipped || 0;
+          return { added: counts.added - concurrentSkips, skipped: counts.skipped + concurrentSkips };
         } catch (err) {
           await fetchAllData();
           throw err;
@@ -1395,6 +1499,21 @@ function App() {
 
   function renderPage() {
     switch (page) {
+      case 'wishlist':
+        return (
+          <WishlistPage
+            wishlistGroups={IS_LOCAL_MODE || wishlistStatus.uid === uid ? wishlistGroups : []}
+            loading={!IS_LOCAL_MODE && (wishlistStatus.uid !== uid || wishlistStatus.loading)}
+            error={IS_LOCAL_MODE || wishlistStatus.uid !== uid ? '' : wishlistStatus.error}
+            onRetry={() => setWishlistRetry(retry => retry + 1)}
+            onCreateGroup={handleCreateWishlistGroup}
+            onUpdateGroup={handleUpdateWishlistGroup}
+            onDeleteGroup={handleDeleteWishlistGroup}
+            onCreateItem={handleCreateWishlistItem}
+            onUpdateItem={handleUpdateWishlistItem}
+            onDeleteItem={handleDeleteWishlistItem}
+          />
+        );
       case 'dashboard':
         return (
           <Dashboard
@@ -1557,7 +1676,11 @@ function App() {
             investments={investments}
             fixedAssets={fixedAssets}
             fireSettings={fireSettings}
+            wishlistGroups={IS_LOCAL_MODE || wishlistStatus.uid === uid ? wishlistGroups : []}
             preferences={{ darkMode, cycleStart, salaryAdjust, page, periodMode, customRanges, density, radius, collapsed, yearMode }}
+            wishlistLoading={!IS_LOCAL_MODE && (wishlistStatus.uid !== uid || wishlistStatus.loading)}
+            wishlistError={IS_LOCAL_MODE || wishlistStatus.uid !== uid ? '' : wishlistStatus.error}
+            onRetryWishlist={() => setWishlistRetry(retry => retry + 1)}
             onImportData={handleImportData}
             showToast={showToast}
             onCreateCategory={handleCreateCategory}

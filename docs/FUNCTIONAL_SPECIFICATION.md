@@ -396,6 +396,51 @@ Tiga skenario (Optimis +2%, Moderat, Pesimis −2%) ditampilkan sebagai line cha
 
 ---
 
+### 4.15 Wishlist berkelompok
+
+Wishlist adalah rencana pembelian independen, bukan tabungan, transaksi, atau
+alokasi Budget. Aksi Wishlist tidak memengaruhi saldo, laporan, net worth,
+health score, atau FIRE.
+
+- Buat/edit/hapus kelompok dengan judul, target anggaran, dan tanggal target.
+- Judul wajib, di-trim, maksimal 1000 karakter; anggaran rupiah bulat positif
+  dalam rentang safe integer; tanggal kalender valid YYYY-MM-DD (lampau boleh).
+- Halaman utama: tiga kartu ringkasan jumlah kelompok, jumlah target dana, dan
+  total harga seluruh item. Kartu kelompok ringkas menampilkan judul, jumlah item,
+  total harga/target dana, dan chevron; seluruh kartu membuka detail. Grid desktop
+  tiga kolom tetap (satu kelompok tidak melebar), dua kolom di layar menengah,
+  satu kolom mobile. Edit/hapus kelompok tersedia di footer popup detail.
+- Popup detail: ringkasan total harga/target dana dua kolom, bar perbandingan harga
+  terhadap target (bukan dana terkumpul), sisa atau kelebihan, daftar item dan
+  tombol Tambah Item. Footer total/aksi kelompok tetap terlihat saat scroll;
+  ongkir belum termasuk estimasi. Melebihi anggaran tetap diperbolehkan.
+- Edit Item: konteks nama kelompok, field nama, pasangan harga/prioritas (dua kolom
+  desktop, satu kolom mobile), Catatan (opsional) berupa textarea; Simpan Item.
+- Edit Wishlist: judul dan target dana sebagai field utama; tanggal tetap wajib dan
+  tersimpan dalam Jadwal target yang awalnya tertutup saat edit, terbuka saat buat.
+  Simpan Perubahan tidak mengubah tanggal atau item jika field itu tidak diedit.
+- Item berisi nama, harga estimasi manual, catatan opsional, dan prioritas
+  Tinggi/Sedang/Rendah (default Sedang). Nama/catatan maksimal 1000 karakter.
+  Catatan multiline ditampilkan sebagai teks biasa, tanpa HTML/tautan aktif.
+  Harga dan total kumulatif safe integer. Catatan kosong/missing diperbolehkan.
+  Referensi marketplace/URL legacy tetap divalidasi dan dipertahankan di data
+  serta backup; tidak ditampilkan atau dikonversi otomatis menjadi catatan.
+- Prioritas diurutkan Tinggi → Sedang → Rendah, lalu item paling awal dibuat.
+- Edit item/kelompok mempertahankan ID, createdAt, dan kelompok induk; edit
+  kelompok tidak mengganti item. Hapus kelompok menghapus seluruh item anaknya.
+- Target Hari Ini/Lewat Target berdasarkan tanggal lokal; tidak membuat reminder
+  atau transaksi. Tidak ada scraping atau pembaruan harga otomatis.
+- Kegagalan simpan mempertahankan input; data cloud mengikuti snapshot tanpa
+  append optimistis. Loading/error Wishlist tidak memblokir menu keuangan.
+- Lokal/cloud, JSON dan backup.json dalam ZIP, Replace, Append berdasarkan ID
+  kelompok, reset, serta migrasi lokal mendukung seluruh item embedded.
+  Backup lama tanpa Wishlist menjadi kosong; import invalid ditolak sebelum write.
+- Ekspor lengkap dan Append cloud menunggu snapshot Wishlist terkonfirmasi untuk
+  UID aktif; loading/error/retry tersedia di Pengaturan. Append Wishlist bersifat
+  create-only, termasuk ketika ID kelompok muncul bersamaan dari perangkat lain.
+
+---
+
 ## 5. Navigasi & Routing
 
 Aplikasi menggunakan state-based navigation (tanpa React Router). Halaman ditentukan oleh nilai variabel `page`:
@@ -406,6 +451,7 @@ Aplikasi menggunakan state-based navigation (tanpa React Router). Halaman ditent
 | `wallet` | Dompet | Wallet |
 | `tx` | Transaksi | Transaction |
 | `budget` | Budget | Budget |
+| `wishlist` | Wishlist | ListChecks |
 | `recurring` | Berkala | Recurring |
 | `subscription` | Langganan | Subscription |
 | `debt` | Utang/Piutang | Debt |
@@ -415,6 +461,9 @@ Aplikasi menggunakan state-based navigation (tanpa React Router). Halaman ditent
 | `fire` | FIRE Calculator | Fire |
 | `settings` | Pengaturan | Settings |
 | `help` | Bantuan | Help |
+
+Desktop menyediakan Wishlist di sidebar. Mobile menggunakan shortcut terlihat
+**Pengaturan → Wishlist**, tanpa mengganti tab utama atau FAB transaksi.
 
 **Auth Routes (saat belum login):**
 
@@ -480,6 +529,7 @@ users/{userId}/
   fixedAssets/{assetId}
   subscriptions/{subscriptionId}
   recurringItems/{itemId}
+  wishlistGroups/{groupId}  # items embedded dalam dokumen kelompok
   preferences/prefs
 ```
 

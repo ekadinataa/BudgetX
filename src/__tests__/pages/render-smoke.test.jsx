@@ -70,6 +70,7 @@ const PAGES = [
   ['budget', 'Budget', '../../pages/Budget/BudgetPage.jsx', 'budgets'],
   ['recurring', 'Berkala', '../../pages/Recurring/RecurringPage.jsx', 'recurringItems'],
   ['subscription', 'Langganan', '../../pages/Subscription/SubscriptionPage.jsx', 'subscriptions'],
+  ['wishlist', 'Wishlist', '../../pages/Wishlist/WishlistPage.jsx', 'wishlistGroups'],
   ['debt', 'Utang & Piutang', '../../pages/Debt/DebtPage.jsx', 'debts'],
   ['invest', 'Investasi', '../../pages/Investment/InvestmentPage.jsx', 'investments'],
   ['asset', 'Aset Tetap', '../../pages/Asset/AssetPage.jsx', 'fixedAssets'],
@@ -82,6 +83,7 @@ const PAGES = [
 /** Props every page can receive; `dataKey` is swapped per data shape. */
 function propsFor(dataKey, populated) {
   const data = {
+    wishlistGroups: populated ? [{ id: 'wish-smoke', title: 'Setup Ruang Kerja', targetBudget: 4000000, targetDate: '2026-12-31', createdAt: '2026-10-12T00:00:00.000Z', updatedAt: '2026-10-12T00:00:00.000Z', items: [{ id: 'wish-item', groupId: 'wish-smoke', name: 'Monitor', price: 2000000, marketplaceName: 'Tokopedia', productUrl: 'https://example.com/monitor', priority: 'high', createdAt: '2026-10-12T00:00:00.000Z', updatedAt: '2026-10-12T00:00:00.000Z' }] }] : [],
     wallets: populated ? WALLETS : [],
     transactions: populated ? TRANSACTIONS : [],
     categories: CATEGORIES,

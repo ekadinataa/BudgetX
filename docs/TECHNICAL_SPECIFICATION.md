@@ -206,6 +206,8 @@ Tidak ada library state management. Seluruh state global disimpan sebagai `useSt
 | `fixedAssets` | array | Aset tetap |
 | `subscriptions` | array | Langganan |
 | `recurringItems` | array | Item berkala |
+| `wishlistGroups` | array | Kelompok Wishlist dengan item embedded, independen dari keuangan |
+| `wishlistStatus` | object | UID pemilik, loading, error listener Wishlist; terpisah dari readiness global |
 | `fireSettings` | object | Konfigurasi FIRE Calculator |
 | `darkMode` | boolean | Mode tema |
 | `cycleStart` | number | Hari mulai siklus budget (1–28) |
@@ -227,6 +229,16 @@ Setiap operasi CRUD mengikuti pola:
 4. Tampilkan toast notifikasi sukses/error
 
 Listener `subscribeUserData(uid, handlers, onError)` hanya membaca UID yang sedang login, dilepas saat logout/perubahan UID/unmount. Fetch awal hanya memuat koleksi lain dan preferensi; session guard mengabaikan hasil terlambat. UI menunggu tiga snapshot awal dan fetch preferensi sebelum membuka data akun.
+
+Wishlist memakai `subscribeWishlistGroups(uid,onData,onError)` terpisah; tidak
+menambah koleksi ke readiness tiga snapshot. Perubahan UID/logout membersihkan
+Wishlist dan melepas listener; callback stale dicegah dengan guard sesi aktif dan
+UID Firebase saat ini. Retry Wishlist tidak mengulang fetch/listener keuangan.
+Respons create/update/delete hanya dikembalikan ke editor, bukan di-append ke
+state cloud; snapshot tetap authoritative. Lokal melakukan perubahan immutable,
+UUID lewat `crypto.randomUUID()`, timestamp ISO, dan persistensi wishlistGroups.
+`prepareWishlistGroup`/`prepareWishlistItem` dipakai bersama cloud/local, lalu
+`validateWishlistGroup` menjaga total kumulatif sebelum perubahan diterapkan.
 
 Edit kategori saja memakai `updateTransactionCategory(id, categoryId)` tanpa read/write dompet, dengan `category_source: 'manual'` dan `category_status: 'classified'`/`'unclassified'`. Edit finansial tetap memakai batch reverse/apply; perubahan kategori juga ditandai manual. Metadata mesh dan field tambahan tetap terbaca. Kategori kosong/tidak ditemukan tampil `Belum dikategorikan`, bukan kategori pemasukan `Lainnya`.
 
@@ -279,6 +291,17 @@ Edit kategori saja memakai `updateTransactionCategory(id, categoryId)` tanpa rea
 | `resetUserData(uid)` | semua koleksi | Hapus semua data + re-init default |
 
 ### Atomisitas Transaksi Keuangan
+
+API Wishlist (UID CRUD berasal dari auth, bukan parameter dari form):
+
+| Fungsi | Penyimpanan |
+|---|---|
+| `createWishlistGroup(data)` / `updateWishlistGroup(id,data)` / `deleteWishlistGroup(id)` | `users/{uid}/wishlistGroups/{id}` |
+| `createWishlistItem(groupId,data)` / `updateWishlistItem(groupId,itemId,data)` / `deleteWishlistItem(groupId,itemId)` | items embedded dalam dokumen kelompok |
+| `subscribeWishlistGroups(uid,onData,onError)` | snapshot koleksi Wishlist milik UID aktif |
+
+Perubahan items memakai transaksi Firestore pada dokumen induk untuk menghindari
+lost update concurrent. Tidak membaca/menulis dompet atau transaksi keuangan.
 
 Semua operasi yang mempengaruhi saldo dompet menggunakan `writeBatch` Firestore untuk menjamin atomisitas:
 
@@ -420,6 +443,38 @@ Delete:   deleteTransaction + revert balance effect
   "note": "string"
 }
 ```
+
+### WishlistGroup dan item embedded
+
+Path: `users/{uid}/wishlistGroups/{id}`. State/backup menggunakan bentuk yang sama:
+
+```json
+{
+  "id": "group-id",
+  "title": "Setup Ruang Kerja",
+  "targetBudget": 4000000,
+  "targetDate": "2026-12-31",
+  "createdAt": "2026-10-12T03:00:00.000Z",
+  "updatedAt": "2026-10-12T03:00:00.000Z",
+  "items": [{
+    "id": "item-id", "groupId": "group-id", "name": "Monitor", "price": 2000000,
+    "notes": "Cek ukuran meja\nPilih warna hitam", "priority": "high",
+    "createdAt": "2026-10-12T03:00:00.000Z", "updatedAt": "2026-10-12T03:00:00.000Z"
+  }]
+}
+```
+
+ID dan createdAt immutable, groupId item immutable, updatedAt dikelola aplikasi.
+ID dokumen kelompok maksimal 1000 karakter dan 1500 byte UTF-8, tidak mengandung `/`, bukan `.`, `..`, atau pola reserved `__…__` (termasuk baris baru); batas dokumen ini tidak diterapkan pada ID item embedded.
+Prioritas high/medium/low; harga dan target berupa number safe integer positif,
+tanggal target valid tanpa pergeseran UTC. Total/sisa/kelebihan dihitung, tidak
+disimpan. Field finansial/status pembelian dilarang. `notes` opsional, string
+maksimal 1000 karakter; trim sisi luar mempertahankan baris internal. Omitted
+notes pada partial update mempertahankan nilai lama; string kosong menghapus
+catatan. Item baru tidak menambahkan field marketplaceName/productUrl yang tidak
+dikirim. Referensi legacy opsional tetap divalidasi (URL http/https), dipertahankan
+saat edit catatan dan roundtrip JSON/ZIP, tanpa migrasi atau penulisan saat baca.
+`wishlistHelpers` mengatur normalisasi, ringkasan, prioritas, dan tanggal lokal.
 
 ### Preferences
 ```json
@@ -679,6 +734,25 @@ menjaga primitive bersama dari benturan selector.
 ---
 
 ## 13. Format Data: Import/Export
+
+Cadangan JSON v1 menyertakan `data.wishlistGroups` beserta items, ID, timestamp,
+target, prioritas, dan referensi. ZIP memuat bentuk yang sama dalam `backup.json`;
+CSV khusus Wishlist tidak disediakan. Backup lama tanpa field tersebut menjadi
+array kosong. Replace mengganti seluruh kelompok; Append dedupe ID kelompok
+serta menjaga relasi/konflik ID item. Validator menolak orphan, nominal/tanggal
+invalid, timestamp invalid, URL berbahaya, field yang tidak diizinkan, dan total
+di luar safe integer sebelum mutasi. Reset mencakup wishlistGroups.
+Ekspor lengkap dan Append cloud menunggu snapshot Wishlist sukses untuk UID
+aktif. Listener menggunakan `includeMetadataChanges` dan mengabaikan snapshot
+cache-only agar koleksi server belum terbaca tidak dianggap kosong. Settings
+menampilkan loading/error/retry. Append memanggil
+`migrateData(toAdd, { appendWishlist: true })`: setiap kelompok Wishlist baru
+ditulis create-only lewat `runTransaction`, dilewati bila dokumen sudah ada,
+dan jumlah hasil memperhitungkan skip concurrent. Replace/migrasi biasa tetap
+memulihkan dokumen lengkap. Tidak ada replay saldo akibat operasi Wishlist.
+DataMigrator menampilkan jumlah kelompok/item dan meneruskan items embedded;
+localStorage baru dihapus setelah `migrateData` sukses, bukan saat masih pending
+atau gagal. Kode migrasi tidak merupakan izin menjalankannya pada produksi.
 
 ### Format JSON (BudgetKu Format)
 

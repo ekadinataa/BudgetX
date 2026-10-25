@@ -3,7 +3,7 @@ import { DEFAULT_FIRE_SETTINGS } from './fireCalculator.js';
 /** Collections whose records keep their IDs in a JSON backup. */
 export const BACKUP_ARRAY_KEYS = [
   'wallets', 'transactions', 'categories', 'recurringItems', 'subscriptions',
-  'debts', 'investments', 'fixedAssets',
+  'debts', 'investments', 'fixedAssets', 'wishlistGroups',
 ];
 
 export const BACKUP_EXTRA_KEYS = BACKUP_ARRAY_KEYS.slice(3);
@@ -11,7 +11,7 @@ export const BACKUP_EXTRA_KEYS = BACKUP_ARRAY_KEYS.slice(3);
 export const BACKUP_COLLECTION_LABELS = {
   wallets: 'dompet', transactions: 'transaksi', budgets: 'anggaran',
   categories: 'kategori', recurringItems: 'item berkala', subscriptions: 'langganan',
-  debts: 'utang/piutang', investments: 'investasi', fixedAssets: 'aset tetap',
+  debts: 'utang/piutang', investments: 'investasi', fixedAssets: 'aset tetap', wishlistGroups: 'wishlist',
 };
 
 export const DEFAULT_BACKUP_PREFERENCES = {

@@ -34,6 +34,96 @@ import {
 import { CATEGORIES } from '../data/defaults';
 import { buildWalletAdjustment } from '../utils/walletAdjustment.js';
 import { BACKUP_EXTRA_KEYS, normalizeBackupData } from '../utils/backupHelpers.js';
+import { prepareWishlistGroup, prepareWishlistItem } from '../utils/wishlistHelpers.js';
+import { validateWishlistGroup, validateWishlistGroups } from './wishlistValidator.js';
+
+// Embedded items share their parent's atomic document; no financial collections are used.
+export async function createWishlistGroup(data) {
+  const uid = getUid();
+  const ref = doc(collection(db, 'users', uid, 'wishlistGroups'));
+  const group = prepareWishlistGroup({ ...data, id: ref.id });
+  return runTransaction(db, async transaction => {
+    if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+    const snapshot = await transaction.get(ref);
+    if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+    if (snapshot.exists()) throw new Error('Wishlist sudah ada');
+    const { id, ...stored } = group;
+    transaction.set(ref, stored);
+    return { ...stored, id };
+  });
+}
+
+export async function updateWishlistGroup(id, data) {
+  return editWishlistGroup(id, current => prepareWishlistGroup(data, current));
+}
+
+export async function createWishlistItem(groupId, data) {
+  const item = prepareWishlistItem({ ...data, id: crypto.randomUUID() }, groupId);
+  await editWishlistGroup(groupId, current => ({ ...current, items: [...current.items, item], updatedAt: new Date().toISOString() }));
+  return item;
+}
+
+export async function updateWishlistItem(groupId, itemId, data) {
+  const group = await editWishlistGroup(groupId, current => {
+    const original = current.items.find(item => item.id === itemId);
+    if (!original) throw new Error('Item wishlist tidak ditemukan');
+    const updated = prepareWishlistItem(data, groupId, original);
+    return { ...current, items: current.items.map(item => item.id === itemId ? updated : item), updatedAt: new Date().toISOString() };
+  });
+  return group.items.find(item => item.id === itemId);
+}
+
+export async function deleteWishlistItem(groupId, itemId) {
+  await editWishlistGroup(groupId, current => {
+    if (!current.items.some(item => item.id === itemId)) throw new Error('Item wishlist tidak ditemukan');
+    return { ...current, items: current.items.filter(item => item.id !== itemId), updatedAt: new Date().toISOString() };
+  });
+  return { success: true };
+}
+
+export async function deleteWishlistGroup(id) {
+  const uid = getUid();
+  if (typeof id !== 'string' || !id.trim() || id.length > 1000 || id.includes('/') || id === '.' || id === '..') throw new Error('ID wishlist tidak valid');
+  const ref = doc(db, 'users', uid, 'wishlistGroups', id);
+  return runTransaction(db, async transaction => {
+    if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+    await transaction.get(ref);
+    if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+    transaction.delete(ref);
+    return { success: true };
+  });
+}
+
+export function subscribeWishlistGroups(uid, onData, onError) {
+  if (!uid || uid !== getUid()) throw new Error('Not authenticated');
+  let active = true;
+  const stop = onSnapshot(collection(db, 'users', uid, 'wishlistGroups'), { includeMetadataChanges: true }, snapshot => {
+    // A cache-only empty collection is not evidence of an empty server backup.
+    // Metadata events let an unchanged snapshot become ready once confirmed.
+    if (active && auth?.currentUser?.uid === uid && !snapshot.metadata?.fromCache) onData(snapshot.docs.map(d => ({ ...d.data(), id: d.id })));
+  }, error => {
+    if (active && auth?.currentUser?.uid === uid) onError?.(error);
+  });
+  return () => { active = false; stop(); };
+}
+
+async function editWishlistGroup(id, transform) {
+  const uid = getUid();
+  if (typeof id !== 'string' || !id.trim() || id.length > 1000 || id.includes('/') || id === '.' || id === '..') throw new Error('ID wishlist tidak valid');
+  const ref = doc(db, 'users', uid, 'wishlistGroups', id);
+  return runTransaction(db, async transaction => {
+    if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+    const snapshot = await transaction.get(ref);
+    if (auth?.currentUser?.uid !== uid) throw new Error('Sesi pengguna berubah. Silakan masuk kembali.');
+    if (!snapshot.exists()) throw new Error('Wishlist tidak ditemukan');
+    const group = transform({ ...snapshot.data(), id });
+    const error = validateWishlistGroup(group);
+    if (error) throw new Error(error);
+    const { id: groupId, ...stored } = group;
+    transaction.set(ref, stored);
+    return { ...stored, id: groupId };
+  });
+}
 
 // ── Internal helpers ─────────────────────────────────────────────────
 
@@ -635,7 +725,7 @@ const BATCH_LIMIT = 500;
 export async function resetUserData({ initializeDefaults = true } = {}) {
   try {
     const uid = getUid();
-    const subcollections = ['wallets', 'transactions', 'budgets', 'categories', 'preferences', 'recurringItems', 'debts', 'investments', 'fixedAssets', 'subscriptions'];
+    const subcollections = ['wallets', 'transactions', 'budgets', 'categories', 'preferences', 'recurringItems', 'debts', 'investments', 'fixedAssets', 'subscriptions', 'wishlistGroups'];
 
     // Collect all document references for deletion
     const allRefs = [];
@@ -1011,13 +1101,18 @@ export async function importCSVData({ transactions = [], newCategories = [] }) {
 
 // ── Migration ────────────────────────────────────────────────────────
 
-export async function migrateData(data) {
+export async function migrateData(data, { appendWishlist = false } = {}) {
   try {
     const uid = getUid();
+    if (data.wishlistGroups !== undefined) {
+      const error = validateWishlistGroups(data.wishlistGroups);
+      if (error) throw new Error(error);
+    }
     const { wallets, transactions, budgets, categories } = data;
 
     // Collect all write operations as [ref, data] pairs
     const operations = [];
+    const wishlistToAppend = [];
 
     // Wallets
     if (Array.isArray(wallets)) {
@@ -1069,7 +1164,11 @@ export async function migrateData(data) {
     for (const key of BACKUP_EXTRA_KEYS) {
       for (const item of data[key] || []) {
         const { id, ...rest } = item;
-        if (id) operations.push({ ref: doc(db, 'users', uid, key, id), data: rest });
+        if (id) {
+          const op = { ref: doc(db, 'users', uid, key, id), data: rest };
+          if (key === 'wishlistGroups' && appendWishlist) wishlistToAppend.push(op);
+          else operations.push(op);
+        }
       }
     }
 
@@ -1084,6 +1183,24 @@ export async function migrateData(data) {
       operations.push({ ref: doc(db, 'users', uid, 'preferences', 'fire'), data: normalizeBackupData(data).fireSettings });
     }
 
+    // Append is create-only even if a group arrives after the UI's snapshot.
+    // Transaction retries re-read the document; existing embedded items are never
+    // replaced by an older backup. Default migration/Replace restores as before.
+    let wishlistAdded = 0;
+    let wishlistSkipped = 0;
+    for (const op of wishlistToAppend) {
+      const created = await runTransaction(db, async transaction => {
+        if (getUid() !== uid) throw new Error('Sesi pengguna berubah.');
+        const snapshot = await transaction.get(op.ref);
+        if (getUid() !== uid) throw new Error('Sesi pengguna berubah.');
+        if (snapshot.exists()) return false;
+        transaction.set(op.ref, op.data);
+        return true;
+      });
+      if (created) wishlistAdded++;
+      else wishlistSkipped++;
+    }
+
     // Write in batches of BATCH_LIMIT
     for (let i = 0; i < operations.length; i += BATCH_LIMIT) {
       const batch = writeBatch(db);
@@ -1094,7 +1211,7 @@ export async function migrateData(data) {
       await batch.commit();
     }
 
-    return { success: true, imported: operations.length };
+    return { success: true, imported: operations.length + wishlistAdded, ...(appendWishlist ? { wishlistAdded, wishlistSkipped } : {}) };
   } catch (err) {
     throw new Error(`Failed to migrate data: ${err.message}`);
   }

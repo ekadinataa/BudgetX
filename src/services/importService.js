@@ -17,6 +17,7 @@ import { unzipSync } from 'fflate';
 import { validateDebt } from './debtValidator.js';
 import { validateInvestment, validateInvestmentTransaction } from './investmentValidator.js';
 import { validateFixedAsset } from './fixedAssetValidator.js';
+import { validateWishlistGroup, validateWishlistGroups } from './wishlistValidator.js';
 import { BACKUP_ARRAY_KEYS, BACKUP_EXTRA_KEYS, BACKUP_COLLECTION_LABELS, normalizeBackupData } from '../utils/backupHelpers.js';
 
 const isRecord = value => Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -125,6 +126,10 @@ export function validateEntities(data) {
   }
   const valueError = validateBackupValues(data);
   if (valueError) errors.push(valueError);
+  if (data.wishlistGroups !== undefined) {
+    const wishlistError = validateWishlistGroups(data.wishlistGroups);
+    if (wishlistError) errors.push(`Wishlist: ${wishlistError}`);
+  }
   // Do not pass malformed records to the form validators below.
   if (errors.length) return { valid: false, errors };
 
@@ -163,6 +168,7 @@ export function validateEntities(data) {
   }
 
   const checkOptionalRecord = (key, record) => {
+    if (key === 'wishlistGroups') return validateWishlistGroup(record);
     if (record.isActive !== undefined && typeof record.isActive !== 'boolean') return 'Status aktif harus boolean';
     if (record.tags !== undefined && (!Array.isArray(record.tags) || record.tags.some(tag => typeof tag !== 'string'))) return 'Tag harus berupa daftar teks';
     if (key === 'debts') {
@@ -236,6 +242,18 @@ export function validateEntities(data) {
  * @returns {{ toAdd: { wallets: Array, transactions: Array, categories: Array, budgets: Object }, counts: { added: number, skipped: number } }}
  */
 export function computeAppend(importData, existingData) {
+  if (importData.wishlistGroups !== undefined) {
+    const error = validateWishlistGroups(importData.wishlistGroups);
+    if (error) throw new Error(error);
+    const existingError = validateWishlistGroups(existingData.wishlistGroups || []);
+    if (existingError) throw new Error(existingError);
+    const parents = new Map((existingData.wishlistGroups || []).flatMap(group => group.items.map(item => [item.id, group.id])));
+    for (const group of importData.wishlistGroups) {
+      for (const item of group.items) {
+        if (parents.has(item.id) && parents.get(item.id) !== group.id) throw new Error('Konflik ID item wishlist antar kelompok');
+      }
+    }
+  }
   const existingWalletIds = new Set((existingData.wallets || []).map((w) => w.id));
   const existingTxIds = new Set((existingData.transactions || []).map((t) => t.id));
   const existingCatIds = new Set((existingData.categories || []).map((c) => c.id));
