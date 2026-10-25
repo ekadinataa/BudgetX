@@ -25,7 +25,7 @@ const group = { id: 'g1', title: 'Meja', targetBudget: 100, targetDate: '2026-12
 it.each(['pending', 'failed'])('rejects Wishlist Append before any writes when its current-UID snapshot is %s', async phase => {
   render(<App />); await screen.findByTestId('wishlist');
   if (phase === 'failed') await act(async () => state.listeners[0].onError(new Error('offline')));
-  fireEvent.click(document.querySelector('.navItem[data-page="settings"]'));
+  fireEvent.click(document.querySelector('.railButton[aria-label="Pengaturan"]'));
   await screen.findByTestId('settings');
   await expect(state.settings.onImportData({ wishlistGroups: [group] }, 'append')).rejects.toThrow(/sinkronisasi wishlist/);
   expect(api.migrateData).not.toHaveBeenCalled();
@@ -34,7 +34,7 @@ it.each(['pending', 'failed'])('rejects Wishlist Append before any writes when i
 it('uses create-only cloud Append and reports actual transaction skips if a group was concurrently created', async () => {
   render(<App />); await screen.findByTestId('wishlist');
   await act(async () => state.listeners[0].onData([]));
-  fireEvent.click(document.querySelector('.navItem[data-page="settings"]'));
+  fireEvent.click(document.querySelector('.railButton[aria-label="Pengaturan"]'));
   await screen.findByTestId('settings');
   api.migrateData.mockResolvedValueOnce({ success: true, wishlistAdded: 0, wishlistSkipped: 1 });
   let counts;

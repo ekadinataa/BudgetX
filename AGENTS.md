@@ -1,5 +1,43 @@
 # AGENTS.md — BudgetX (BudgetKu) Money Tracker
 
+## Aktif: redesign produksi + Wishlist, 25 Oktober 2026
+
+- Repo canonical: `https://github.com/ekadinataa/BudgetX.git`; baseline GitHub `5084bdc`
+  (Wishlist upstream; baseline visual awal `7176a06`).
+- Branch source rilis: `feat/video-design-production`;
+  frontend sudah di-deploy ke Hosting `budgetx` atas permintaan pengguna.
+- **Acuan visual terbaru menggantikan acuan HIG lama di bagian 3:** artifact
+  `budgetx-video-redesign.html` beserta `assets/video-refinement.css` dan `.js`,
+  dari workspace desain yang disetujui pengguna. Provenance, pemetaan komponen,
+  perbedaan disengaja, dan hasil QA: `docs/VIDEO_UI_MIGRATION.md`.
+- CSS tetap global + semantic tokens. Tidak ada DOM/global-state patch prototipe
+  yang dipindahkan ke aplikasi. Angka tetap mengikuti kontrak mono produksi.
+- Topbar memuat navigasi kapsul; Sidebar kini utility rail; seluruh 14 tujuan
+  tersedia lewat menu mobile. `usePageActions` kini mengembalikan elemen inline
+  yang ditempatkan grid di sebelah judul, **bukan portal ke Topbar**.
+- State/data/CRUD tetap di App dan service existing. Audit saldo, real-time,
+  kredit/hold, backup, seluruh mode anggaran, dan FIRE penuh tidak diganti.
+- Wishlist upstream ada di **Perencanaan** dan menu mobile **Semua halaman**;
+  pintasan Settings tetap ada. Grup/item/catatan adalah rencana saja, bukan
+  transaksi atau dana terkumpul. Backup/migrasi dan listener independen tetap
+  memakai implementasi upstream, termasuk field legacy optional.
+- UAT menggunakan `VITE_FIREBASE_API_KEY='' VITE_FIREBASE_AUTH_DOMAIN=''
+  VITE_FIREBASE_PROJECT_ID='' npm run dev -- --host 127.0.0.1 --port 5175 --strictPort`.
+  Jangan rename `.env` atau gunakan database produksi.
+- Test browser memakai navigasi visible di `layout/browser-support.js`, bukan
+  `.navItem` lama. Chrome + `BUDGETX_PLAYWRIGHT_PATH` + `UAT_URL` wajib untuk QA penuh.
+- Verifikasi lokal terakhir: 66 file / 904 test lulus, nol gagal/skip, termasuk browser; lint dan
+  build lulus. Peringatan ukuran bundle Vite masih ada. Detail batas coverage ada
+  di dokumen migrasi. Rilis `c4d7a02e2004ab7d` diverifikasi read-only di live:
+  14 file publik cocok SHA-256, 12 kombinasi auth render tanpa error/overflow.
+  Tidak ada sign-in/CRUD/data uji ke production. Catatan dan rollback:
+  `docs/PRODUCTION_RELEASE_2026-10-25.md`.
+- Fast-forward ke upstream memakai autostash `6cb3c8d`; perubahan sudah dipulihkan
+  dan konflik diselesaikan. Jangan pop stash itu lagi. Backup sebelum integrasi:
+  direktori temp sesi `budgetx-before-wishlist-20261025-104456/`.
+
+Bagian berikut merekam arsitektur dan keputusan sebelum migrasi visual ini.
+
 Konteks teknis untuk AI agent yang mengerjakan repo ini.
 **Produk:** BudgetX — Money Tracker · app budgeting pribadi berbahasa Indonesia.
 **Live:** https://budgetx.web.app (target hosting `budgetx`, project `budgetku-app-v1`)

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { chromium } from './browser-support';
+import { chromium, navigate } from './browser-support';
 
 const URL = globalThis.process?.env?.UAT_URL || 'http://localhost:5173';
 let browser;
@@ -47,7 +47,7 @@ describe.skipIf(!chromium)('wallet balance adjustments in a real browser (local 
       expect(state.transactions[0]).toMatchObject({ type: 'adjustment', note: 'Koreksi uang tunai', balanceBefore: 150, balanceAfter: 80 });
       await page.reload({ waitUntil: 'networkidle' });
       expect(await page.evaluate(() => JSON.parse(localStorage.getItem('budgetku_state')).transactions.length)).toBe(2);
-      await page.locator(width < 768 ? '.tabbar [data-page="tx"]' : '.navItem[data-page="tx"]').first().click();
+      await navigate(page, 'tx');
       await page.getByRole('heading', { name: 'Transaksi', exact: true }).waitFor();
       expect(await page.getByText('Penyesuaian Saldo', { exact: true }).count()).toBeGreaterThanOrEqual(2);
       expect(await page.getByRole('button', { name: 'Edit transaksi' }).count()).toBe(0);

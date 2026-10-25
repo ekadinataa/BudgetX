@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { NAV_GROUPS } from '../../components/Sidebar/Sidebar.jsx';
+import { NAV_ITEMS } from '../../components/Sidebar/Sidebar.jsx';
 
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (...p) => readFileSync(resolve(SRC, ...p), 'utf-8');
@@ -12,7 +12,7 @@ const baseCss = read('styles', 'base.css');
 const tokens = read('styles', 'tokens.css');
 const dashboard = read('pages', 'Dashboard', 'Dashboard.jsx');
 
-const ALL_PAGES = NAV_GROUPS.flatMap((g) => g.items);
+const ALL_PAGES = NAV_ITEMS.map(item => item.id);
 
 /** Parse the `const PAGE_MEASURE = { ... }` literal out of App.jsx. */
 function parsePageMeasure() {
@@ -79,13 +79,13 @@ describe('wide-viewport container', () => {
     // The reference pins 1180px, which wastes ~32% of a 2000px display. These
     // steps only ever raise the ceiling, and `.container` is `width: 100%`, so
     // a narrower window just falls back to the smaller cap.
-    expect(tokens).toContain('--container-max: 1180px');
+    expect(tokens).toContain('--container-max: 1440px');
     const steps = [...baseCss.matchAll(/@media \(width >= (\d+)px\) \{ :root \{ --container-max: (\d+)px; \} \}/g)];
-    expect(steps.length).toBeGreaterThanOrEqual(3);
+    expect(steps.length).toBeGreaterThanOrEqual(2);
     // Monotonically increasing, and each wider than the 1180px floor.
     const widths = steps.map((m) => +m[1]);
     expect([...widths].sort((a, b) => a - b)).toEqual(widths);
-    for (const m of steps) expect(+m[2]).toBeGreaterThan(1180);
+    for (const m of steps) expect(+m[2]).toBeGreaterThan(1440);
     expect(baseCss).toMatch(/\.container \{\s*width: 100%; max-width: var\(--container-max\)/);
   });
 });
@@ -93,7 +93,7 @@ describe('wide-viewport container', () => {
 describe('dashboard column balance', () => {
   /** Split the dashboard body at its two `.col` wrappers. */
   function columns() {
-    const start = dashboard.indexOf('className="mainGrid"');
+    const start = dashboard.indexOf('className="dashboardLower"');
     const parts = dashboard.slice(start).split('<div className="col">');
     return { left: parts[1], right: parts[2] };
   }
@@ -103,8 +103,8 @@ describe('dashboard column balance', () => {
     // 501px tall against the right's 1202px and left the page visibly lopsided.
     // Transaction rows are the widest content here, so they belong left.
     const { left, right } = columns();
-    expect(left).toContain('Transaksi Terbaru');
-    expect(right).not.toContain('Transaksi Terbaru');
+    expect(left).toContain('Aktivitas terbaru');
+    expect(right).not.toContain('Aktivitas terbaru');
   });
 
   it('puts the reference sections in the expected column', () => {

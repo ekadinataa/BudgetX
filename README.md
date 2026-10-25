@@ -31,7 +31,7 @@
 - **Styling:** Kelas CSS global + design tokens (tema, kerapatan, radius)
 - **Backend:** Firebase (Auth, Firestore, Hosting)
 - **Charts:** Recharts
-- **Font:** System font stack; IBM Plex Mono self-hosted sebagai fallback angka monospace
+- **Font:** IBM Plex Sans/Mono self-hosted, dengan fallback sistem
 
 ---
 
@@ -39,14 +39,14 @@
 
 ```bash
 # Clone
-git clone https://github.com/ekadinataa/budgetku.git
-cd budgetku
+git clone https://github.com/ekadinataa/BudgetX.git
+cd BudgetX
 
 # Install
 npm install
 
 # Run (local-only mode — no Firebase needed)
-npm run dev
+VITE_FIREBASE_API_KEY='' VITE_FIREBASE_AUTH_DOMAIN='' VITE_FIREBASE_PROJECT_ID='' npm run dev
 ```
 
 Buka http://localhost:5173 — app berjalan full tanpa akun (data di localStorage).
@@ -75,16 +75,16 @@ npm run dev
 
 ## 📄 Single File
 
-Build produksi bisa digabung jadi **satu file HTML mandiri** — CSS, JS, dan logo
+Build produksi bisa digabung jadi **satu file HTML mandiri** — CSS, JS, logo, dan font
 sudah inline, jadi bisa dibuka langsung dari filesystem tanpa server:
 
 ```bash
 npm run build:single   # → ../budgetx.html (±1.4 MB)
 ```
 
-Google Fonts tetap `<link>` (offline app jatuh ke system font). Mode auth
-mengikuti isi `.env` saat build: env terisi → cloud mode (butuh internet +
-login); env kosong → local mode (`localStorage`, sepenuhnya offline).
+IBM Plex Sans/Mono di-host sendiri dan ikut di-inline. Mode auth mengikuti
+environment saat build (termasuk `.env.production`): env terisi → cloud mode
+(butuh internet + login); override `VITE_FIREBASE_API_KEY=''` → local mode.
 
 ---
 
@@ -108,6 +108,8 @@ firebase deploy --only hosting:budgetx
 | [Technical Specification](docs/TECHNICAL_SPECIFICATION.md) | Arsitektur teknis, data model, algoritma |
 | [User Guide](docs/USER_GUIDE.md) | Panduan pengguna (Bahasa Indonesia) |
 | [AGENTS.md](AGENTS.md) | Konteks untuk AI agent: arsitektur, aturan, temuan teknis |
+| [Migrasi UI video](docs/VIDEO_UI_MIGRATION.md) | Acuan visual baru, pemetaan komponen, QA lokal, dan batas rilis |
+| [Rilis production 25 Oktober 2026](docs/PRODUCTION_RELEASE_2026-10-25.md) | Redesign + Wishlist, verifikasi live dan versi rollback |
 
 ---
 
@@ -133,16 +135,19 @@ budgetku/
 
 ## 🌙 Dark/Light Theme
 
-BudgetX mendukung dark mode dan light mode dengan transisi yang smooth. Toggle dari sidebar (desktop) atau menu avatar (mobile).
+BudgetX mendukung dark/light mode, tiga kerapatan, dan tiga radius. Tema dapat
+diganti dari utility rail (desktop) atau menu navigasi (mobile).
 
 ---
 
 ## 📱 Responsive Design
 
-- **Desktop:** Sidebar navigation
-- **Mobile:** Bottom nav + FAB (+) + Hero card + Quick menu
+- **Desktop:** Navigasi kapsul berkelompok dan floating utility rail.
+- **Mobile:** Menu semua halaman, bottom navigation, dan tombol catat transaksi.
+- Redesign dan integrasi Wishlist dirilis ke Hosting production pada 25 Oktober 2026.
 
-Wishlist tersedia di sidebar desktop dan **Pengaturan → Wishlist** pada mobile.
+Wishlist tersedia di **Perencanaan → Wishlist** pada desktop dan menu
+**Semua halaman → Wishlist** pada mobile; pintasan **Pengaturan → Wishlist** tetap tersedia.
 Target Wishlist adalah batas biaya rencana, bukan tabungan atau alokasi Budget.
 Cadangan JSON dan `backup.json` dalam ZIP menyertakan kelompok beserta item;
 Replace mengganti seluruh Wishlist, Append melewati ID kelompok yang sudah ada.

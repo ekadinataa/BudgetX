@@ -19,12 +19,12 @@
  * though the button inside it does not — that is measured as `boxH` below.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { chromium } from './browser-support';
+import { chromium, navigate, localOnly } from './browser-support';
 
 const URL = globalThis.process?.env?.UAT_URL || 'http://localhost:5173';
 const PAGES = [
   'dashboard', 'wallet', 'tx', 'budget', 'recurring', 'subscription',
-  'debt', 'invest', 'asset', 'report', 'settings', 'help',
+  'wishlist', 'debt', 'invest', 'asset', 'report', 'settings', 'help',
 ];
 const TOLERANCE = 4; // the `.seg` group's 2px padding on each side
 
@@ -35,6 +35,7 @@ beforeAll(async () => {
   if (!chromium) return;
   browser = await chromium.launch({ channel: 'chrome' });
   page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  await localOnly(page);
   await page.goto(URL, { waitUntil: 'networkidle' });
 }, 60_000);
 
@@ -72,9 +73,9 @@ const byBoxHeight = (rows) => {
 };
 
 async function openBudgetModal() {
-  await page.locator('.navItem[data-page=budget]').first().click();
+  await navigate(page, 'budget');
   await page.waitForTimeout(350);
-  const select = page.locator('.topbarActions select');
+  const select = page.getByRole('combobox', { name: 'Periode budget' });
   if (await select.count()) {
     const options = await select.locator('option').allTextContents();
     const target = options.find((o) => o.includes('April')) || options[0];
@@ -87,11 +88,11 @@ async function openBudgetModal() {
 }
 
 describe.skipIf(!chromium)('control height consistency', () => {
-  it('budget topbar is one height', async () => {
+  it('budget page actions are one height', async () => {
     const rows = await (async () => {
-      await page.locator('.navItem[data-page=budget]').first().click();
+      await navigate(page, 'budget');
       await page.waitForTimeout(400);
-      return controlsIn('.topbarActions');
+      return controlsIn('.pageActions');
     })();
     expect(rows.length).toBeGreaterThan(2);
     const heights = [...new Set(rows.map((r) => r.boxH))];
@@ -100,7 +101,7 @@ describe.skipIf(!chromium)('control height consistency', () => {
   }, 60_000);
 
   it('transactions filter card is one height', async () => {
-    await page.locator('.navItem[data-page=tx]').first().click();
+    await navigate(page, 'tx');
     await page.waitForTimeout(400);
     const rows = await controlsIn('.filterCard');
     expect(rows.length).toBeGreaterThan(3);
@@ -157,15 +158,9 @@ describe.skipIf(!chromium)('control height consistency', () => {
     // A page that publishes its own primary action must not also get one.
     const offenders = [];
     for (const pageName of PAGES) {
-      const nav = page.locator(`.navItem[data-page=${pageName}]`).first();
-      if (await nav.count() && await nav.isVisible()) await nav.click();
-      else if (await nav.count()) {
-        await page.evaluate((x) => document.querySelector(`.navItem[data-page=${x}]`).click(), pageName);
-      } else {
-        continue; // fire is reached from Settings
-      }
+      await navigate(page, pageName);
       await page.waitForTimeout(300);
-      const rows = await controlsIn('.topbarActions');
+      const rows = await controlsIn('.pageActions');
       if (rows.length > 1) {
         const heights = [...new Set(rows.map((r) => r.boxH))];
         if (heights.length > 1) {
@@ -179,18 +174,17 @@ describe.skipIf(!chromium)('control height consistency', () => {
     expect(offenders).toEqual([]);
   }, 120_000);
 
-  it('no add-transaction launcher on pages that declare their own action', async () => {
+  it('keeps exactly one global compose action separate from page actions', async () => {
     // `tx` and `budget` both publish a primary action through `usePageActions`,
     // so the topbar's circular `+` must not render on them.
     for (const pageName of ['tx', 'budget']) {
-      const nav = page.locator(`.navItem[data-page=${pageName}]`).first();
-      if (await nav.isVisible()) await nav.click();
-      else await page.evaluate((x) => document.querySelector(`.navItem[data-page=${x}]`).click(), pageName);
+      await navigate(page, pageName);
       await page.waitForTimeout(300);
       const launcher = await page.locator(
         '.topbarActions button[aria-label="Tambah Transaksi"]',
       ).count();
-      expect(launcher, `${pageName} punya tombol + yang dobel`).toBe(0);
+      expect(launcher, `${pageName} must retain one shell compose action`).toBe(1);
+      expect(await page.locator('.pageActions .topbarActions').count()).toBe(0);
     }
   }, 60_000);
 
@@ -213,9 +207,9 @@ describe.skipIf(!chromium)('control height consistency', () => {
   it('mobile controls keep touch targets without squeezing the period selector', async () => {
     await page.setViewportSize({ width: 360, height: 800 });
     for (const id of ['wallet', 'tx', 'budget']) {
-      await page.evaluate(id => document.querySelector(`.navItem[data-page="${id}"]`).click(), id);
+      await navigate(page, id);
       await page.waitForTimeout(100);
-      const sizes = await page.evaluate(() => [...document.querySelectorAll('.topbarActions button, .topbarActions select')]
+      const sizes = await page.evaluate(() => [...document.querySelectorAll('.pageActions button, .pageActions select')]
         .map(e => {
           const r = e.getBoundingClientRect();
           return { tag: e.tagName, width: r.width, height: r.height, left: r.left, right: r.right };
@@ -232,7 +226,7 @@ describe.skipIf(!chromium)('control height consistency', () => {
   }, 60_000);
 
   it('appearance presets actually change computed density and radius', async () => {
-    await page.locator('.navItem[data-page=settings]').click();
+    await navigate(page, 'settings');
     await page.getByRole('button', { name: 'Padat', exact: true }).click();
     await page.getByRole('button', { name: 'Tajam', exact: true }).click();
     const compact = await page.evaluate(() => {

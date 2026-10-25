@@ -15,6 +15,7 @@ import InvestmentFormModal from './InvestmentFormModal';
 import BuyModal from './BuyModal';
 import SellModal from './SellModal';
 import UpdateValueModal from './UpdateValueModal';
+import PieChart from '../../components/charts/PieChart';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -129,7 +130,7 @@ export default function InvestmentPage({
 
       {/* Summary cards */}
       {investments.length > 0 && (
-        <div className="statGrid">
+        <div className="kpiRow4">
           <div className="statCard">
             <div className="statLabel">Total Nilai</div>
             <div className="statValue">
@@ -149,14 +150,12 @@ export default function InvestmentPage({
             <div className="statValue" style={{ color: summary.totalUnrealizedGain >= 0 ? 'var(--green-ink)' : 'var(--red-ink)' }}>
               {summary.totalUnrealizedGain >= 0 ? '+' : ''}{fmtFull(summary.totalUnrealizedGain)}
             </div>
-            <div className="statDetail">unrealized gain/loss</div>
+            <div className="statDetail">{summary.totalReturnPercentage >= 0 ? '+' : ''}{summary.totalReturnPercentage.toFixed(1)}% dari modal</div>
           </div>
           <div className="statCard">
-            <div className="statLabel">Return</div>
-            <div className="statValue" style={{ color: summary.totalReturnPercentage >= 0 ? 'var(--green-ink)' : 'var(--red-ink)' }}>
-              {summary.totalReturnPercentage >= 0 ? '+' : ''}{summary.totalReturnPercentage.toFixed(1)}%
-            </div>
-            <div className="statDetail">persentase return</div>
+            <div className="statLabel">Posisi tercatat</div>
+            <div className="statValue num">{investments.length}</div>
+            <div className="statDetail">{Object.keys(summary.allocationByType).length} jenis aset</div>
           </div>
         </div>
       )}
@@ -190,6 +189,10 @@ export default function InvestmentPage({
       )}
 
       {/* Investment list */}
+      {investments.length > 0 && <div className="portfolioLayout">
+      <section className="card portfolioList">
+      <div className="cardHead"><div><h2 className="cardTitle">Portofolio</h2><p className="cardSub">Nilai pasar dan perubahan setiap posisi</p></div></div>
+      {!filtered.length && <p className="cardSub">Tidak ada posisi untuk filter ini.</p>}
       {filtered.map((inv) => (
         <InvestmentCard
           key={inv.id}
@@ -200,6 +203,13 @@ export default function InvestmentPage({
           onUpdateValue={() => setUpdateItem(inv)}
         />
       ))}
+      </section>
+      <aside className="card">
+        <h2 className="sectionTitle">Alokasi portofolio</h2>
+        <PieChart slices={Object.entries(summary.allocationByType).filter(([, value]) => value > 0).map(([type, value], index) => ({ label: ASSET_TYPE_LABELS[type] || type, value, color: ['var(--blue)', 'var(--green)', 'var(--orange)', 'var(--purple)'][index % 4] }))} size={180} />
+        <div className="legend">{Object.entries(summary.allocationByType).map(([type, value], index) => <div className="legendRow" key={type}><span className="dot" style={{ background: ['var(--blue)', 'var(--green)', 'var(--orange)', 'var(--purple)'][index % 4] }} /><span className="legendName">{ASSET_TYPE_LABELS[type] || type}</span><span className="legendPct num">{summary.totalValue ? Math.round(value / summary.totalValue * 100) : 0}%</span></div>)}</div>
+      </aside>
+      </div>}
 
       {/* Modals */}
       {showForm && (
@@ -268,13 +278,13 @@ function InvestmentCard({ investment, onEdit, onBuy, onSell, onUpdateValue }) {
   const sortedTxs = sortTransactionsByDate(investment.transactions || []);
 
   return (
-    <div className="card">
+    <article className="investmentPosition">
       <div className="investRow">
         <div
           className="recIcon investIcon"
           style={{ background: 'var(--blue-soft)', color: 'var(--blue-ink)' }}
         >
-          📊
+          <NavIcon name="invest" size={18} />
         </div>
 
         <div className="itemInfo">
@@ -357,6 +367,6 @@ function InvestmentCard({ investment, onEdit, onBuy, onSell, onUpdateValue }) {
           )}
         </>
       )}
-    </div>
+    </article>
   );
 }

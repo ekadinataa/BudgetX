@@ -29,6 +29,8 @@ describe('single-file HTML build', () => {
 
     expect(head).not.toContain('/assets/')
     expect(head).not.toContain('/logo.png')
+    expect(html.includes('/fonts/')).toBe(false)
+    expect(html.includes('data:font/woff2;base64,')).toBe(true)
     expect(head).not.toMatch(/(?:src|href)="\/(?!data:|#|https?:)/)
     expect(code).not.toContain('/logo.png')
   })

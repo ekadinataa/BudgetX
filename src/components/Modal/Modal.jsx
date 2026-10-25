@@ -21,7 +21,15 @@ export default function Modal({ title, onClose, children, width = 480 }) {
 
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape') onClose();
+      const dialogs = document.querySelectorAll('[role="dialog"]');
+      if (dialogs[dialogs.length - 1] !== panelRef.current) return;
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+      if (e.key !== 'Tab') return;
+      const controls = [...panelRef.current.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')].filter(el => !el.disabled && !el.hidden && el.getClientRects().length);
+      if (!controls.length) { e.preventDefault(); panelRef.current.focus(); return; }
+      const first = controls[0], last = controls[controls.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === panelRef.current)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (document.activeElement === last || !panelRef.current.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
@@ -31,10 +39,12 @@ export default function Modal({ title, onClose, children, width = 480 }) {
   // focus into the dialog so keyboard users don't stay on the trigger.
   useEffect(() => {
     const prev = document.body.style.overflow;
+    const trigger = document.activeElement;
     document.body.style.overflow = 'hidden';
     panelRef.current?.focus();
     return () => {
       document.body.style.overflow = prev;
+      if (trigger?.isConnected) trigger.focus();
     };
   }, []);
 

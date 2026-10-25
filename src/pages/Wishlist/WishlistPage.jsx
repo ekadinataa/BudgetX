@@ -79,7 +79,7 @@ export default function WishlistPage({ wishlistGroups = [], loading = false, err
   const topbarActions = usePageActions(action);
   const groups = [...wishlistGroups].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id));
   const overview = !loading && !error ? summarizeWishlistGroups(wishlistGroups) : null;
-  return <section className="wishlistPage">
+  return <section className="pageStack wishlistPage">
     {topbarActions || action}
     <div className="largeTitleBlock"><h1 className="largeTitle">Wishlist</h1><p className="pageSubtitle">Rencanakan keinginan, tentukan prioritas.</p></div>
     {overview && <section className="statGrid wishlistStats" aria-label="Ringkasan wishlist">

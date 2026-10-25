@@ -1,154 +1,130 @@
-import { describe, it, expect, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { render, screen, fireEvent } from '@testing-library/react';
-import Sidebar, { NAV_GROUPS } from '../../components/Sidebar/Sidebar.jsx';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
+import Sidebar, { NAV_ITEMS, NAV_GROUPS } from '../../components/Sidebar/Sidebar.jsx';
+import Topbar from '../../components/Topbar/Topbar.jsx';
 
-const ALL_LABELS = NAV_GROUPS.flatMap((g) => g.items);
+const props = () => ({ page: 'dashboard', setPage: vi.fn(), darkMode: false, setDarkMode: vi.fn(), onAddTx: vi.fn(), onSearch: vi.fn(), onLogout: vi.fn() });
+beforeEach(() => { vi.spyOn(window, 'scrollTo').mockImplementation(() => {}); });
 
-const defaultProps = {
-  page: 'dashboard',
-  setPage: vi.fn(),
-  darkMode: false,
-  setDarkMode: vi.fn(),
-  collapsed: false,
-  onToggleCollapse: vi.fn(),
-};
-
-describe('Sidebar', () => {
-  it('renders BudgetX branding with logo and subtitle', () => {
-    render(<Sidebar {...defaultProps} />);
-    expect(screen.getByText('BudgetX')).toBeInTheDocument();
-    expect(screen.getByText('Money Tracker')).toBeInTheDocument();
+describe('reference navigation and utility rail', () => {
+  it('renders the brand in the top bar rather than the utility rail', () => {
+    render(<Topbar {...props()} />);
+    expect(screen.getByRole('button', { name: 'BudgetX — beranda' })).toBeInTheDocument();
+    expect(screen.getByText('keuangan pribadi')).toBeInTheDocument();
   });
 
-  it('renders every navigation destination exactly once', () => {
-    render(<Sidebar {...defaultProps} />);
-    for (const id of ALL_LABELS) {
-      const btn = document.querySelector(`.navItem[data-page="${id}"]`);
-      expect(btn, `nav item ${id} missing`).toBeTruthy();
+  it('contains all fourteen unique production destinations, including FIRE and Wishlist', () => {
+    expect(NAV_ITEMS).toHaveLength(14);
+    expect(new Set(NAV_ITEMS.map(item => item.id)).size).toBe(14);
+    expect(NAV_ITEMS.map(item => item.id)).toContain('fire');
+    expect(NAV_ITEMS.map(item => item.id)).toContain('wishlist');
+  });
+
+  it('groups finance, planning, and assets into the approved capsules', () => {
+    render(<Topbar {...props()} />);
+    expect([...document.querySelectorAll('.navDetails > summary')].map(el => el.textContent)).toEqual(['Keuangan', 'Perencanaan', 'Aset & kewajiban']);
+    expect(NAV_GROUPS.flatMap(group => group.items)).toHaveLength(10);
+  });
+
+  it('exposes every destination in the mobile menu', () => {
+    render(<Topbar {...props()} />);
+    fireEvent.click(screen.getByLabelText('Buka navigasi'));
+    const nav = screen.getByRole('navigation', { name: 'Semua halaman' });
+    for (const item of NAV_ITEMS) expect(within(nav).getByRole('button', { name: item.label, exact: true })).toBeInTheDocument();
+  });
+
+  it('marks both the active destination and its group', () => {
+    render(<Topbar {...props()} page="wallet" />);
+    const group = document.querySelector('.navDetails[data-current="true"]');
+    expect(group.querySelector('summary')).toHaveTextContent('Keuangan');
+    expect(group.querySelector('[aria-current="page"]')).toHaveAttribute('data-page', 'wallet');
+  });
+
+  it('navigates and closes the mobile menu', () => {
+    const p = props();
+    render(<Topbar {...p} />);
+    fireEvent.click(screen.getByLabelText('Buka navigasi'));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Semua halaman' })).getByRole('button', { name: 'FIRE' }));
+    expect(p.setPage).toHaveBeenCalledWith('fire');
+    expect(document.querySelector('.mobileNavMenu').open).toBe(false);
+  });
+
+  it('dismisses a capsule with Escape and returns focus to its summary', () => {
+    render(<Topbar {...props()} />);
+    const details = document.querySelector('.navDetails');
+    details.open = true;
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(details.open).toBe(false);
+    expect(details.querySelector('summary')).toHaveFocus();
+  });
+
+  it('dismisses an open menu on an outside click', () => {
+    render(<Topbar {...props()} />);
+    const details = document.querySelector('.navDetails');
+    details.open = true;
+    fireEvent.click(document.body);
+    expect(details.open).toBe(false);
+  });
+
+  it('labels the theme toggle with the mode it switches to', () => {
+    const { rerender } = render(<Sidebar {...props()} />);
+    expect(screen.getByRole('button', { name: 'Mode gelap' })).toBeInTheDocument();
+    rerender(<Sidebar {...props()} darkMode />);
+    expect(screen.getByRole('button', { name: 'Mode terang' })).toBeInTheDocument();
+  });
+
+  it('toggles the theme through the existing functional setter', () => {
+    const p = props();
+    render(<Sidebar {...p} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Mode gelap' }));
+    expect(p.setDarkMode.mock.calls[0][0](false)).toBe(true);
+  });
+
+  it('opens search and compose without passing a click event as transaction type', () => {
+    const p = props();
+    render(<Sidebar {...p} />);
+    const rail = within(screen.getByRole('complementary'));
+    fireEvent.click(rail.getByRole('button', { name: 'Cari transaksi' }));
+    fireEvent.click(rail.getByRole('button', { name: 'Tambah Transaksi' }));
+    expect(p.onSearch).toHaveBeenCalledOnce();
+    expect(p.onAddTx).toHaveBeenCalledWith();
+  });
+
+  it('keeps every utility icon visible and named with a legacy collapsed preference', () => {
+    render(<Sidebar {...props()} collapsed />);
+    const buttons = within(screen.getByRole('complementary')).getAllByRole('button');
+    expect(buttons).toHaveLength(5);
+    for (const button of buttons) {
+      expect(button.getAttribute('aria-label')).toBeTruthy();
+      expect(button.querySelector('svg[aria-hidden="true"]')).toBeTruthy();
     }
   });
 
-  it('groups the navigation into the four reference sections', () => {
-    render(<Sidebar {...defaultProps} />);
-    const groups = [...document.querySelectorAll('.navGroupLabel')].map((n) => n.textContent);
-    expect(groups).toEqual(['Ringkasan', 'Komitmen', 'Aset', 'Analisa']);
+  it('shows the account control and logout only for authenticated users', () => {
+    const p = props();
+    const { rerender } = render(<><Sidebar {...p} /><Topbar {...p} /></>);
+    expect(screen.queryByRole('button', { name: 'Keluar' })).not.toBeInTheDocument();
+    rerender(<><Sidebar {...p} user={{ email: 'uji@example.com' }} /><Topbar {...p} user={{ email: 'uji@example.com' }} /></>);
+    expect(screen.getByRole('button', { name: 'Akun uji@example.com' })).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole('complementary')).getByRole('button', { name: 'Keluar' }));
+    expect(p.onLogout).toHaveBeenCalledOnce();
   });
 
-  it('keeps the help page reachable under Analisa', () => {
-    expect(NAV_GROUPS.find((g) => g.label === 'Analisa').items).toContain('help');
+  it('retains four bottom destinations and a central compose action', () => {
+    render(<Sidebar {...props()} />);
+    const nav = screen.getByRole('navigation', { name: 'Navigasi bawah' });
+    expect(within(nav).getAllByRole('button')).toHaveLength(5);
+    expect(within(nav).getByRole('button', { name: 'Tambah Transaksi' })).toBeInTheDocument();
+    expect(within(nav).getByRole('button', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
+    expect([...nav.querySelectorAll('[data-page]')].map(el => el.dataset.page)).toEqual(['dashboard', 'tx', 'report', 'settings']);
   });
 
-  it('marks the active item with navItemActive and aria-current', () => {
-    render(<Sidebar {...defaultProps} page="wallet" />);
-    const active = document.querySelector('.navItemActive');
-    expect(active).toBeTruthy();
-    expect(active.getAttribute('data-page')).toBe('wallet');
-    expect(active.getAttribute('aria-current')).toBe('page');
-  });
-
-  it('calls setPage when a navigation item is clicked', () => {
-    const setPage = vi.fn();
-    render(<Sidebar {...defaultProps} setPage={setPage} />);
-    fireEvent.click(document.querySelector('.navItem[data-page="tx"]'));
-    expect(setPage).toHaveBeenCalledWith('tx');
-  });
-
-  it('offers a theme toggle labelled with the mode it switches to', () => {
-    const { unmount } = render(<Sidebar {...defaultProps} darkMode={false} />);
-    expect(screen.getByText('Mode gelap')).toBeInTheDocument();
-    unmount();
-    render(<Sidebar {...defaultProps} darkMode={true} />);
-    expect(screen.getByText('Mode terang')).toBeInTheDocument();
-  });
-
-  it('toggles the theme on click', () => {
-    const setDarkMode = vi.fn();
-    render(<Sidebar {...defaultProps} setDarkMode={setDarkMode} />);
-    fireEvent.click(screen.getByText('Mode gelap'));
-    expect(setDarkMode).toHaveBeenCalledTimes(1);
-  });
-
-  it('exposes a collapse control and reports its state', () => {
-    const onToggleCollapse = vi.fn();
-    const { unmount } = render(
-      <Sidebar {...defaultProps} collapsed={false} onToggleCollapse={onToggleCollapse} />
-    );
-    fireEvent.click(screen.getByText('Ciutkan'));
-    expect(onToggleCollapse).toHaveBeenCalledTimes(1);
-    unmount();
-    render(<Sidebar {...defaultProps} collapsed onToggleCollapse={onToggleCollapse} />);
-    expect(screen.getByText('Perluas')).toBeInTheDocument();
-  });
-
-  it('shows the signed-in user in the footer', () => {
-    render(<Sidebar {...defaultProps} user={{ email: 'raka@budgetx.id' }} />);
-    expect(screen.getByText('raka@budgetx.id')).toBeInTheDocument();
-  });
-
-  // ── Collapsed rail ────────────────────────────────────────────────
-  //
-  // Two bugs shipped here once and are cheap to reintroduce, because the
-  // failing state is invisible to jsdom — it never applies base.css:
-  //   1. `[data-collapsed='true'] .sidebarAction span { display: none }` is a
-  //      blanket selector lifted from the reference. It works there only
-  //      because the reference keeps the icon *outside* any span. Wrapping the
-  //      icon in <span class="navIcon"> made the rule hide the icons too, so
-  //      all three footer buttons rendered blank at 72px.
-  //   2. The reference never hides .navGroupLabel when collapsed, so
-  //      "RINGKASAN" / "KOMITMEN" / "ANALISA" render inside the 72px rail and
-  //      clip mid-word.
-  //
-  // These assert the markup/CSS contract instead of a rendered result, so they
-  // still run without a real stylesheet.
-  //
-  // Paths are resolved from this file: src/__tests__/components -> ../.. = src.
-
-  const SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-  const sidebarSource = () =>
-    readFileSync(resolve(SRC, 'components', 'Sidebar', 'Sidebar.jsx'), 'utf-8');
-  const baseCss = () => readFileSync(resolve(SRC, 'styles', 'base.css'), 'utf-8');
-
-  it('labels footer text so the collapsed hide rule cannot eat the icons', () => {
-    const blocks = sidebarSource().match(
-      /className="sidebarAction"[\s\S]{0,600}?<\/button>/g,
-    );
-    expect(blocks).not.toBeNull();
-    expect(blocks.length).toBe(3);
-    for (const block of blocks) {
-      // The text span is explicitly classed...
-      expect(block).toContain('className="sidebarActionLabel"');
-      // ...and the icon span is the only one left, so the blanket rule (if it
-      // ever came back) would still be a regression.
-      const bareSpans = block.match(/<span>/g) || [];
-      expect(bareSpans).toHaveLength(0);
-    }
-  });
-
-  it('wraps each nav group so a collapsed separator can target it', () => {
-    expect(sidebarSource()).toContain('className="navGroup"');
-  });
-
-  it('hides the group labels when collapsed', () => {
-    expect(baseCss()).toMatch(
-      /\[data-collapsed='true'\] \.navGroupLabel\s*\{[^}]*font-size:\s*0/,
-    );
-    expect(baseCss()).toMatch(/\[data-collapsed='true'\] \.navGroup ~ \.navGroup/);
-  });
-
-  it('does not hide sidebar icons via a blanket span selector', () => {
-    expect(baseCss()).not.toMatch(
-      /\[data-collapsed='true'\][^}]*\.sidebarAction span\s*\{/,
-    );
-  });
-
-  it('renders a logout action only when a handler is supplied', () => {
-    const { unmount } = render(<Sidebar {...defaultProps} />);
-    expect(screen.queryByText('Keluar')).toBeNull();
-    unmount();
-    render(<Sidebar {...defaultProps} onLogout={vi.fn()} />);
-    expect(screen.getByText('Keluar')).toBeInTheDocument();
+  it('keeps help and settings reachable from the rail', () => {
+    const p = props();
+    render(<Sidebar {...p} />);
+    const rail = within(screen.getByRole('complementary'));
+    fireEvent.click(rail.getByRole('button', { name: 'Bantuan' }));
+    fireEvent.click(rail.getByRole('button', { name: 'Pengaturan' }));
+    expect(p.setPage.mock.calls).toEqual([['help'], ['settings']]);
   });
 });

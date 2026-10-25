@@ -58,15 +58,15 @@ Jika kamu tidak ingin membuat akun, aplikasi tetap bisa digunakan sepenuhnya. Da
 ### 2.4 Navigasi Dasar
 
 **Desktop (layar lebar):**
-- Sidebar di sebelah kiri dengan menu navigasi
-- Klik nama halaman untuk berpindah
-- Tombol collapse/expand untuk menyembunyikan sidebar
+- Navigasi kapsul di atas untuk berpindah halaman
+- Grup **Keuangan**, **Perencanaan**, dan **Aset & kewajiban** membuka daftar halaman
+- Utility rail di kiri menyediakan pencarian, tambah transaksi, tema, bantuan, dan pengaturan
 
 **Mobile (handphone):**
 - Bottom navigation bar di bawah layar (Dashboard, Transaksi, +, Laporan, Pengaturan)
 - Tombol **"+"** (FAB) di tengah untuk tambah transaksi cepat
-- Tap avatar/ikon di pojok kanan atas untuk menu tambahan (Dompet, Budget, Berkala, Utang, Investasi)
-- Untuk Wishlist, buka **Pengaturan → Wishlist**. Di desktop, gunakan menu **Wishlist** pada sidebar.
+- Tap tombol **Buka navigasi** di pojok kanan atas untuk menu **Semua halaman**
+- Untuk Wishlist, gunakan **Perencanaan → Wishlist** di desktop atau **Semua halaman → Wishlist** di mobile. Pintasan **Pengaturan → Wishlist** juga tersedia.
 
 ---
 
@@ -657,7 +657,7 @@ Performa per bagian (Kebutuhan/Keinginan/Tabungan):
 
 ### Wishlist: merencanakan pembelian tanpa mengubah saldo
 
-1. Buka **Wishlist** (sidebar desktop atau **Pengaturan → Wishlist** pada handphone).
+1. Buka **Perencanaan → Wishlist** di desktop atau **Semua halaman → Wishlist** pada handphone (alternatif: **Pengaturan → Wishlist**).
 2. Pilih **Buat Wishlist**, isi **Judul wishlist**, **Target dana (Rp)**, dan
    **Tanggal target** di bagian **Jadwal target**, lalu **Simpan Wishlist**.
    Popup kelompok baru terbuka dengan total Rp0.

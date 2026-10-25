@@ -306,7 +306,7 @@ export default function BudgetPage({
       {/* Page Header */}
       <div className="largeTitleBlock">
         <div>
-          <h1 className="largeTitle">Budget</h1>
+          <h1 className="largeTitle">Anggaran</h1>
           <p className="pageSubtitle">
             Kelola alokasi anggaran Anda
           </p>
@@ -335,6 +335,7 @@ export default function BudgetPage({
         </div>
       )}
 
+      <section className="card budgetSummary">
       {/* Period info bar */}
       <div className="periodBar">
         <span className="periodLabel">Periode aktif:</span>
@@ -351,7 +352,7 @@ export default function BudgetPage({
 
       {/* Overview Stats — 4 cards, so this needs the 4-up grid. `grid3` put the
           fourth card alone on row 2 and left the block visibly lopsided. */}
-      <div className="statGrid">
+      <div className="kpiRow4">
         <div className="statCard">
           <div className="statLabel">Total Pemasukan</div>
           <div className="statValue" style={{ color: 'var(--blue-ink)' }}>
@@ -387,6 +388,11 @@ export default function BudgetPage({
         </div>
       </div>
 
+      </section>
+
+      {/* Full production distribution remains available without displacing the utilization cards. */}
+      <details className="budgetDistribution">
+      <summary>Distribusi alokasi · panduan 50/30/20</summary>
       {/* Distribution Visualization Bar */}
       <div className="card">
         <div className="cardHead">
@@ -434,8 +440,10 @@ export default function BudgetPage({
         </div>
       </div>
 
+      </details>
+
       {/* Per-Section Budget Cards */}
-      <div className={totalAllocated === 0 && Object.values(budget.sections).every(s => s.cats.length === 0) ? 'budgetSections budgetSectionsEmpty' : 'budgetSections'}>
+      <div className="budgetParallel">
       {['needs', 'wants', 'savings'].map((sec) => {
         const secData = budget.sections[sec] || EMPTY_SECTION;
         const spent = secSpend[sec] || 0;
@@ -470,6 +478,9 @@ export default function BudgetPage({
               </div>
             </div>
 
+            <div className="budgetTiles" style={{ '--tile': sectionColor(sec) }} role="img" aria-label={`${sectionLabel(sec)}: ${secData.total ? Math.round(spent / secData.total * 100) + '%' : 'tanpa alokasi'} terpakai. Satu kotak mewakili dua persen alokasi.`}>
+              {Array.from({ length: 50 }, (_, i) => <span key={i} aria-hidden="true" className={i < Math.round(Math.min(100, secData.total > 0 ? spent / secData.total * 100 : 0) / 2) ? 'used' : undefined} />)}
+            </div>
             <div className="budgetProgress">
               <ProgressBar value={spent} max={secData.total} color={sectionColor(sec)} height={5} showOverflow />
             </div>
@@ -479,7 +490,7 @@ export default function BudgetPage({
                 const cat = getCat(c.id);
                 const cSpent = catSpend[c.id] || 0;
                 const cOver = cSpent > c.amt;
-                const cPct = c.amt > 0 ? Math.min((cSpent / c.amt) * 100, 100) : 0;
+                const cPct = c.amt > 0 ? (cSpent / c.amt) * 100 : 0;
                 return (
                   <div key={c.id} className="allocItem">
                     <div className="allocItemHead">

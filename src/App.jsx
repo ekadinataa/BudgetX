@@ -47,16 +47,6 @@ import './App.css';
 const IS_LOCAL_MODE = !firebaseAuth;
 
 /**
- * Pages that get the topbar's circular `+` launcher.
- *
- * Kept as an explicit allow-list rather than "every page except…", so adding a
- * page cannot silently grow a button whose behaviour the page does not own.
- * `tx` and `budget` are absent because both publish their own primary action
- * through `usePageActions`.
- */
-const TOPBAR_FALLBACK_ADD_TX = new Set(['wallet', 'recurring', 'subscription', 'debt', 'invest', 'asset']);
-
-/**
  * Content width per page id — see the comment in `renderPage`.
  * Deliberately keyed by the same ids as `NAV_GROUPS` in the Sidebar.
  */
@@ -1535,6 +1525,7 @@ function App() {
       case 'wallet':
         return (
           <WalletPage
+            setPage={setPage}
             wallets={wallets}
             setWallets={apiSetWallets}
             transactions={transactions}
@@ -1643,6 +1634,11 @@ function App() {
       case 'report':
         return (
           <ReportsPage
+            setPage={setPage}
+            wallets={wallets}
+            debts={debts}
+            investments={investments}
+            fixedAssets={fixedAssets}
             transactions={transactions}
             budgets={budgets}
             cycleStart={cycleStart}
@@ -1732,18 +1728,20 @@ function App() {
           user={user}
           onLogout={logout}
           onAddTx={onAddTx}
+          onSearch={() => { setPage('tx'); requestAnimationFrame(() => document.querySelector('input[type="search"], input[placeholder*="Cari"]')?.focus()); }}
         />
         <main className="appMain">
-          {/* The circular `+` is a fallback for pages that do not declare their
-              own primary action. Transactions and Budget do (via
-              `usePageActions`), so passing `onAddTx` unconditionally put a
-              second, icon-only way to do the same thing right beside the first
-              — and offered a "new transaction" button on pages with no
-              transaction UI at all. */}
+          {/* Global compose stays in the shell; page-specific actions are
+              rendered beside their title by usePageActions. */}
           <Topbar
             page={page}
-            onAddTx={TOPBAR_FALLBACK_ADD_TX.has(page) ? onAddTx : undefined}
+            setPage={setPage}
+            onAddTx={page === 'wishlist' ? undefined : onAddTx}
             user={user}
+            darkMode={darkMode}
+            setDarkMode={handleSetDarkMode}
+            onLogout={logout}
+            onSearch={() => { setPage('tx'); requestAnimationFrame(() => document.querySelector('input[type="search"], input[placeholder*="Cari"]')?.focus()); }}
           />
           <div className="appScroll">
             <div className={`container${measure ? ` ${measure}` : ''}`}>{renderPage()}</div>

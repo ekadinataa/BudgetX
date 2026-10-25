@@ -18,7 +18,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import { ThemeProvider } from '../../context/ThemeContext.jsx';
-import { NAV_GROUPS } from '../../components/Sidebar/Sidebar.jsx';
+import { NAV_ITEMS } from '../../components/Sidebar/Sidebar.jsx';
 
 vi.mock('../../context/AuthContext.jsx', () => ({
   useAuth: () => ({ user: { email: 'smoke@budgetx.id' } }),
@@ -134,7 +134,7 @@ function propsFor(dataKey, populated) {
   return p;
 }
 
-const ALL_PAGE_IDS = NAV_GROUPS.flatMap((g) => g.items);
+const ALL_PAGE_IDS = NAV_ITEMS.map(item => item.id);
 
 describe('page render smoke tests', () => {
   beforeEach(() => cleanup());
@@ -146,8 +146,8 @@ describe('page render smoke tests', () => {
     // and is reached from Pengaturan -> "Kalkulator FIRE". It still needs a
     // smoke test, so it is listed here rather than silently dropped.
     const notInNav = covered.filter((id) => !ALL_PAGE_IDS.includes(id));
-    expect(notInNav).toEqual(['fire']);
-    expect(covered.length).toBe(ALL_PAGE_IDS.length + 1);
+    expect(notInNav).toEqual([]);
+    expect(covered.length).toBe(ALL_PAGE_IDS.length);
   });
 
   for (const [id, , path] of PAGES) {
@@ -188,7 +188,7 @@ describe('page render smoke tests', () => {
         />
       </ThemeProvider>,
     );
-    expect(screen.getByText('Total Saldo Seluruh Dompet')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Saldo bersih' })).toBeInTheDocument();
     expect(container.textContent).toContain('Rp');
   });
 });

@@ -108,18 +108,18 @@ export function sectionLabel(s) {
 }
 
 /**
- * Return the hex color for a budget section.
+ * Presentation colour for a budget section (never persisted as category data).
  *
  * @param {string} s - One of 'needs', 'wants', 'savings'
- * @returns {string} Hex color string
+ * @returns {string} Semantic CSS colour
  */
 export function sectionColor(s) {
   const map = {
-    needs: '#4F6EF7',
-    wants: '#F59E0B',
-    savings: '#22C55E',
+    needs: 'var(--blue)',
+    wants: 'var(--orange)',
+    savings: 'var(--green)',
   };
-  return map[s] || '#A855F7';
+  return map[s] || 'var(--purple)';
 }
 
 /**

@@ -1,27 +1,32 @@
-/* ==========================================================================
-   BudgetX design tokens — iOS / Human Interface Guidelines
-   --------------------------------------------------------------------------
-   Ported from ../budgetx-revamp/budgetx-app.html, which is the agreed
-   reference. Values are copied verbatim from its :root and
-   :root[data-theme='dark'] blocks — do not eyeball-adjust them.
-
-   The system is Apple's: system colors for fills, a separate "ink" ramp for
-   text (each ink passes AA on white AND on the grouped background), and
-   "soft" fills for chips and badges. Three tiers of colour, not two.
-
-   The UI face is the platform system font (SF Pro on Apple, system-ui
-   elsewhere). IBM Plex Mono is self-hosted only as the last link of the
-   tabular-figure chain; see fonts.css.
-   ========================================================================== */
+/* Approved video-reference palette and typography. Semantic aliases preserve
+   production forms/charts, density, radius and stored user colours. */
 
 :root {
   color-scheme: light;
+  --canvas: oklch(97.6% .012 132);
+  --panel: oklch(99.4% .004 110 / .90);
+  --ink: oklch(18% .012 250);
+  --subtle: oklch(48% .018 245);
+  --line: oklch(91% .010 135 / .78);
+  --night: oklch(14% .009 245);
+  --powder: oklch(83% .060 244);
+  --chart-blue: oklch(59% .145 247);
+  --sage: oklch(56% .105 155);
+  --tangerine: oklch(66% .145 52);
+  --on-night: #f7f9f5;
+  --inverted-muted: #c5ceca;
+  --rail-surface: #0e1111;
+  --rail-ink: #eef2ee;
+  --panel-border: oklch(100% 0 0 / .62);
+  --nav-surface: oklch(100% 0 0 / .52);
+  --profile-surface: oklch(88% .03 180);
+  --profile-ink: #19322e;
 
   /* ---- system colors (fills, tints, charts) ---- */
-  --blue: #007aff;
-  --blue-fill: #0062cc;          /* blue that carries white text at AA */
-  --blue-fill-hover: #0a52b0;
-  --blue-fill-active: #084a9e;
+  --blue: var(--chart-blue);
+  --blue-fill: var(--night);
+  --blue-fill-hover: oklch(23% .01 245);
+  --blue-fill-active: #000;
   /* `-fill` = the dark variant of a hue, for surfaces that carry white text.
      `--green`/`--red`/`--orange` are tuned as fills against a light card, and
      their `-ink` counterparts are text colours: neither holds 4.5:1 with white
@@ -29,9 +34,9 @@
   --green-fill: #16773c;
   --red-fill: #c9251c;
   --orange-fill: #8a5200;
-  --green: #34c759;
-  --red: #ff3b30;
-  --orange: #ff9500;
+  --green: var(--sage);
+  --red: oklch(57% .18 27);
+  --orange: var(--tangerine);
   --indigo: #5856d6;
   --teal: #30b0c7;
   --pink: #ff2d55;
@@ -41,23 +46,23 @@
   --brown: #a2845e;
 
   /* ---- semantic ink (AA on white AND on grouped #f2f2f7) ---- */
-  --blue-ink: #0062cc;
-  --green-ink: #16773c;
-  --red-ink: #c9251c;
-  --orange-ink: #8a5200;
+  --blue-ink: oklch(45% .13 248);
+  --green-ink: oklch(41% .09 155);
+  --red-ink: oklch(45% .15 27);
+  --orange-ink: oklch(44% .105 55);
   --indigo-ink: #3b3aa8;
   --teal-ink: #0a6e7c;
   --pink-ink: #c20e36;
   --purple-ink: #7a2b9e;
   --yellow-ink: #7a5c00;
-  --gray-ink: #6c6c70;
+  --gray-ink: var(--subtle);
   --brown-ink: #7a5f3e;
 
   /* ---- soft (chip / badge) fills ---- */
-  --blue-soft: #e8f2ff;
-  --green-soft: #e3f6ea;
-  --red-soft: #fdeceb;
-  --orange-soft: #fdf0dc;
+  --blue-soft: oklch(93% .03 245);
+  --green-soft: oklch(94% .028 155);
+  --red-soft: oklch(95% .035 27);
+  --orange-soft: oklch(95% .035 55);
   --indigo-soft: #ebebf9;
   --teal-soft: #e2f5f8;
   --pink-soft: #fdecf0;
@@ -67,15 +72,15 @@
   --brown-soft: #f3ece2;
 
   /* ---- surfaces ---- */
-  --bg: #f2f2f7;                 /* systemGroupedBackground */
-  --surface: #fff;               /* secondarySystemGroupedBackground */
-  --surface-2: #f9f9fb;          /* tertiary / inset fill */
-  --surface-3: #f0f0f4;          /* quaternary fill */
-  --label: #000;
-  --label-2: #636366;            /* secondaryLabel, deepened to pass AA */
+  --bg: var(--canvas);
+  --surface: var(--panel);
+  --surface-2: oklch(96.7% .010 135);
+  --surface-3: oklch(93% .014 135);
+  --label: var(--ink);
+  --label-2: var(--subtle);
   --label-3: #8e8e93;            /* tertiaryLabel — icons & large text only */
-  --separator: rgba(60, 60, 67, 0.29);
-  --separator-opaque: #c6c6c8;
+  --separator: var(--line);
+  --separator-opaque: oklch(87% .013 135);
   --fill-tertiary: rgba(118, 118, 128, 0.12);
   --fill-quaternary: rgba(118, 118, 128, 0.08);
   --highlight: rgba(118, 118, 128, 0.14);
@@ -84,12 +89,12 @@
   --material-bar-glass: rgba(242, 242, 247, 0.78);
   --material-sidebar: #f2f2f7;
   --material-sidebar-glass: rgba(242, 242, 247, 0.72);
-  --material-sheet: #fff;
+  --material-sheet: var(--surface);
 
   /* ---- type ---- */
-  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Helvetica Neue', Helvetica, sans-serif;
-  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, 'Helvetica Neue', Helvetica, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, 'IBM Plex Mono', monospace;
+  --font-display: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --t-large-title: 34px;
   --t-title1: 28px;
   --t-title2: 22px;
@@ -104,8 +109,8 @@
 
   /* ---- 4pt grid ---- */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s12: 48px;
-  --gutter: 20px;
-  --pad-card: 16px;
+  --gutter: clamp(100px, 8vw, 120px);
+  --pad-card: 20px;
   --density-scale: 1;
   --density: 1;
   --radius-scale: 1;
@@ -121,17 +126,17 @@
   --space-stack: calc(var(--s4) * var(--density-scale));
 
   /* ---- shape ---- */
-  --r-sm: calc(8px * var(--radius-scale, 1));
-  --r-md: calc(12px * var(--radius-scale, 1));
-  --r-lg: calc(16px * var(--radius-scale, 1));
-  --r-xl: calc(20px * var(--radius-scale, 1));
+  --r-sm: calc(12px * var(--radius-scale, 1));
+  --r-md: calc(18px * var(--radius-scale, 1));
+  --r-lg: calc(24px * var(--radius-scale, 1));
+  --r-xl: calc(28px * var(--radius-scale, 1));
   --r-pill: 999px;
   --hairline: 0.5px;
   --tap: 44px;
 
   /* ---- elevation ---- */
-  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --elev-2: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --elev-1: 0 10px 30px oklch(30% .02 140 / .035);
+  --elev-2: 0 16px 40px oklch(30% .02 140 / .08);
   --elev-3: 0 16px 40px rgba(0, 0, 0, 0.14);
   --focus-ring: 0 0 0 4px rgba(0, 122, 255, 0.32);
 
@@ -146,7 +151,7 @@
      the window instead of pinning the content to a narrow column in the middle
      of the screen. `.container` keeps `width: 100%`, so the cap only ever
      raises the ceiling — it can never overflow. */
-  --container-max: 1180px;
+  --container-max: 1440px;
   --nav-h: 52px;
 
   /* --- Density & radius presets. The reference exposes all six in
@@ -171,7 +176,7 @@
   --accent: var(--blue);
   --accent-ink: var(--blue-ink);
   --accent-soft: var(--blue-soft);
-  --accent-on: #fff;
+  --accent-on: var(--on-night);
   --success: var(--green);
   --warn: var(--orange);
   --danger: var(--red);
@@ -222,34 +227,46 @@
    ========================================================================== */
 :root[data-theme='dark'] {
   color-scheme: dark;
+  --canvas: oklch(10.5% .008 245);
+  --panel: oklch(15.5% .008 245 / .91);
+  --ink: oklch(96% .007 130);
+  --subtle: oklch(72% .014 145);
+  --line: oklch(29% .010 245 / .86);
+  --night: oklch(96% .006 130);
+  --powder: oklch(42% .075 248);
+  --on-night: #111713;
+  --inverted-muted: #47534b;
+  --rail-surface: #202523;
+  --panel-border: var(--line);
+  --nav-surface: oklch(16% .008 245 / .78);
 
-  --blue: #0a84ff;
-  --blue-fill: #0a6ae0;
-  --blue-fill-hover: #1768ca;
-  --blue-fill-active: #205bb4;
+  --blue: var(--chart-blue);
+  --blue-fill: var(--night);
+  --blue-fill-hover: #fff;
+  --blue-fill-active: oklch(88% .008 130);
   --green-fill: #14602f; --red-fill: #a81c14; --orange-fill: #6b3f00;
-  --green: #30d158; --red: #ff453a; --orange: #ff9f0a;
+  --green: var(--sage); --red: #ff453a; --orange: var(--tangerine);
   --indigo: #5e5ce6; --teal: #40c8e0; --pink: #ff375f; --purple: #bf5af2;
   --yellow: #ffd60a; --gray: #8e8e93; --brown: #ac8e68;
 
-  --blue-ink: #64a8ff; --green-ink: #3fd27c; --red-ink: #ff6b61;
-  --orange-ink: #ffb340; --indigo-ink: #9a99ff; --teal-ink: #5fd0e2;
+  --blue-ink: oklch(75% .11 245); --green-ink: oklch(75% .105 155); --red-ink: oklch(73% .14 27);
+  --orange-ink: oklch(77% .12 60); --indigo-ink: #9a99ff; --teal-ink: #5fd0e2;
   --pink-ink: #ff7d95; --purple-ink: #cf8ef5; --yellow-ink: #e8c55f;
   --gray-ink: #aeaeb2; --brown-ink: #c7a97f;
 
-  --blue-soft: #10233d; --green-soft: #0f2a1c; --red-soft: #341512;
+  --blue-soft: oklch(23% .035 245); --green-soft: #0f2a1c; --red-soft: #341512;
   --orange-soft: #33240f; --indigo-soft: #1c1c38; --teal-soft: #0d2b31;
   --pink-soft: #35121c; --purple-soft: #291a36; --yellow-soft: #2f2a10;
   --gray-soft: #252527; --brown-soft: #2a2118;
 
-  --bg: #000;                    /* systemGroupedBackground, dark */
-  --surface: #1c1c1e;            /* secondarySystemGroupedBackground */
-  --surface-2: #2c2c2e;
-  --surface-3: #3a3a3c;
-  --label: #fff;
-  --label-2: #98989d;
+  --bg: var(--canvas);
+  --surface: var(--panel);
+  --surface-2: oklch(18% .008 245);
+  --surface-3: oklch(22% .01 245);
+  --label: var(--ink);
+  --label-2: var(--subtle);
   --label-3: #636366;
-  --separator: rgba(84, 84, 88, 0.65);
+  --separator: var(--line);
   --separator-opaque: #38383a;
   --fill-tertiary: rgba(118, 118, 128, 0.24);
   --fill-quaternary: rgba(118, 118, 128, 0.18);
@@ -259,9 +276,9 @@
   --material-bar-glass: rgba(22, 22, 24, 0.76);
   --material-sidebar: #121214;
   --material-sidebar-glass: rgba(18, 18, 20, 0.74);
-  --material-sheet: #1c1c1e;
-  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --elev-2: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --material-sheet: var(--surface);
+  --elev-1: 0 10px 30px oklch(30% .02 140 / .035);
+  --elev-2: 0 16px 40px oklch(30% .02 140 / .08);
   --elev-3: 0 16px 40px rgba(0, 0, 0, 0.6);
   --focus-ring: 0 0 0 4px rgba(10, 132, 255, 0.45);
 }

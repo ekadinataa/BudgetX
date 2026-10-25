@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { buildBudgetXJson, buildCsvStrings, buildCsvZip } from '../../services/exportService';
 import { parseAndValidate, parseCsvZip, validateEntities } from '../../services/importService';

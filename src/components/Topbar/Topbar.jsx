@@ -1,95 +1,61 @@
-import { useEffect, useState } from 'react';
-import { PAGE_ACTIONS_ID } from '../../context/pageActions';
+import { useEffect, useRef } from 'react';
 import NavIcon from '../icons/NavIcon';
+import { NAV_ITEMS, NAV_GROUPS } from '../Sidebar/Sidebar';
 
-/**
- * Topbar — sticky app bar above the scroll container.
- *
- * Rebuild of the reference's `<header class="topbar">` from
- * `budgetx-app.html` (`data-od-id="topbar"`). The centred title is hidden by
- * default and fades in once the page scrolls past 18px, which is what
- * `[data-scrolled='true'] .topbarTitle` keys off in the reference CSS.
- * The 18px threshold and the window-scroll source are the reference's.
- *
- * `onAddTx` renders the same circular `.iconBtn` launcher the reference uses
- * for `cta-tx-new`.
- *
- * The reference's `pageHeader(title, sub, actions)` returns only the title and
- * subtitle — `actions` is stashed on HEAD and rendered into `.topbarActions`,
- * i.e. the page's primary buttons live in the sticky bar, not in the scrolling
- * title block. `actions` below is that slot.
- *
- * @param {Object} props
- * @param {string} props.page - Current page id, used for the title
- * @param {() => void} [props.onAddTx] - Opens the add-transaction modal
- * @param {Object} [props.user] - Auth user, for the mobile avatar
- * @param {React.ReactNode} [props.actions] - Page header actions
- */
-const TITLES = {
-  dashboard: 'Dashboard',
-  wallet: 'Dompet',
-  tx: 'Transaksi',
-  budget: 'Budget',
-  recurring: 'Langganan Rutin',
-  subscription: 'Subscription',
-  debt: 'Utang & Piutang',
-  wishlist: 'Wishlist',
-  invest: 'Investasi',
-  asset: 'Aset Tetap',
-  report: 'Laporan',
-  fire: 'FIRE',
-  settings: 'Pengaturan',
-  help: 'Bantuan',
-};
+function Destination({ item, page, navigate, withIcon = false }) {
+  return <button type="button" data-page={item.id} aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}>
+    {withIcon && <NavIcon name={item.icon} size={18} />}{item.label}
+  </button>;
+}
 
-export default function Topbar({ page, onAddTx, user, actions }) {
-  const [scrolled, setScrolled] = useState(false);
+export default function Topbar({ page, setPage, onAddTx, user, darkMode, setDarkMode, onLogout, onSearch }) {
+  const header = useRef(null);
+  const closeMenus = () => header.current?.querySelectorAll('details[open]').forEach(el => { el.open = false; });
+  const navigate = id => { closeMenus(); setPage(id); window.scrollTo({ top: 0, behavior: 'instant' }); };
 
   useEffect(() => {
-    // The shell scrolls the window (see the `.appScroll` note in App.css),
-    // matching the reference's `window.scrollY > 18` threshold.
-    const onScroll = () => setScrolled(window.scrollY > 18);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const outside = event => header.current?.querySelectorAll('details[open]').forEach(el => {
+      if (!el.contains(event.target)) el.open = false;
+    });
+    const escape = event => {
+      if (event.key !== 'Escape') return;
+      header.current?.querySelectorAll('details[open]').forEach(el => {
+        el.open = false;
+        el.querySelector('summary').focus();
+      });
+    };
+    document.addEventListener('click', outside);
+    document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('click', outside); document.removeEventListener('keydown', escape); };
   }, []);
 
-  const initials = user?.email
-    ? user.email.slice(0, 2).toUpperCase()
-    : null;
-
-  return (
-    <header
-      className="topbar"
-      data-scrolled={scrolled ? 'true' : 'false'}
-      data-od-id="topbar"
-    >
-      <div className="topbarLead mobileOnly">
-        {initials && (
-          <span className="avatar" style={{ width: 28, height: 28, fontSize: 11 }}>
-            {initials}
-          </span>
-        )}
-      </div>
-      <span className="topbarTitle" data-od-id="topbar-title">
-        {TITLES[page] || 'BudgetX'}
-      </span>
-      <div className="topbarActions">
-        {/* Mount point for `usePageActions`; `actions` is the escape hatch for
-            callers that already hold the node. */}
-        <span id={PAGE_ACTIONS_ID} className="topbarActionsSlot" />
-        {actions}
-        {onAddTx && page !== 'wishlist' && (
-          <button
-            className="iconBtn"
-            type="button"
-            onClick={() => onAddTx()}
-            aria-label="Tambah Transaksi"
-          >
-            <NavIcon name="plus" size={18} />
-          </button>
-        )}
-      </div>
-    </header>
-  );
+  const initial = (user?.displayName || user?.email || 'Lokal').slice(0, 2).toUpperCase();
+  return <header className="topbar" ref={header}>
+    <button className="brandTop" type="button" onClick={() => navigate('dashboard')} aria-label="BudgetX — beranda">
+      <img src="/logo.png" alt="" width={38} height={38} /><span>BudgetX<small>keuangan pribadi</small></span>
+    </button>
+    <nav className="topnav" aria-label="Navigasi utama">
+      <Destination item={{ id: 'dashboard', label: 'Ringkasan' }} page={page} navigate={navigate} />
+      {NAV_GROUPS.map(group => <details className="navDetails" key={group.label} data-current={group.items.includes(page)}>
+        <summary>{group.label}</summary>
+        <div className="navDrop">{group.items.map(id => <Destination key={id} item={NAV_ITEMS.find(item => item.id === id)} page={page} navigate={navigate} />)}</div>
+      </details>)}
+      <Destination item={{ id: 'report', label: 'Laporan' }} page={page} navigate={navigate} />
+    </nav>
+    <div className="topbarActions">
+      {onAddTx && page !== 'wishlist' && <button className="iconBtn" type="button" aria-label="Tambah Transaksi" onClick={() => onAddTx()}><NavIcon name="plus" size={18} /></button>}
+      <button className="iconBtn desktopHelp" type="button" aria-label="Bantuan" onClick={() => navigate('help')}><NavIcon name="help" size={18} /></button>
+      <button className="topProfile" type="button" aria-label={user?.email ? `Akun ${user.email}` : 'Pengaturan mode lokal'} onClick={() => navigate('settings')}>{initial}</button>
+      <details className="mobileNavMenu">
+        <summary aria-label="Buka navigasi"><NavIcon name="menu" size={20} /></summary>
+        <nav className="mobileNavPanel" aria-label="Semua halaman">
+          {NAV_ITEMS.map(item => <Destination key={item.id} item={item} page={page} navigate={navigate} withIcon />)}
+          <div className="mobileNavDivider" />
+          <button type="button" onClick={() => { closeMenus(); onSearch(); }}><NavIcon name="search" size={18} />Cari transaksi</button>
+          <button type="button" onClick={() => setDarkMode(d => !d)}><NavIcon name={darkMode ? 'sun' : 'moon'} size={18} />Mode {darkMode ? 'terang' : 'gelap'}</button>
+          {user && <button type="button" onClick={onLogout}><NavIcon name="logout" size={18} />Keluar</button>}
+        </nav>
+      </details>
+    </div>
+  </header>;
 }

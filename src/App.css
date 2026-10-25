@@ -19,16 +19,14 @@
 }
 
 .appShell {
-  display: flex;
+  display: block;
   min-height: 100vh;
   width: 100%;
 }
 
 .appMain {
-  flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
+  display: block;
   background: var(--bg);
 }
 
@@ -41,9 +39,7 @@
    scrollbar without turning this into a scroll container (which would swallow
    the window scroll). */
 .appScroll {
-  flex: 1;
   min-width: 0;
-  overflow-x: clip;
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────────── */

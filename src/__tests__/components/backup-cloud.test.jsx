@@ -68,8 +68,8 @@ beforeEach(() => {
 });
 
 async function openSettings() {
-  await waitFor(() => expect(document.querySelector('.navItem[data-page="settings"]')).toBeTruthy());
-  fireEvent.click(document.querySelector('.navItem[data-page="settings"]'));
+  await waitFor(() => expect(document.querySelector('.railButton[aria-label="Pengaturan"]')).toBeTruthy());
+  fireEvent.click(document.querySelector('.railButton[aria-label="Pengaturan"]'));
   await screen.findByRole('heading', { name: 'Pengaturan' });
 }
 
@@ -176,7 +176,8 @@ describe('Authenticated App backup integration (mocked cloud; no network writes)
     for (const item of invalidGroup.items) item.groupId = invalidId;
     render(<App />);
     await upload({ ...demoBackup.data, wishlistGroups: [invalidGroup] });
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Data tidak valid'));
+    // FileReader is asynchronous and may be delayed by parallel Chrome suites.
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Data tidak valid'), { timeout: 5000 });
     expect(api.resetUserData).not.toHaveBeenCalled();
     expect(api.migrateData).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog', { name: 'Impor Data' })).not.toBeInTheDocument();
@@ -185,7 +186,7 @@ describe('Authenticated App backup integration (mocked cloud; no network writes)
   it('rejects malformed optional data before deleting or writing cloud records', async () => {
     render(<App />);
     await upload({ ...demoBackup.data, subscriptions: {} });
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Data tidak valid'));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Data tidak valid'), { timeout: 5000 });
     expect(api.resetUserData).not.toHaveBeenCalled();
     expect(api.migrateData).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

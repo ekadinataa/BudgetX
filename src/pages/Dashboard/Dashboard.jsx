@@ -11,6 +11,7 @@ import { usePageActions } from '../../context/pageActions';
 import NavIcon from '../../components/icons/NavIcon';
 import AmountText from '../../components/ui/AmountText';
 import ScoreDonut, { RatioBar, SectionTitle } from './ScoreParts';
+import CashFlowWaterfall from '../../components/charts/CashFlowWaterfall';
 
 const SECTIONS = [
   { id: 'needs', label: 'Kebutuhan' },
@@ -143,8 +144,6 @@ export default function Dashboard({
     (s, sec) => s + sectionSpend[sec.id],
     0
   );
-  const budgetUsedPct =
-    allocated > 0 ? Math.round((budgetSpent / allocated) * 100) : 0;
 
   // ── Health ──────────────────────────────────────────────────────────
   const nw = computeNetWorth(wallets, debts, investments, fixedAssets);
@@ -176,50 +175,40 @@ export default function Dashboard({
       {/* ── Page header ───────────────────────────────────────────── */}
       <div className="largeTitleBlock">
         <div>
-        <h1 className="largeTitle">
-          {greet}
-          {userName ? `, ${userName}` : ''}
-        </h1>
+        <h1 className="largeTitle">Dashboard</h1>
         <p className="pageSubtitle">
-          {fmtDate(today.toISOString().slice(0, 10))} · {periodLabel}
+          Ringkasan aktivitas dan arus uang · {periodLabel}
         </p>
         </div>
       </div>
 
-      {/* ── Balance hero ──────────────────────────────────────────── */}
-      <section className="balanceCard">
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--s3)' }}>
-          <div style={{ minWidth: 0 }}>
-            <div className="balanceLabel">Total Saldo Seluruh Dompet</div>
-            <div className="balanceValue">{rp(totalBalance)}</div>
-          </div>
-          <span className="tag">{wallets.length} dompet</span>
-        </div>
-        <div className="balanceRow">
-          <div className="balanceCell">
-            <div className="balanceCellLabel">Pemasukan</div>
-            <div className="balanceCellValue num" style={{ color: 'var(--green-ink)' }}>
-              {rpShort(income)}
+      <div className="videoHero" data-design="dashboard-hero">
+        <section className="card activityHero">
+          <div>
+            <div className="eyebrow">{today.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+            <h2>{greet}{userName ? `, ${userName}` : ''}.</h2>
+            <p><strong>{periodTxs.length} aktivitas</strong> pada periode ini. Pengeluaran rutin dan target tabungan Anda dipantau di satu tempat.</p>
+            <div className="compactActions">
+              <button className="btnPrimary" type="button" onClick={() => onAddTx('expense')}><NavIcon name="plus" size={15} />Catat transaksi</button>
+              <button className="btnSmallGhost" type="button" onClick={() => setPage('budget')}><NavIcon name="budget" size={14} />Lihat anggaran</button>
             </div>
           </div>
-          <div className="balanceCell">
-            <div className="balanceCellLabel">Pengeluaran</div>
-            <div className="balanceCellValue num">{rpShort(expense)}</div>
+          <div className="activityTrack" aria-label="Tanggal aktivitas terbaru">
+            {getRecentTransactions(periodTxs, 6).reverse().map(t => <span key={t.id} title={`${t.note || 'Transaksi'}: ${rp(t.amount)}`}><i />{new Date(t.date + 'T12:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>)}
+            {!periodTxs.length && <span>Belum ada aktivitas</span>}
           </div>
-          <div className="balanceCell">
-            <div className="balanceCellLabel">Sisa</div>
-            <div
-              className="balanceCellValue num"
-              style={{ color: net >= 0 ? 'var(--green-ink)' : 'var(--red-ink)' }}
-            >
-              {rpShort(net)}
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+        <section className="card cashHero">
+          <div className="cardHead"><div><h2 className="cardTitle">Saldo bersih</h2><p className="cardSub">Seluruh dompet aktif</p></div><button className="btnSmallGhost" type="button" onClick={() => setPage('wallet')}>Dompet<NavIcon name="chevronRight" size={13} /></button></div>
+          <div className="cashValue num">{rp(totalBalance)}</div>
+          <span className={`badge ${net >= 0 ? 'badgeOk' : 'badgeOverdue'}`}>{net >= 0 ? '+' : ''}{rpShort(net)} {yearMode ? 'tahun ini' : 'bulan ini'}</span>
+          <CashFlowWaterfall transactions={periodTxs} />
+          <div className="miniLegend"><span><i />Arus bersih positif</span><span><i className="out" />Arus bersih negatif</span></div>
+        </section>
+      </div>
 
       {/* ── Stats ─────────────────────────────────────────────────── */}
-      <div className="statGrid">
+      <div className="kpiRow4">
         <StatCard
           label={yearMode ? 'Pengeluaran Tahun Ini' : 'Pengeluaran Bulan Ini'}
           value={rp(expense)}
@@ -235,25 +224,25 @@ export default function Dashboard({
           }
         />
         <StatCard
-          label="Budget Terpakai"
-          value={allocated > 0 ? `${budgetUsedPct}%` : 'Belum diatur'}
+           label="Sisa anggaran"
+           value={allocated > 0 ? rp(allocated - budgetSpent) : 'Belum diatur'}
           sub={
             allocated > 0
-              ? `${rp(budgetSpent)} dari ${rp(allocated)}`
-              : 'Buat budget di halaman Budget'
+               ? (budgetSpent > allocated ? 'Melebihi alokasi' : 'Dalam batas alokasi')
+               : 'Buat anggaran'
           }
           tone={allocated > 0 && budgetSpent > allocated ? 'var(--red-ink)' : 'var(--green-ink)'}
         />
         <StatCard
-          label="Rasio Utang"
-          value={`${health.debtToAsset.toFixed(1)}%`}
-          sub={health.debtToAsset < 30 ? 'Aman' : 'Perlu diturunkan'}
-          tone={health.debtToAsset < 30 ? 'var(--green-ink)' : 'var(--orange-ink)'}
+          label="Tingkat tabungan"
+          value={income ? `${(net / income * 100).toFixed(1)}%` : '—'}
+          sub={health.grade.label}
+          tone={health.grade.ink}
         />
       </div>
 
       {/* ── Two-column body ───────────────────────────────────────── */}
-      <div className="mainGrid">
+      <div className="dashboardLower">
         <div className="col">
           {/* Aksi cepat */}
           <section className="card">
@@ -364,16 +353,16 @@ export default function Dashboard({
             )}
           </section>
 
-          <section className="card">
+          <section className="card dashboardRecent">
             <SectionTitle
               variant="card"
               action={
-                <button className="linkBtn" type="button" onClick={() => setPage('tx')}>
+                <button className="btnSmallGhost" type="button" onClick={() => setPage('tx')}>
                   Lihat semua
                 </button>
               }
             >
-              Transaksi Terbaru
+              Aktivitas terbaru
             </SectionTitle>
             {recentTxs.length === 0 ? (
               <div className="emptyState">
@@ -529,7 +518,7 @@ function buildRecommendations(health, nw, budgetSpent, allocated) {
   } else if (health.emergencyFundMonths < 6) {
     push('Perhatian', `Dana darurat ${health.emergencyFundMonths.toFixed(1)} bulan. Targetkan 6 bulan.`);
   } else {
-    push('Sehat', `Dana darurat ${health.emergencyFundMonths.toFixed(1)} bulan — sudah exceeds target 6 bulan.`);
+    push('Sehat', `Dana darurat ${health.emergencyFundMonths.toFixed(1)} bulan — sudah melampaui target 6 bulan.`);
   }
 
   if (health.savingsRate > 0) {

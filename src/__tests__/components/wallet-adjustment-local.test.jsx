@@ -19,7 +19,7 @@ it('persists a wallet change and exactly one signed audit transaction together l
   expect(saved().transactions).toHaveLength(1);
   expect(saved().transactions[0]).toMatchObject({ walletId: 'w1', type: 'adjustment', amount: 50, note: 'Cocokkan rekening', balanceBefore: 100, balanceAfter: 150 });
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  fireEvent.click(within(screen.getByRole('complementary')).getByRole('button', { name: 'Transaksi' }));
+  fireEvent.click(within(screen.getByRole('navigation', { name: 'Navigasi bawah' })).getByRole('button', { name: 'Transaksi' }));
   vi.spyOn(window, 'confirm').mockReturnValue(true);
   await act(async () => fireEvent.click(screen.getByRole('button', { name: /^Hapus transaksi/ })));
   expect(saved().wallets[0].balance).toBe(100);

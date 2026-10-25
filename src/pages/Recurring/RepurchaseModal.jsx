@@ -47,7 +47,7 @@ export default function RepurchaseModal({ item, wallets, onClose, onConfirm }) {
         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)' }}>
           {item.name}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: 'var(--label)', marginTop: 4 }}>
           Durasi pakai: {item.durationDays} hari · Harga sebelumnya: {fmtFull(item.amount)}
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function RepurchaseModal({ item, wallets, onClose, onConfirm }) {
       </Field>
 
       {nextDate && (
-        <div style={{ fontSize: 12, color: 'var(--text-4)', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: 'var(--label-2)', marginBottom: 12 }}>
           Estimasi habis berikutnya: <strong>{nextDate}</strong>
         </div>
       )}

@@ -97,19 +97,19 @@ describe('sectionLabel', () => {
 
 describe('sectionColor', () => {
   it('returns "#4F6EF7" for needs', () => {
-    expect(sectionColor('needs')).toBe('#4F6EF7');
+    expect(sectionColor('needs')).toBe('var(--blue)');
   });
 
   it('returns "#F59E0B" for wants', () => {
-    expect(sectionColor('wants')).toBe('#F59E0B');
+    expect(sectionColor('wants')).toBe('var(--orange)');
   });
 
   it('returns "#22C55E" for savings', () => {
-    expect(sectionColor('savings')).toBe('#22C55E');
+    expect(sectionColor('savings')).toBe('var(--green)');
   });
 
   it('returns fallback "#A855F7" for unknown sections', () => {
-    expect(sectionColor('income')).toBe('#A855F7');
+    expect(sectionColor('income')).toBe('var(--purple)');
   });
 });
 

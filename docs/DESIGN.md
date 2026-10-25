@@ -10,6 +10,13 @@
 
 ## Pembaruan UI — 1 Oktober 2026
 
+> **Acuan terbaru, 25 Oktober 2026:** redesign video yang disetujui dan
+> integrasi Wishlist upstream kini mencakup 14 halaman. Gunakan
+> [VIDEO_UI_MIGRATION.md](VIDEO_UI_MIGRATION.md) untuk token, navigasi kapsul,
+> pemetaan komponen, dan hasil QA aktif. Catatan 1 Oktober di bawah bersifat
+> historis; redesign sudah dirilis ke Hosting production. Detail rilis dan
+> rollback ada di `PRODUCTION_RELEASE_2026-10-25.md`.
+
 Migrasi kelas global selesai untuk seluruh 13 halaman, dialog, autentikasi,
 dan CategoryPicker. Tidak ada lagi file atau impor CSS Module. Primitive
 bersama digunakan langsung; detail khusus memakai prefix `invest`, `asset`,

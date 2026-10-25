@@ -21,6 +21,11 @@ import CompareBarChart from '../../components/charts/CompareBarChart';
 import MonthCompareBar from '../../components/charts/MonthCompareBar';
 import DailyBarChart from '../../components/charts/DailyBarChart';
 import CycleSettingModal from './CycleSettingModal';
+import CashFlowTrend from '../../components/charts/CashFlowTrend';
+import FinancialHealthCard from '../../components/ui/FinancialHealthCard';
+import { computeNetWorth, computeHealthRatios } from '../../utils/assetHelpers';
+import { buildCashFlowTrend } from '../../utils/cashFlow';
+import { buildCsvStrings, triggerDownload } from '../../services/exportService';
 
 /**
  * ReportsPage — Financial reports with charts, comparisons, and budget performance.
@@ -44,6 +49,11 @@ export default function ReportsPage({
   setCycleStart,
   categories,
   recurringItems = [],
+  wallets = [],
+  debts = [],
+  investments = [],
+  fixedAssets = [],
+  setPage,
 }) {
   const getCat = (id) => getCatById(id, categories);
 
@@ -71,6 +81,7 @@ export default function ReportsPage({
 
   const [period, setPeriod] = useState(allPeriods[0]?.value || currentMk);
   const [showCycleDlg, setShowCycleDlg] = useState(false);
+  const [trendMonths, setTrendMonths] = useState(6);
 
   // Current period range
   const range = getPeriodRange(period, cycleStart);
@@ -95,9 +106,7 @@ export default function ReportsPage({
   // Cashflow totals
   const income = txs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const net = income - expense;
   const prevExp = prevTxs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const expDelta = prevExp > 0 ? ((expense - prevExp) / prevExp * 100).toFixed(1) : 0;
 
   // Category breakdown for pie chart
   const catBreakdown = {};
@@ -142,14 +151,23 @@ export default function ReportsPage({
     }
   });
 
+  const trendValues = buildCashFlowTrend(transactions, allPeriods.filter(p => p.value <= period).slice(0, trendMonths).map(p => p.value), cycleStart);
+  const trendIncome = trendValues.reduce((sum, value) => sum + value.income, 0);
+  const trendExpense = trendValues.reduce((sum, value) => sum + value.expense, 0);
+  const trendLabel = trendValues.length ? `${trendValues[0].label} – ${trendValues.at(-1).label}` : 'Belum ada data';
+  const totalAllocated = Object.values(budget.sections).reduce((sum, section) => sum + section.total, 0);
+  const totalSpent = Object.values(secSpend).reduce((sum, value) => sum + value, 0);
+  const health = computeHealthRatios(computeNetWorth(wallets, debts, investments, fixedAssets), transactions, debts);
+
   const topbarActions = usePageActions(
-    <div className="toolbar">
+    <div className="toolbar reportControls">
       <button className="btnGhost" onClick={() => setShowCycleDlg(true)}>
         <NavIcon name="calendar" size={15} /> Siklus: tgl {cycleStart}
       </button>
       <Select aria-label="Periode laporan" value={period} onChange={(e) => setPeriod(e.target.value)} style={{ width: 'auto' }}>
         {allPeriods.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
       </Select>
+      <button className="btnGhost" type="button" onClick={() => triggerDownload(new Blob([buildCsvStrings({ wallets, categories, budgets, transactions: txs }).transactions], { type: 'text/csv;charset=utf-8' }), `budgetx-transaksi-${period}.csv`)}><NavIcon name="download" size={15} />Ekspor periode</button>
     </div>,
   );
 
@@ -161,27 +179,37 @@ export default function ReportsPage({
       <div className="largeTitleBlock">
         <div>
           <h1 className="largeTitle">Laporan</h1>
-          <p className="reportPeriodLabel">{range.label}</p>
+          <p className="pageSubtitle">Perbandingan arus kas · {trendLabel}</p>
         </div>
       </div>
 
       {/* Cashflow summary */}
-      <div className="grid3">
-        <CashCard label="Total Pemasukan" value={income} color="var(--green-ink)" icon="income" />
+      <div className="kpiRow4">
+        <CashCard label="Pemasukan" value={trendIncome} sub={trendLabel} />
         <CashCard
-          label="Total Pengeluaran"
-          value={expense}
-          color="var(--red-ink)"
-          icon="expense"
-          sub={`${expDelta > 0 ? '+' : ''}${expDelta}% vs ${prevLabelShort}`}
-          subColor={expDelta > 0 ? 'var(--red-ink)' : 'var(--green-ink)'}
+          label="Pengeluaran"
+          value={trendExpense}
+          sub={trendLabel}
         />
-        <CashCard
-          label="Net Cashflow"
-          value={net}
-          color={net >= 0 ? 'var(--blue)' : 'var(--red)'}
-          icon={net >= 0 ? 'income' : 'expense'}
-        />
+        <div className="statCard"><div className="statLabel">Tingkat tabungan</div><div className="statValue num">{trendIncome ? ((trendIncome - trendExpense) / trendIncome * 100).toFixed(1) + '%' : '—'}</div><div className="statDetail">Transfer &amp; penyesuaian tidak dihitung</div></div>
+        <div className="statCard"><div className="statLabel">Anggaran terpakai</div><div className="statValue num">{totalAllocated ? Math.round(totalSpent / totalAllocated * 100) + '%' : '—'}</div><div className="statDetail">{range.label}</div></div>
+      </div>
+
+      <div className="reportLayout">
+        <div className="reportBudgetSummary">
+        <section className="card trendCard">
+          <div className="cardHead"><div><h2 className="cardTitle">Pemasukan &amp; pengeluaran</h2><p className="cardSub">{trendValues.length} periode tersedia · sampai {range.label}</p></div>
+            <Select aria-label="Rentang tren" value={trendMonths} onChange={e => setTrendMonths(Number(e.target.value))} style={{ width: 'auto' }}>{[3, 6, 12].map(n => <option value={n} key={n}>Hingga {n} bulan</option>)}</Select>
+          </div>
+          <div className="miniLegend"><span><i className="incomeKey" />Pemasukan</span><span><i className="expenseKey" />Pengeluaran</span></div>
+          <CashFlowTrend values={trendValues} />
+        </section>
+        <section className="card">
+          <div className="cardHead"><div><h2 className="cardTitle">Anggaran vs realisasi</h2><p className="cardSub">{range.label}</p></div>{setPage && <button className="btnSmallGhost" type="button" onClick={() => setPage('budget')}>Atur anggaran</button>}</div>
+          <div className="list">{['needs', 'wants', 'savings'].map(sec => <div className="listRow" key={sec}><span className="dot" style={{ background: sectionColor(sec) }} /><span className="itemInfo"><span className="itemName">{sectionLabel(sec)}</span><span className="itemMeta">{fmtFull(secSpend[sec])} dari {fmtFull(budget.sections[sec]?.total || 0)}</span></span><span className="badge">{budget.sections[sec]?.total ? Math.round(secSpend[sec] / budget.sections[sec].total * 100) + '%' : 'Tanpa alokasi'}</span></div>)}</div>
+        </section>
+        </div>
+        <FinancialHealthCard health={health} />
       </div>
 
       {/* Charts row */}
@@ -189,6 +217,7 @@ export default function ReportsPage({
         {/* Pie chart */}
         <div className="card">
           <h3 className="cardTitle contentTitle">Pengeluaran per Kategori</h3>
+          <p className="cardSub">{range.label}</p>
           {topCats.length === 0 ? (
             <div className="reportEmpty">Tidak ada data</div>
           ) : (

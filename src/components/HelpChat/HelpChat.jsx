@@ -127,7 +127,7 @@ export default function HelpChat() {
                     padding: '8px 12px',
                     borderRadius: 'var(--r-lg)',
                     background: m.type === 'user' ? 'var(--blue-fill)' : 'var(--fill-quaternary)',
-                    color: m.type === 'user' ? '#fff' : 'var(--label)',
+                    color: m.type === 'user' ? 'var(--on-night)' : 'var(--label)',
                     fontSize: 'var(--t-footnote)',
                     lineHeight: 1.4,
                   }}

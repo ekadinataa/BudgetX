@@ -462,8 +462,9 @@ Aplikasi menggunakan state-based navigation (tanpa React Router). Halaman ditent
 | `settings` | Pengaturan | Settings |
 | `help` | Bantuan | Help |
 
-Desktop menyediakan Wishlist di sidebar. Mobile menggunakan shortcut terlihat
-**Pengaturan → Wishlist**, tanpa mengganti tab utama atau FAB transaksi.
+Pada redesign terbaru, desktop menyediakan **Perencanaan → Wishlist**. Mobile
+menyediakan **Semua halaman → Wishlist** dan pintasan **Pengaturan → Wishlist**,
+tanpa mengganti lima slot bottom navigation atau FAB transaksi.
 
 **Auth Routes (saat belum login):**
 

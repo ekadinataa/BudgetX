@@ -5,9 +5,7 @@
  *
  * Inlines the hashed CSS and JS bundles plus every local asset into
  * dist/index.html, so the result opens straight from the filesystem with no
- * server and no sibling files. Google Fonts stays as a <link> — the app falls
- * back to system sans when offline, and embedding the woff2 payloads would add
- * ~250 KB for a purely cosmetic gain.
+ * server and no sibling files, including the self-hosted reference fonts.
  */
 import { readFile, writeFile, readdir } from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -30,7 +28,14 @@ export async function buildSingleHtml(distDir) {
   }
 
   const js = await readFile(join(assetsDir, jsName), 'utf8')
-  const css = await readFile(join(assetsDir, cssName), 'utf8')
+  let css = await readFile(join(assetsDir, cssName), 'utf8')
+  // Vite leaves public/ font URLs absolute. Inline them too so the new brand
+  // typography does not break the existing standalone/offline export.
+  const fontRefs = [...new Set([...css.matchAll(/url\(["']?(\/fonts\/[\w.-]+\.woff2)["']?\)/g)].map(match => match[1]))]
+  for (const font of fontRefs) {
+    const bytes = await readFile(join(distDir, font.slice(1)))
+    css = css.replaceAll(font, () => `data:font/woff2;base64,${bytes.toString('base64')}`)
+  }
   const logo = await readFile(join(distDir, 'logo.png'))
   const logoDataUri = `data:image/png;base64,${logo.toString('base64')}`
 

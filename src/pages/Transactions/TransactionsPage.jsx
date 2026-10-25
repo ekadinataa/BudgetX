@@ -205,6 +205,8 @@ export default function TransactionsPage({ wallets, setWallets, transactions, se
 
       </div>
 
+      <div className="transactionWorkspace">
+      <aside className="transactionRail" aria-label="Ringkasan dan filter transaksi">
       {/* Search + date filter + filter toggle */}
       <div className="filterCard">
         <div className="filterSearchRow">
@@ -329,6 +331,8 @@ export default function TransactionsPage({ wallets, setWallets, transactions, se
         </div>
       </div>
 
+      </aside>
+      <section className="transactionMain" aria-label="Daftar dan kalender transaksi">
       {/* View switch, as in the reference: `.seg` above the single `tx-list`
           card, which then renders either the rows or the month grid. */}
       <div className="viewSwitch">
@@ -436,6 +440,9 @@ export default function TransactionsPage({ wallets, setWallets, transactions, se
         })}
           </>
         )}
+      </div>
+
+      </section>
       </div>
 
       {/* Add / Edit modal */}

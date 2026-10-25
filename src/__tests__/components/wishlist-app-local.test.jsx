@@ -102,7 +102,7 @@ it('Replace restores Wishlist, resets absent legacy Wishlist, and keeps local CR
   fireEvent.click(screen.getByText('wishlist'));
   await act(async () => { await state.props.onUpdateGroup('restored', { title: 'Diedit', targetBudget: 10, targetDate: '2026-12-01' }); });
   expect(saved().wishlistGroups[0].title).toBe('Diedit');
-  fireEvent.click(document.querySelector('.navItem[data-page="settings"]'));
+  fireEvent.click(document.querySelector('.railButton[aria-label="Pengaturan"]'));
   await act(async () => { await state.settings.onImportData({ preferences: { page: 'settings' } }, 'replace'); });
   expect(saved().wishlistGroups).toEqual([]);
 });
@@ -115,7 +115,7 @@ it('resets local Wishlist including embedded items without calling cloud and cle
   expect(saved().wallets).toEqual([]);
   expect(saved().transactions).toEqual([]);
   expect(api.resetUserData).not.toHaveBeenCalled();
-  fireEvent.click(document.querySelector('.navItem[data-page="wishlist"]'));
+  act(() => state.topbar.setPage('wishlist'));
   await expect(state.props.onUpdateGroup('g1', { title: 'Old group' })).rejects.toThrow(/tidak ditemukan/);
 });
 it('Append deduplicates Wishlist by group ID and retains embedded item relationships for subsequent edits', async () => {

@@ -15,13 +15,14 @@
  * adjacent blocks with no space between them.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { chromium } from './browser-support';
+import { chromium, navigate, localOnly } from './browser-support';
+import { NAV_ITEMS } from '../../components/Sidebar/Sidebar';
 const SKIP = chromium ? false : 'playwright is not installed';
 
 const URL = globalThis.process?.env?.UAT_URL || 'http://localhost:5173';
 const PAGES = [
   'dashboard', 'wallet', 'tx', 'budget', 'recurring', 'subscription',
-  'debt', 'invest', 'asset', 'report', 'settings', 'help',
+  'wishlist', 'debt', 'invest', 'asset', 'report', 'fire', 'settings', 'help',
 ];
 
 /**
@@ -32,7 +33,10 @@ const PAGES = [
  * there is set by the module CSS on its children, which the `boxedWrappers`
  * assertion covers separately.
  */
-const SINGLE_BLOCK = { help: 'reading column, one .measure wrapper' };
+const SINGLE_BLOCK = {
+  help: 'reading column, one .measure wrapper',
+  fire: 'one .fireLayout reading-column stack with its own gaps',
+};
 const WIDTH = 1600;
 
 /** `--s5` is the design gap; `.largeTitleBlock` adds 4px below the title. */
@@ -45,6 +49,7 @@ beforeAll(async () => {
   if (!chromium) return;
   browser = await chromium.launch({ channel: 'chrome' });
   page = await browser.newPage({ viewport: { width: WIDTH, height: 1000 } });
+  await localOnly(page);
   await page.goto(URL, { waitUntil: 'networkidle' });
 }, 60_000);
 
@@ -63,9 +68,7 @@ afterAll(async () => {
  * test, and it is what a wrapper swallowing the gap actually breaks.
  */
 async function blocksFor(pageName) {
-  const nav = page.locator(`.navItem[data-page=${pageName}]`).first();
-  if (await nav.isVisible()) await nav.click();
-  else await page.evaluate((x) => document.querySelector(`.navItem[data-page=${x}]`).click(), pageName);
+  await navigate(page, pageName);
   await page.waitForTimeout(350);
   return page.evaluate(() => {
     const container = document.querySelector('.container');
@@ -81,7 +84,7 @@ async function blocksFor(pageName) {
       return [el];
     };
     const blocks = [...container.children].flatMap(unwrapStack)
-      .filter((e) => e.getBoundingClientRect().height > 0);
+      .filter((e) => e.getBoundingClientRect().height > 0 && !e.classList.contains('pageActions'));
     const gaps = [];
     for (let i = 1; i < blocks.length; i++) {
       gaps.push(Math.round(
@@ -121,7 +124,7 @@ async function blocksFor(pageName) {
 
 describe('vertical rhythm', () => {
   it('reaches every page', async () => {
-    expect(PAGES.length).toBe(12);
+    expect([...PAGES].sort()).toEqual(NAV_ITEMS.map(item => item.id).sort());
   }, 60_000);
 
   for (const pageName of PAGES) {

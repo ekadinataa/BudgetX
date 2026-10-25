@@ -709,16 +709,20 @@ src/__tests__/
 
 | Breakpoint | Nilai | Perilaku |
 |------------|-------|----------|
-| Mobile | ≤ 768px | Bottom navigation bar, single-column layout |
-| Desktop | > 768px | Sidebar kiri, multi-column layout |
+| Mobile/tablet | ≤ 900px | Menu semua halaman dan bottom navigation, grid adaptif |
+| Desktop | > 900px | Navigasi kapsul dan utility rail kiri, multi-column layout |
 
 ### Perubahan Layout di Mobile
 
 - Sidebar disembunyikan (`display: none`)
-- Bottom Navigation Bar muncul (fixed, min 56px, semua 6 item navigasi utama)
+- Bottom Navigation Bar muncul (fixed, 72px + safe area, Dashboard/Transaksi/FAB/Laporan/Pengaturan)
+- Wishlist berada pada kapsul Perencanaan di desktop dan menu Semua halaman di mobile;
+  pintasan Settings tetap ada. Item bottom navigation dipetakan berdasarkan ID.
 - Grid 4-kolom stat cards → 2 kolom
 - Grid dashboard (main + sidebar) → single column
 - Grid wallet cards, budget categories → single column
+- Wishlist: tiga kolom kartu di desktop, dua pada ≤1024px, satu pada ≤640px;
+  header/actions memakai grid container melalui `.pageStack.wishlistPage`.
 - Modal menjadi bottom sheet, lebar viewport, tinggi maksimum 92vh
 - Heading halaman 34px → 28px
 - Toolbar/form/aksi kartu pada desktop standar: 36px/40px/32px

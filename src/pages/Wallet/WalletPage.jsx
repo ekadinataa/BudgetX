@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { fmtFull } from '../../utils/formatters';
-import { computeWalletAggregates } from '../../utils/helpers';
+import { fmtFull, fmtDate, monthKey, rpShort } from '../../utils/formatters';
+import { computeWalletAggregates, getRecentTransactions } from '../../utils/helpers';
 import { buildWalletAdjustment } from '../../utils/walletAdjustment';
-import { WALLET_TYPES } from '../../utils/constants';
 import NavIcon from '../../components/icons/NavIcon';
 import { usePageActions } from '../../context/pageActions';
 import WalletCard from './WalletCard';
@@ -32,12 +31,18 @@ export default function WalletPage({
   onUpdateWallet,
   onDeleteWallet,
   onCreateTransaction,
+  setPage,
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [editWallet, setEditWallet] = useState(null);
 
   const { netBalance, totalAsset, totalDebt } = computeWalletAggregates(wallets);
+  const positive = wallets.filter(w => w.balance > 0).sort((a, b) => b.balance - a.balance);
+  const positiveTotal = positive.reduce((s, w) => s + w.balance, 0);
+  const mk = monthKey(new Date());
+  const monthTransactions = transactions.filter(t => t.date.startsWith(mk));
+  const recentExpenses = getRecentTransactions(transactions.filter(t => t.type === 'expense'), 5);
 
   /** Add a new wallet */
   const handleAddWallet = async (data) => {
@@ -154,13 +159,13 @@ export default function WalletPage({
         <div>
           <h1 className="largeTitle">Dompet</h1>
           <p className="pageSubtitle">
-            Kelola semua dompet &amp; rekening Anda
+            {wallets.length} dompet · ringkasan saldo dan arus akun
           </p>
         </div>
       </div>
 
       {/* Summary row */}
-      <div className="statGrid">
+      <div className="kpiRow4">
         <div className="statCard">
           <div className="statLabel">Total Saldo Bersih</div>
           <div
@@ -169,6 +174,7 @@ export default function WalletPage({
           >
             {fmtFull(netBalance)}
           </div>
+          <div className="statDetail">Aset dikurangi utang</div>
         </div>
         <div className="statCard">
           <div className="statLabel">Total Aset</div>
@@ -178,6 +184,7 @@ export default function WalletPage({
           >
             {fmtFull(totalAsset)}
           </div>
+          <div className="statDetail">{positive.length} dompet positif</div>
         </div>
         <div className="statCard">
           <div className="statLabel">Total Hutang</div>
@@ -187,18 +194,26 @@ export default function WalletPage({
           >
             {fmtFull(totalDebt)}
           </div>
+          <div className="statDetail">Saldo negatif kartu &amp; dompet</div>
         </div>
+        <div className="statCard"><div className="statLabel">Aktivitas bulan ini</div><div className="statValue num">{monthTransactions.length}</div><div className="statDetail">{rpShort(monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))} keluar</div></div>
       </div>
 
-      {/* Wallets grouped by type */}
-      {WALLET_TYPES.map((wt) => {
-        const group = wallets.filter((w) => w.type === wt.value);
-        if (!group.length) return null;
-        return (
-          <div key={wt.value} className="sectionBlock">
-            <h2 className="sectionTitle">{wt.label}</h2>
-            <div className="walletGrid">
-              {group.map((w) => (
+      <div className="walletOverview">
+        <section className="card">
+          <div className="cardHead"><div><h2 className="cardTitle">Alokasi saldo</h2><p className="cardSub">Distribusi saldo positif di dompet aktif</p></div><span className="num">{fmtFull(positiveTotal)}</span></div>
+          <div className="walletAllocationBar" role="img" aria-label="Distribusi saldo positif per dompet">{positive.map(w => <span key={w.id} style={{ width: `${w.balance / positiveTotal * 100}%`, background: w.color }} title={`${w.name}: ${fmtFull(w.balance)}`} />)}</div>
+          <div className="legend">{positive.map(w => <div className="legendRow" key={w.id}><span className="dot" style={{ background: w.color }} /><span className="legendName">{w.name}</span><span className="legendPct num">{(w.balance / positiveTotal * 100).toFixed(0)}%</span></div>)}</div>
+          {!positive.length && <p className="cardSub">Belum ada saldo positif untuk ditampilkan.</p>}
+        </section>
+        <section className="card">
+          <div className="cardHead"><div><h2 className="cardTitle">Butuh perhatian</h2><p className="cardSub">Pengeluaran terbaru yang perlu ditinjau</p></div>{setPage && <button className="btnSmallGhost" type="button" onClick={() => setPage('tx')}>Transaksi</button>}</div>
+          <div className="list">{recentExpenses.map(t => <div className="listRow" key={t.id}><span className="itemIcon"><NavIcon name="expense" size={16} /></span><span className="itemInfo"><span className="itemName">{t.note || 'Pengeluaran'}</span><span className="itemMeta">{fmtDate(t.date)} · {wallets.find(w => w.id === t.walletId)?.name || 'Dompet dihapus'}</span></span><span className="itemAmount num">−{fmtFull(t.amount)}</span></div>)}</div>
+          {!recentExpenses.length && <p className="cardSub">Belum ada pengeluaran.</p>}
+        </section>
+      </div>
+      <section className="walletAccountGrid" aria-label="Semua dompet">
+              {wallets.map((w) => (
                 <WalletCard
                   key={w.id}
                   wallet={w}
@@ -207,10 +222,8 @@ export default function WalletPage({
                   onDelete={() => handleDelete(w.id)}
                 />
               ))}
-            </div>
-          </div>
-        );
-      })}
+      </section>
+      {!wallets.length && <section className="card emptyState"><h2 className="cardTitle">Belum ada dompet</h2><p className="cardSub">Tambahkan rekening atau dompet pertama Anda.</p><button className="btnPrimary" type="button" onClick={() => setShowAdd(true)}>Tambah Dompet</button></section>}
 
       {/* Add wallet modal */}
       {showAdd && (

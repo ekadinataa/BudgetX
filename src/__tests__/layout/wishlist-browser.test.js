@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { chromium } from './browser-support';
+import { chromium, navigate } from './browser-support';
+import { measureTextContrast } from './contrast-support';
 
 const URL = globalThis.process?.env?.UAT_URL || 'http://127.0.0.1:5173';
 let browser;
@@ -10,7 +11,7 @@ const initial = {
   page: 'wishlist', wallets: [{ id: 'w-test', name: 'Tidak Terhubung', type: 'bank', balance: 123456 }],
   transactions: [], categories: [], budgets: {}, wishlistGroups: [],
 };
-async function setup(width, darkMode) {
+async function setup(width, darkMode, extra = {}) {
   const page = await browser.newPage({ viewport: { width, height: 900 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -19,8 +20,9 @@ async function setup(width, darkMode) {
   await page.route('**/src/config/firebase.js*', route => route.fulfill({ contentType: 'application/javascript', body: 'export const auth=null; export const db=null;' }));
   await page.addInitScript(seed => {
     if (!localStorage.getItem('budgetku_state')) localStorage.setItem('budgetku_state', JSON.stringify(seed));
-  }, { ...initial, darkMode });
+  }, { ...initial, ...extra, darkMode });
   await page.goto(URL, { waitUntil: 'networkidle' });
+  await page.getByRole('heading', { name: 'Wishlist', exact: true }).waitFor();
   return { page, errors };
 }
 const stateOf = page => page.evaluate(() => JSON.parse(localStorage.getItem('budgetku_state')));
@@ -46,24 +48,31 @@ async function assertLayout(page) {
   const sizes = await page.evaluate(() => {
     const modal = document.querySelector('[role="dialog"]');
     const footer = modal.querySelector('.wishlistTotals')?.getBoundingClientRect();
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = getComputedStyle(modal).backgroundColor;
+    ctx.fillRect(0, 0, 1, 1);
     return {
+      sheetAlpha: ctx.getImageData(0, 0, 1, 1).data[3],
       pageOverflow: document.documentElement.scrollWidth > innerWidth + 1,
       modalOverflow: modal.scrollWidth > modal.clientWidth + 1,
       outside: modal.getBoundingClientRect().left < 0 || modal.getBoundingClientRect().right > innerWidth + 1,
       totalVisible: !footer || (footer.top >= 0 && footer.bottom <= innerHeight + 1),
     };
   });
-  expect(sizes).toEqual({ pageOverflow: false, modalOverflow: false, outside: false, totalVisible: true });
+  expect(sizes).toEqual({ sheetAlpha: 255, pageOverflow: false, modalOverflow: false, outside: false, totalVisible: true });
+  const contrast = await page.evaluate(measureTextContrast, '.wishlistDialog');
+  expect(contrast.failures, 'Wishlist popup text contrast').toEqual([]);
 }
 
 describe.skipIf(!chromium)('Wishlist PRD in Chrome, local only', () => {
   it.each([[1280, false], [2000, true], [390, false], [360, true]])('matches the compact reference layout and keyboard group navigation at %i dark=%s', async (width, darkMode) => {
-    const { page, errors } = await setup(width, darkMode);
+    const stamp = '2026-10-01T00:00:00.000Z';
+    const group = { id: 'reference-group', title: 'Ruang Kerja', targetBudget: 1000000, targetDate: '2026-12-31', createdAt: stamp, updatedAt: stamp, items: [{ id: 'reference-item', groupId: 'reference-group', name: 'Monitor', price: 100000, marketplaceName: '', productUrl: '', priority: 'medium', createdAt: stamp, updatedAt: stamp }] };
+    // Seed before React mounts; do not race its persistence effect with a reload.
+    const { page, errors } = await setup(width, darkMode, { wishlistGroups: [group] });
     try {
-      const stamp = '2026-10-01T00:00:00.000Z';
-      const group = { id: 'reference-group', title: 'Ruang Kerja', targetBudget: 1000000, targetDate: '2026-12-31', createdAt: stamp, updatedAt: stamp, items: [{ id: 'reference-item', groupId: 'reference-group', name: 'Monitor', price: 100000, marketplaceName: '', productUrl: '', priority: 'medium', createdAt: stamp, updatedAt: stamp }] };
-      await page.evaluate(group => { const state = JSON.parse(localStorage.getItem('budgetku_state')); state.wishlistGroups = [group]; localStorage.setItem('budgetku_state', JSON.stringify(state)); }, group);
-      await page.reload({ waitUntil: 'networkidle' });
       const overview = page.getByRole('region', { name: 'Ringkasan wishlist' });
       expect(await overview.getByText('Rp1.000.000', { exact: true }).count()).toBe(1);
       expect(await overview.getByText('Rp100.000', { exact: true }).count()).toBe(1);
@@ -74,6 +83,16 @@ describe.skipIf(!chromium)('Wishlist PRD in Chrome, local only', () => {
       const widths = await page.evaluate(() => ({ card: document.querySelector('.wishlistCard').getBoundingClientRect().width, firstStat: document.querySelector('.wishlistStats .statCard').getBoundingClientRect().width, overflow: document.documentElement.scrollWidth > innerWidth + 1 }));
       expect(Math.abs(widths.card - widths.firstStat)).toBeLessThan(2);
       expect(widths.overflow).toBe(false);
+      const header = await page.evaluate(() => {
+        const title = document.querySelector('.largeTitleBlock').getBoundingClientRect();
+        const action = document.querySelector('.pageActions').getBoundingClientRect();
+        const stats = document.querySelector('.wishlistStats').getBoundingClientRect();
+        return { inline: action.left >= title.right && action.top < title.bottom, stacked: action.top >= title.bottom, statsBelow: stats.top > Math.max(title.bottom, action.bottom) };
+      });
+      expect(header.inline).toBe(width > 700);
+      expect(header.stacked).toBe(width <= 700);
+      expect(header.statsBelow).toBe(true);
+      expect(await page.locator('.topbarActions [aria-label="Tambah Transaksi"]').count()).toBe(0);
       await card.focus(); await page.keyboard.press('Enter');
       await page.getByRole('dialog', { name: 'Ruang Kerja' }).waitFor();
       await assertLayout(page);
@@ -85,12 +104,10 @@ describe.skipIf(!chromium)('Wishlist PRD in Chrome, local only', () => {
     } finally { await page.close(); }
   }, 60_000);
   it.each([[1280, false], [2000, true], [390, false], [360, true]])('matches all popup references and preserves editable dates and financial isolation at %i dark=%s', async (width, darkMode) => {
-    const { page, errors } = await setup(width, darkMode);
+    const stamp = '2026-10-01T00:00:00.000Z';
+    const group = { id: 'reference-group', title: 'Ruang Kerja', targetBudget: 1000000, targetDate: '2026-12-31', createdAt: stamp, updatedAt: stamp, items: [{ id: 'reference-item', groupId: 'reference-group', name: 'Komputer', price: 100000, marketplaceName: 'Tokopedia', productUrl: '', priority: 'medium', createdAt: stamp, updatedAt: stamp }] };
+    const { page, errors } = await setup(width, darkMode, { wishlistGroups: [group] });
     try {
-      const stamp = '2026-10-01T00:00:00.000Z';
-      const group = { id: 'reference-group', title: 'Ruang Kerja', targetBudget: 1000000, targetDate: '2026-12-31', createdAt: stamp, updatedAt: stamp, items: [{ id: 'reference-item', groupId: 'reference-group', name: 'Komputer', price: 100000, marketplaceName: 'Tokopedia', productUrl: '', priority: 'medium', createdAt: stamp, updatedAt: stamp }] };
-      await page.evaluate(group => { const state = JSON.parse(localStorage.getItem('budgetku_state')); state.wishlistGroups = [group]; localStorage.setItem('budgetku_state', JSON.stringify(state)); }, group);
-      await page.reload({ waitUntil: 'networkidle' });
       await page.getByRole('button', { name: 'Buka Ruang Kerja', exact: true }).click();
       expect(await page.getByRole('meter').getAttribute('aria-valuenow')).toBe('10');
       expect(await page.getByRole('heading', { name: 'Daftar item · 1' }).isVisible()).toBe(true);
@@ -111,7 +128,7 @@ describe.skipIf(!chromium)('Wishlist PRD in Chrome, local only', () => {
       await page.getByRole('dialog', { name: 'Ruang Kerja Baru', exact: true }).waitFor();
       expect((await stateOf(page)).wishlistGroups[0].targetDate).toBe('2026-12-31');
       await page.getByRole('button', { name: 'Edit wishlist Ruang Kerja Baru' }).click();
-      await page.locator('summary').click();
+      await page.locator('.wishlistSchedule > summary').click();
       expect(await page.getByLabel('Tanggal target', { exact: true }).inputValue()).toBe('2026-12-31');
       await page.getByLabel('Tanggal target', { exact: true }).fill('2027-01-31');
       await page.getByRole('button', { name: 'Simpan Perubahan' }).click();
@@ -140,19 +157,13 @@ describe.skipIf(!chromium)('Wishlist PRD in Chrome, local only', () => {
     } finally { await page.close(); }
   }, 60_000);
   it.each([[1280, false], [360, true]])('keeps long-list totals visible and traps keyboard/dirty dismissal at %i dark=%s', async (width, darkMode) => {
-    const { page, errors } = await setup(width, darkMode);
+    const stamp = '2026-10-01T00:00:00.000Z';
+    const group = {
+      id: 'long-group', title: 'Kelompok dengan judul panjang '.repeat(20), targetBudget: 999999999, targetDate: '2026-12-31', createdAt: stamp, updatedAt: stamp,
+      items: Array.from({ length: 40 }, (_, i) => ({ id: `long-item-${i}`, groupId: 'long-group', name: `Produk ${i} ` + 'Nama panjang '.repeat(30), notes: 'a'.repeat(1000), price: 1234567, marketplaceName: 'Marketplace '.repeat(40), productUrl: 'https://example.com/' + 'x'.repeat(800), priority: 'high', createdAt: stamp, updatedAt: stamp })),
+    };
+    const { page, errors } = await setup(width, darkMode, { wishlistGroups: [group] });
     try {
-      const stamp = '2026-10-01T00:00:00.000Z';
-      const group = {
-        id: 'long-group', title: 'Kelompok dengan judul panjang '.repeat(20), targetBudget: 999999999, targetDate: '2026-12-31', createdAt: stamp, updatedAt: stamp,
-        items: Array.from({ length: 40 }, (_, i) => ({ id: `long-item-${i}`, groupId: 'long-group', name: `Produk ${i} ` + 'Nama panjang '.repeat(30), notes: 'a'.repeat(1000), price: 1234567, marketplaceName: 'Marketplace '.repeat(40), productUrl: 'https://example.com/' + 'x'.repeat(800), priority: 'high', createdAt: stamp, updatedAt: stamp })),
-      };
-      await page.evaluate(group => {
-        const state = JSON.parse(localStorage.getItem('budgetku_state'));
-        state.wishlistGroups = [group];
-        localStorage.setItem('budgetku_state', JSON.stringify(state));
-      }, group);
-      await page.reload({ waitUntil: 'networkidle' });
       await page.getByRole('button', { name: `Buka ${group.title}`, exact: true }).click();
       await assertLayout(page);
       expect(await page.locator('.wishlistBody').evaluate(body => body.scrollHeight > body.clientHeight)).toBe(true);
@@ -240,12 +251,10 @@ describe.skipIf(!chromium)('Wishlist PRD in Chrome, local only', () => {
       await page.getByRole('dialog').waitFor();
       expect((await stateOf(page)).wishlistGroups[0].items).toHaveLength(2);
       await page.getByRole('button', { name: 'Tutup', exact: true }).click();
-      if (width <= 768) {
-        await page.locator('.tabbar [data-page="settings"]').click();
-        await page.getByRole('heading', { name: 'Pengaturan', exact: true }).waitFor();
-        await page.getByRole('button', { name: 'Wishlist', exact: true }).click();
-        await page.getByRole('heading', { name: 'Wishlist', exact: true }).waitFor();
-      }
+      await navigate(page, 'settings');
+      await page.getByRole('heading', { name: 'Pengaturan', exact: true }).waitFor();
+      await navigate(page, 'wishlist');
+      await page.getByRole('heading', { name: 'Wishlist', exact: true }).waitFor();
       await page.getByRole('button', { name: 'Buka Setup Ruang Kerja', exact: true }).click();
       await page.getByRole('button', { name: 'Hapus wishlist Setup Ruang Kerja', exact: true }).click();
       await page.getByRole('button', { name: 'Hapus', exact: true }).click();

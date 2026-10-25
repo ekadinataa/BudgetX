@@ -204,12 +204,13 @@ describe('Theme persistence', () => {
     expect(script).not.toContain('--bg');
   });
 
-  it('tokens.css carries the HIG system for both themes', async () => {
+  it('tokens.css carries the approved palette with distinct inverted foregrounds', async () => {
     const css = (await import('../../styles/tokens.css?raw')).default;
     // Light + dark blocks
     expect(css).toContain(":root[data-theme='dark']");
-    expect(css).toContain('--blue: #007aff');
-    expect(css).toContain('--blue: #0a84ff');
+    expect(css).toContain('--blue: var(--chart-blue)');
+    expect(css).toContain('--on-night: #f7f9f5');
+    expect(css).toContain('--on-night: #111713');
     // Density and radius are user-scalable, per the reference.
     expect(css).toContain("[data-density='compact']");
     expect(css).toContain("[data-radius='round']");
@@ -218,9 +219,11 @@ describe('Theme persistence', () => {
     expect(css).toContain('--text-1: var(--label)');
   });
 
-  it('tokens.css does not import a remote font (system stack instead)', async () => {
+  it('uses self-hosted reference fonts, without third-party font requests', async () => {
     const css = (await import('../../styles/tokens.css?raw')).default;
-    expect(css).toContain('-apple-system');
+    expect(css).toContain("'IBM Plex Sans', system-ui");
+    const fonts = (await import('../../styles/fonts.css?raw')).default;
+    expect(fonts).toContain("url('/fonts/ibm-plex-sans-var-lat.woff2')");
     expect(css).not.toContain('fonts.googleapis.com');
   });
 });
