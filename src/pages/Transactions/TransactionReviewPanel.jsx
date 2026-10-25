@@ -11,6 +11,22 @@ const STATUS = {
 const NOTICE = 'Belum dicatat dan belum memengaruhi saldo sampai diproses oleh sistem.';
 const isAmount = value => Number.isSafeInteger(value) && value >= 0;
 const feeOrZero = review => review.fee ?? 0;
+const endpointLabel = (key, walletOptions = []) =>
+  key === 'EXTERNAL' ? 'Eksternal' : key === 'UNRESOLVED' ? 'Belum diketahui'
+    : walletOptions.find(w => w.key === key)?.name || key || 'Dompet tidak dikenal';
+const EVENT_TYPE = {
+  transfer_out: 'Transfer keluar', transfer_in: 'Transfer masuk',
+  expense: 'Pengeluaran', income: 'Pemasukan',
+  ewallet_topup: 'Top-up e-wallet', payment: 'Pembayaran',
+};
+const deriveEventType = review => {
+  if (review.source === 'EXTERNAL') return 'Transfer masuk';
+  if (review.destination === 'EXTERNAL') return 'Pengeluaran';
+  if (review.source && review.destination && review.source !== 'UNRESOLVED' && review.destination !== 'UNRESOLVED') return 'Transfer';
+  if (review.source !== 'UNRESOLVED' && review.destination === 'UNRESOLVED') return 'Transfer keluar';
+  if (review.source === 'UNRESOLVED' && review.destination !== 'UNRESOLVED') return 'Transfer masuk';
+  return null;
+};
 // Match Engine.plan: a known destination uses the actual received principal.
 const principalFor = (review, choice) => choice?.destination !== 'EXTERNAL' && review.totalCredit != null ? review.totalCredit : review.amount;
 const amountLabel = (value, currency = 'IDR') => currency === 'IDR' && isAmount(value) ? fmtFull(value) : 'Belum diketahui';
@@ -79,8 +95,12 @@ function ReviewDialog({ review, current, disabled, localMode, onClose, onDecisio
       <p className="txReviewNotice">{NOTICE}</p>
       {localMode && <p className="txReviewNotice">Mode lokal — simulasi. Tidak ada pencatatan ke akun cloud.</p>}
       <dl className="txReviewSummary">
+        <div><dt>Waktu</dt><dd>{timeLabel(review.occurredAt)}</dd></div>
+        <div><dt>Jenis</dt><dd>{EVENT_TYPE[review.eventType] || deriveEventType(review) || reviewReasonLabel(review.reason)}</dd></div>
+        <div><dt>Dari</dt><dd>{endpointLabel(review.source, review.walletOptions)}</dd></div>
+        <div><dt>Ke</dt><dd>{endpointLabel(review.destination, review.walletOptions)}</dd></div>
         <div><dt>Jumlah</dt><dd className="num">{amountLabel(review.amount, review.currency)}</dd></div>
-        <div><dt>Biaya</dt><dd className="num">{amountLabel(review.fee, review.currency)}</dd></div>
+        {review.fee != null && <div><dt>Biaya</dt><dd className="num">{amountLabel(review.fee, review.currency)}</dd></div>}
       </dl>
       {isFinancial && choices.length > 0 && (step === 'choose' ? (
         <div className="field">
@@ -155,7 +175,7 @@ export default function TransactionReviewPanel({ reviews = [], loading = false, 
               <div className="txReviewIdentity">
                 <h3>{review.provider || 'Penyedia tidak diketahui'}</h3>
                 <p>{timeLabel(review.occurredAt)} · <span className="num">{review.id.slice(0, 8)}</span></p>
-                <p>{reviewReasonLabel(review.reason)}</p>
+                <p>{deriveEventType(review) || reviewReasonLabel(review.reason)} · {endpointLabel(review.source, review.walletOptions)} → {endpointLabel(review.destination, review.walletOptions)}</p>
                 {review.error && <p className="txReviewError">{review.error}</p>}
               </div>
               <span className="num txReviewAmount">{amountLabel(review.amount, review.currency)}</span>

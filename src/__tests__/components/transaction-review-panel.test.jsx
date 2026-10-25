@@ -51,7 +51,7 @@ it('uses safe Indonesian reason labels, escaped metadata and predictable review 
   const view = render(<TransactionReviewPanel reviews={[review]} localMode onDecision={vi.fn()} />);
   const article = view.container.querySelector(`article[data-review-id="${review.id}"]`);
   expect(article).toBeInTheDocument();
-  expect(within(article).getByText('Dompet belum dapat ditentukan')).toBeInTheDocument();
+  expect(within(article).getByText(/Dompet belum dapat ditentukan/)).toBeInTheDocument();
   expect(within(article).getByText('<script>bad()</script>')).toBeInTheDocument();
   expect(within(article).getByText('Belum diketahui')).toBeInTheDocument();
   expect(within(article).getByText(/Waktu belum diketahui/)).toBeInTheDocument();
