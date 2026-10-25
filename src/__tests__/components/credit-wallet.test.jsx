@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import WalletCard from '../../pages/Wallet/WalletCard';
 import WalletFormModal from '../../pages/Wallet/WalletFormModal';
 import WalletPage from '../../pages/Wallet/WalletPage';
-import { fmtFull } from '../../utils/formatters';
+import { fmtFull, rp } from '../../utils/formatters';
 
 afterEach(cleanup);
 const money = (value) => fmtFull(value).replace(/\s/g, ' ');
@@ -56,8 +56,11 @@ describe('credit wallet UI', () => {
     expect(screen.queryByRole('spinbutton', { name: 'Plafon' })).not.toBeInTheDocument();
     expect(screen.getByText('Saldo Awal')).toBeInTheDocument();
   });
-  it('renders plafon, outstanding, available limit and hold alongside signed balance', () => {
+  it('keeps signed balance on the compact card and exposes all credit metrics on demand', () => {
     card(wallet);
+    expect(screen.getByText(rp(-400))).toBeInTheDocument();
+    expect(screen.queryByText('Plafon')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Rincian kredit BRI' }));
     metric('Plafon', money(1000));
     metric('Outstanding', money(400));
     metric('Limit tersedia', money(500));
@@ -66,6 +69,8 @@ describe('credit wallet UI', () => {
   });
   it('shows unknown legacy plafon without reinterpreting positive balance', () => {
     card({ ...wallet, balance: 500, creditLimit: undefined, heldAmount: undefined });
+    expect(screen.getByText(rp(500))).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Rincian kredit BRI' }));
     metric('Plafon', 'Belum diatur');
     metric('Limit tersedia', 'Belum diatur');
     metric('Outstanding', money(0));
@@ -74,6 +79,6 @@ describe('credit wallet UI', () => {
   it('leaves bank cards unchanged', () => {
     card({ ...wallet, type: 'bank' });
     expect(screen.queryByText('Plafon')).not.toBeInTheDocument();
-    expect(screen.getByText(money(-400))).toBeInTheDocument();
+    expect(screen.getByText(rp(-400))).toBeInTheDocument();
   });
 });

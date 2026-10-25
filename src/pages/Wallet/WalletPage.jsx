@@ -129,10 +129,7 @@ export default function WalletPage({
     setShowTransfer(false);
   };
 
-  // Header actions live in the topbar so they stay reachable while a long wallet
-  // list scrolls. The hook returns a portal, so it is rendered in the tree.
-  // `.toolbar` normalises the secondary `Transfer` button up to the primary
-  // button's height; without it the pair rendered 32px beside 44px.
+  // Inline actions share the page-header grid; toolbar keeps their heights equal.
   const topbarActions = usePageActions(
     <div className="toolbar">
       <button className="btnGhost" onClick={() => setShowTransfer(true)}>
@@ -144,17 +141,12 @@ export default function WalletPage({
     </div>,
   );
 
-  // `display: contents` so this wrapper does not become a single flex child of
-  // `.container`. As a plain `<div>` it absorbed the container's `gap` for the
-  // whole page, leaving every card below it flush against its neighbour — which
-  // is why the spacing read as cramped rather than merely tight. `{topbarActions}`
-  // is a portal and renders null, so nothing else depends on this element.
+  // Keep the header/actions and sections in the container's shared grid flow.
   return (
     <div className="pageStack">
       {topbarActions}
 
-      {/* Page header — actions go to the sticky topbar, as the reference's
-          `pageHeader(title, sub, actions)` does. */}
+      {/* Page header — inline actions are positioned beside the title. */}
       <div className="largeTitleBlock">
         <div>
           <h1 className="largeTitle">Dompet</h1>

@@ -26,7 +26,7 @@
   Jangan rename `.env` atau gunakan database produksi.
 - Test browser memakai navigasi visible di `layout/browser-support.js`, bukan
   `.navItem` lama. Chrome + `BUDGETX_PLAYWRIGHT_PATH` + `UAT_URL` wajib untuk QA penuh.
-- Verifikasi lokal terakhir: 66 file / 904 test lulus, nol gagal/skip, termasuk browser; lint dan
+- Verifikasi rilis redesign awal: 66 file / 904 test lulus, nol gagal/skip, termasuk browser; lint dan
   build lulus. Peringatan ukuran bundle Vite masih ada. Detail batas coverage ada
   di dokumen migrasi. Rilis `c4d7a02e2004ab7d` diverifikasi read-only di live:
   14 file publik cocok SHA-256, 12 kombinasi auth render tanpa error/overflow.
@@ -35,6 +35,24 @@
 - Fast-forward ke upstream memakai autostash `6cb3c8d`; perubahan sudah dipulihkan
   dan konflik diselesaikan. Jangan pop stash itu lagi. Backup sebelum integrasi:
   direktori temp sesi `budgetx-before-wishlist-20261025-104456/`.
+
+### Tindak lanjut production: kartu Dompet ringkas
+
+- Branch `feat/compact-wallet-cards`, berbasis `1a45409` yang sudah ada di `main`.
+  Hosting dirilis atas permintaan pengguna pada
+  `2026-10-25T08:35:33.977Z`, version `5fb3cef5ea314b58`.
+- Ikuti screenshot Open Design terbaru dari pengguna: ikon di atas identitas,
+  saldo penuh, footer Masuk/Keluar inline, grid adaptif dengan tinggi seragam.
+- Detail kredit dipindah ke dialog read-only; jangan menghapus metrik plafon,
+  outstanding, limit tersedia, hold, atau mengubah saldo/rumus/CRUD.
+- Rincian implementasi dan QA: `docs/COMPACT_WALLET_CARDS.md`.
+- QA tindak lanjut: 68 file / 921 test lulus (Chrome, `--maxWorkers=2`), nol
+  gagal/skip; lint/build lokal lulus. 568 sampel teks dan 20 sampel ikon diperiksa.
+- Build production dibuat ulang dengan Firebase aktif dan diverifikasi sebelum
+  deploy. Smoke live read-only: 14 file publik cocok SHA-256, 12 kombinasi auth
+  tanpa error/overflow atau request backend. Tidak sign-in/CRUD ke production.
+- Rollback sebelum kartu ringkas: `c4d7a02e2004ab7d`; detail rilis/evidence ada
+  di dokumen kartu ringkas, bukan rollback ke versi pre-Wishlist yang lebih tua.
 
 Bagian berikut merekam arsitektur dan keputusan sebelum migrasi visual ini.
 
