@@ -10,6 +10,7 @@ const STATUS = {
 };
 const NOTICE = 'Belum dicatat dan belum memengaruhi saldo sampai diproses oleh sistem.';
 const isAmount = value => Number.isSafeInteger(value) && value >= 0;
+const feeOrZero = review => review.fee ?? 0;
 // Match Engine.plan: a known destination uses the actual received principal.
 const principalFor = (review, choice) => choice?.destination !== 'EXTERNAL' && review.totalCredit != null ? review.totalCredit : review.amount;
 const amountLabel = (value, currency = 'IDR') => currency === 'IDR' && isAmount(value) ? fmtFull(value) : 'Belum diketahui';
@@ -20,14 +21,15 @@ const timeLabel = value => value && Number.isFinite(new Date(value).getTime())
 // preview rounded/unknown money or endpoints that cannot identify real wallets.
 function safeChoices(review) {
   if (review.kind !== 'receipt' || review.state !== 'pending' || review.currency !== 'IDR'
-    || !isAmount(review.amount) || review.amount === 0 || !isAmount(review.fee)
-    || !Number.isSafeInteger(review.amount + review.fee) || !Array.isArray(review.choices)) return [];
+    || !isAmount(review.amount) || review.amount === 0 || !Array.isArray(review.choices)) return [];
+  const fee = feeOrZero(review);
+  if (!isAmount(fee) || !Number.isSafeInteger(review.amount + fee)) return [];
   const wallet = key => review.walletOptions?.find(option => option.key === key && typeof option.walletId === 'string' && option.walletId);
   return review.choices.filter(choice => {
     try { buildReviewDecision(review, choice); } catch { return false; }
     const principal = principalFor(review, choice);
-    if (!isAmount(principal) || principal === 0 || !Number.isSafeInteger(principal + review.fee)) return false;
-    if (choice.action === 'income') return choice.source === 'EXTERNAL' && !!wallet(choice.destination) && review.fee <= review.amount;
+    if (!isAmount(principal) || principal === 0 || !Number.isSafeInteger(principal + fee)) return false;
+    if (choice.action === 'income') return choice.source === 'EXTERNAL' && !!wallet(choice.destination) && fee <= review.amount;
     if (choice.action === 'expense') return !!wallet(choice.source) && choice.destination === 'EXTERNAL';
     return choice.action === 'transfer' && !!wallet(choice.source) && !!wallet(choice.destination)
       && wallet(choice.source).walletId !== wallet(choice.destination).walletId;
@@ -46,7 +48,8 @@ function ReviewDialog({ review, current, disabled, localMode, onClose, onDecisio
   const choices = safeChoices(review);
   const choice = selected === '' ? null : choices[Number(selected)];
   const principal = choice ? principalFor(review, choice) : 0;
-  const delta = choice?.action === 'income' ? principal : -(principal + review.fee);
+  const fee = feeOrZero(review);
+  const delta = choice?.action === 'income' ? principal : -(principal + fee);
   const unavailable = saving || stale || disabled;
   const isFinancial = step === 'choose' || step === 'confirm';
   const title = { choose: 'Tinjau transaksi', confirm: 'Konfirmasi pencatatan', reject: 'Tolak transaksi' }[step];

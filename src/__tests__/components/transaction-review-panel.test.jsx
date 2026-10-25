@@ -144,7 +144,7 @@ it.each([{ kind: 'delivery' }, { state: 'blocked', event_id: 'already-prepared' 
 
 it.each([
   { amount: null }, { amount: '100000' }, { amount: -1 }, { amount: 0 }, { amount: NaN },
-  { amount: Number.MAX_SAFE_INTEGER }, { fee: null }, { fee: '0' }, { fee: -1 },
+  { amount: Number.MAX_SAFE_INTEGER }, { fee: '0' }, { fee: -1 },
   { currency: 'USD' }, { choices: [{ action: 'expense', source: null, destination: 'EXTERNAL' }] },
   { choices: [{ action: 'transfer', source: 'bank', destination: 'unmapped' }] },
 ])('never offers approval for unsafe financial data even if the backend mirror proposes a choice: %j', extra => {
@@ -155,6 +155,13 @@ it.each([
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Konfirmasi & Catat' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Lanjutkan' })).not.toBeInTheDocument();
+});
+
+it('allows choices when fee is null (zero-fee transfer like BI-FAST)', () => {
+  render(<TransactionReviewPanel reviews={[receipt({ fee: null })]} onDecision={vi.fn()} />);
+  expect(screen.getByText('1 perlu ditinjau')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Tinjau' }));
+  expect(screen.getByRole('combobox')).toBeInTheDocument();
 });
 
 it('distinguishes loading and failed fetches from an empty healthy queue and supports retry', () => {
