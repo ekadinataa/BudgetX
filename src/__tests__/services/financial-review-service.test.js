@@ -148,44 +148,77 @@ describe('financial review decision submission (mocked transactions)', () => {
 describe('financial review listener (mocked SDK, no network)', () => {
   it('reports server-to-cache-to-server readiness without publishing cached facts', () => {
     const onData = vi.fn(), onSync = vi.fn();
-    const stop = subscribeFinancialReviews('owner', onData, undefined, onSync);
-    const next = sdk.onSnapshot.mock.calls[0][2];
-    next(snapshot({ fromCache: false, hasPendingWrites: false }));
+    subscribeFinancialReviews('owner', onData, undefined, onSync);
+    const reviewsNext = sdk.onSnapshot.mock.calls[0][2];
+    const decisionsNext = sdk.onSnapshot.mock.calls[1][1];
+    const decisionSnap = { docs: [] };
+    reviewsNext(snapshot({ fromCache: false, hasPendingWrites: false }));
+    decisionsNext(decisionSnap);
     expect(onSync).toHaveBeenLastCalledWith(true);
-    next(snapshot({ fromCache: true, hasPendingWrites: false }));
+    expect(onData).toHaveBeenCalledTimes(1);
+    reviewsNext(snapshot({ fromCache: true, hasPendingWrites: false }));
     expect(onSync).toHaveBeenLastCalledWith(false);
     expect(onData).toHaveBeenCalledTimes(1);
-    next(snapshot({ fromCache: false, hasPendingWrites: false }));
+    reviewsNext(snapshot({ fromCache: false, hasPendingWrites: false }));
     expect(onSync).toHaveBeenLastCalledWith(true);
     expect(onData).toHaveBeenCalledTimes(2);
-    stop();
   });
+
   it('subscribes only to the authenticated UID with metadata changes and server-confirmed data', () => {
     const onData = vi.fn();
     const stop = subscribeFinancialReviews('owner', onData);
     expect(sdk.onSnapshot).toHaveBeenCalledWith({ path: 'users/owner/financialReviews' }, { includeMetadataChanges: true }, expect.any(Function), expect.any(Function));
-    const next = sdk.onSnapshot.mock.calls[0][2];
-    next(snapshot({ fromCache: true, hasPendingWrites: false }));
-    next(snapshot({ fromCache: false, hasPendingWrites: true }));
-    next(snapshot());
+    expect(sdk.onSnapshot).toHaveBeenCalledWith({ path: 'users/owner/financialReviewDecisions' }, expect.any(Function), expect.any(Function));
+    const reviewsNext = sdk.onSnapshot.mock.calls[0][2];
+    const decisionsNext = sdk.onSnapshot.mock.calls[1][1];
+    reviewsNext(snapshot({ fromCache: true }));
+    reviewsNext(snapshot({ fromCache: false, hasPendingWrites: true }));
+    reviewsNext(snapshot());
     expect(onData).not.toHaveBeenCalled();
-    next(snapshot({ fromCache: false, hasPendingWrites: false }, { id: 'spoof' }));
-    expect(onData).toHaveBeenCalledWith([{ id: 'a'.repeat(64) }]);
+    // reviews ready but decisions not yet fired
+    reviewsNext(snapshot({ fromCache: false, hasPendingWrites: false }, { id: 'spoof' }));
+    expect(onData).not.toHaveBeenCalled();
+    decisionsNext({ docs: [] });
+    expect(onData).toHaveBeenCalledWith([expect.objectContaining({ id: 'a'.repeat(64) })]);
     stop();
-    expect(mock.stop).toHaveBeenCalledTimes(1);
-    next(snapshot({ fromCache: false, hasPendingWrites: false }));
+    expect(mock.stop).toHaveBeenCalledTimes(2);
+    reviewsNext(snapshot({ fromCache: false, hasPendingWrites: false }));
+    expect(onData).toHaveBeenCalledTimes(1);
+  });
+
+  it('overlays webDecisionAccepted from decisions collection after refresh', () => {
+    const onData = vi.fn();
+    subscribeFinancialReviews('owner', onData);
+    const id = 'a'.repeat(64), version = 'b'.repeat(16);
+    const decisionId = `${id}--${version}`;
+    const reviewsNext = sdk.onSnapshot.mock.calls[0][2];
+    const decisionsNext = sdk.onSnapshot.mock.calls[1][1];
+    reviewsNext({ metadata: { fromCache: false, hasPendingWrites: false }, docs: [{ id, data: () => ({ id, version, webDecisionAccepted: false }) }] });
+    decisionsNext({ docs: [{ id: decisionId }] });
+    expect(onData).toHaveBeenCalledWith([expect.objectContaining({ id, webDecisionAccepted: true })]);
+  });
+
+  it('falls back to mirror-only when decisions subscription errors', () => {
+    const onData = vi.fn();
+    subscribeFinancialReviews('owner', onData);
+    const reviewsNext = sdk.onSnapshot.mock.calls[0][2];
+    const decisionsError = sdk.onSnapshot.mock.calls[1][2];
+    reviewsNext(snapshot({ fromCache: false, hasPendingWrites: false }));
+    expect(onData).not.toHaveBeenCalled();
+    decisionsError(new Error('permission-denied'));
     expect(onData).toHaveBeenCalledTimes(1);
   });
 
   it('suppresses late data/errors after auth changes or unsubscribe and forwards active errors', () => {
     const onData = vi.fn(), onError = vi.fn();
     const stop = subscribeFinancialReviews('owner', onData, onError);
-    const [, , next, error] = sdk.onSnapshot.mock.calls[0];
+    const [, , , error] = sdk.onSnapshot.mock.calls[0];
+    const reviewsNext = sdk.onSnapshot.mock.calls[0][2];
     const failure = new Error('permission-denied');
     error(failure);
     expect(onError).toHaveBeenCalledWith(failure);
     mock.auth.currentUser = { uid: 'other' };
-    next(snapshot({ fromCache: false, hasPendingWrites: false })); error(failure);
+    reviewsNext(snapshot({ fromCache: false, hasPendingWrites: false })); error(failure);
     expect(onData).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledTimes(1);
     stop();

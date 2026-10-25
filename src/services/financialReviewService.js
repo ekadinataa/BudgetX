@@ -55,16 +55,49 @@ export async function submitFinancialReviewDecision(review, input) {
 export function subscribeFinancialReviews(uid, onData, onError, onSync) {
   if (uid !== getUid()) throw new Error('Sesi pengguna tidak sesuai.');
   let active = true;
-  const stop = onSnapshot(collection(db, 'users', uid, 'financialReviews'), { includeMetadataChanges: true }, snapshot => {
-    // Cache/pending local writes are not evidence that an approval is current.
-    if (!active || auth?.currentUser?.uid !== uid) return;
-    const authoritative = snapshot.metadata?.fromCache === false && snapshot.metadata?.hasPendingWrites === false;
-    onSync?.(authoritative);
-    if (authoritative) {
-      onData(snapshot.docs.map(item => ({ ...item.data(), id: item.id })));
+  let latestReviews = null;
+  let latestDecisions = null; // set of decisionId strings that exist in Firestore
+  let reviewsReady = false;
+  let decisionsReady = false;
+
+  function merge() {
+    if (!active || !reviewsReady || !decisionsReady) return;
+    onData(latestReviews.map(r => ({
+      ...r,
+      webDecisionAccepted: r.webDecisionAccepted || latestDecisions.has(`${r.id}--${r.version}`),
+    })));
+  }
+
+  const stopReviews = onSnapshot(
+    collection(db, 'users', uid, 'financialReviews'),
+    { includeMetadataChanges: true },
+    snapshot => {
+      if (!active || auth?.currentUser?.uid !== uid) return;
+      const authoritative = snapshot.metadata?.fromCache === false && snapshot.metadata?.hasPendingWrites === false;
+      onSync?.(authoritative);
+      if (authoritative) {
+        latestReviews = snapshot.docs.map(item => ({ ...item.data(), id: item.id }));
+        reviewsReady = true;
+        merge();
+      }
+    },
+    error => { if (active && auth?.currentUser?.uid === uid) onError?.(error); }
+  );
+
+  const stopDecisions = onSnapshot(
+    collection(db, 'users', uid, 'financialReviewDecisions'),
+    snapshot => {
+      if (!active || auth?.currentUser?.uid !== uid) return;
+      latestDecisions = new Set(snapshot.docs.map(d => d.id));
+      decisionsReady = true;
+      merge();
+    },
+    () => {
+      // decisions read failure is non-fatal: fall back to mirror only
+      if (!active) return;
+      if (!decisionsReady) { latestDecisions = new Set(); decisionsReady = true; merge(); }
     }
-  }, error => {
-    if (active && auth?.currentUser?.uid === uid) onError?.(error);
-  });
-  return () => { active = false; stop(); };
+  );
+
+  return () => { active = false; stopReviews(); stopDecisions(); };
 }
