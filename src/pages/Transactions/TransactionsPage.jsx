@@ -9,13 +9,14 @@ import TxBadge from '../../components/ui/TxBadge';
 import AmountText from '../../components/ui/AmountText';
 import TxFormModal from './TxFormModal';
 import TxCalendar from './TxCalendar';
+import TransactionReviewPanel from './TransactionReviewPanel';
 import { usePageActions } from '../../context/pageActions';
 
 /**
  * TransactionsPage — Filterable transaction list with CRUD.
  * Filters support multiple selection via chip toggles.
  */
-export default function TransactionsPage({ wallets, setWallets, transactions, setTransactions, categories, onCreateTransaction, onUpdateTransaction, onDeleteTransaction }) {
+export default function TransactionsPage({ wallets, setWallets, transactions, setTransactions, categories, onCreateTransaction, onUpdateTransaction, onDeleteTransaction, reviewQueue }) {
   const [search, setSearch] = useState('');
   const [fWallets, setFWallets] = useState(new Set());
   const [fTypes, setFTypes] = useState(new Set());
@@ -204,6 +205,8 @@ export default function TransactionsPage({ wallets, setWallets, transactions, se
         </div>
 
       </div>
+
+      {reviewQueue && <TransactionReviewPanel {...reviewQueue} />}
 
       <div className="transactionWorkspace">
       <aside className="transactionRail" aria-label="Ringkasan dan filter transaksi">

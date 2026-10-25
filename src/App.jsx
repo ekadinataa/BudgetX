@@ -41,6 +41,7 @@ import { buildWalletAdjustment } from './utils/walletAdjustment';
 import { validateWallet } from './services/validator';
 import { validateWishlistGroup } from './services/wishlistValidator';
 import { prepareWishlistGroup, prepareWishlistItem } from './utils/wishlistHelpers';
+import { useFinancialReviews } from './hooks/useFinancialReviews';
 import './App.css';
 
 // Detect if Firebase is configured — if not, run in local-only mode
@@ -152,6 +153,7 @@ function App() {
   const [wishlistStatus, setWishlistStatus] = useState({ uid: null, loading: !IS_LOCAL_MODE, error: '' });
   const [wishlistRetry, setWishlistRetry] = useState(0);
   const uid = user?.uid;
+  const reviewQueue = useFinancialReviews({ uid, localMode: IS_LOCAL_MODE, enabled: !authLoading && !showMigrator });
   const wishlistReady = IS_LOCAL_MODE || (
     wishlistStatus.uid === uid && !wishlistStatus.loading && !wishlistStatus.error
   );
@@ -1547,6 +1549,7 @@ function App() {
             onCreateTransaction={handleCreateTransaction}
             onUpdateTransaction={handleUpdateTransaction}
             onDeleteTransaction={handleDeleteTransaction}
+            reviewQueue={reviewQueue}
           />
         );
       case 'budget':

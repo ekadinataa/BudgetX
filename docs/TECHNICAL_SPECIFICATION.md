@@ -32,6 +32,16 @@ Transaksi penyesuaian dikecualikan dari agregasi income/expense/budget, tetap ta
 
 ### Keputusan Arsitektur Utama
 
+Antrean konfirmasi receipt menggunakan listener independen `financialReviews`
+dan create-only `financialReviewDecisions` di bawah `users/{uid}/`, bukan field
+pending pada transaksi yang sudah dibukukan. Hook `useFinancialReviews` menjaga
+scope UID dan mode lokal; service membaca ulang revisi/status dalam transaksi
+Firestore tanpa mutasi saldo. Bridge worker bersifat opt-in dan hanya meneruskan
+keputusan ke processor/publisher existing setelah validasi SQLite; source worker
+aktif tidak diubah oleh build frontend. Dua koleksi ini memerlukan rules khusus
+yang lebih ketat daripada owner-only CRUD biasa. Lihat
+[kontrak dan rollout](TRANSACTION_CONFIRMATIONS.md).
+
 | Keputusan | Alasan |
 |-----------|--------|
 | Tidak ada backend server | Semua logika berjalan client-side; Firebase menyediakan auth dan storage |

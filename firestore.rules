@@ -1,14 +1,64 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Deny all access by default
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function validReviewDecision(userId, decisionId) {
+      let data = request.resource.data;
+      let mirror = get(/databases/$(database)/documents/users/$(userId)/financialReviews/$(data.reviewId)).data;
+      return data.keys().hasOnly(['schemaVersion', 'uid', 'reviewId', 'version', 'action', 'source', 'destination', 'createdAt'])
+        && data.keys().hasAll(['schemaVersion', 'uid', 'reviewId', 'version', 'action', 'source', 'destination', 'createdAt'])
+        && data.schemaVersion is int && data.schemaVersion == 1
+        && data.uid is string && data.uid == userId
+        && data.reviewId is string && data.reviewId.matches('^[a-f0-9]{64}$')
+        && data.version is string && data.version.matches('^[a-f0-9]{16}$')
+        && decisionId == data.reviewId + '--' + data.version
+        && data.action is string
+        && data.createdAt is string
+        && data.createdAt.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z$')
+        && mirror.schemaVersion == 1 && mirror.id == data.reviewId
+        && mirror.version == data.version && mirror.kind == 'receipt'
+        && mirror.get('webDecisionAccepted', false) == false
+        && (mirror.state == 'pending'
+          || (mirror.state == 'blocked' && mirror.get('event_id', null) == null))
+        && ((data.action == 'reject'
+            && data.source == null && data.destination == null)
+          || (mirror.state == 'pending' && data.action in ['income', 'expense', 'transfer']
+            && data.source is string && data.source.size() > 0 && data.source.size() <= 1000
+            && data.destination is string && data.destination.size() > 0 && data.destination.size() <= 1000
+            && mirror.choices is list
+            && mirror.choices.hasAny([{'action': data.action, 'source': data.source, 'destination': data.destination}])));
+    }
+
+    // Deny all access by default, including descendants of reserved collections.
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Per-user data isolation
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    match /users/{userId}/financialReviews/{reviewId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    match /users/{userId}/financialReviewDecisions/{decisionId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && validReviewDecision(userId, decisionId);
+      allow update, delete: if false;
+    }
+
+    // Preserve existing owner access to the user document and all other collections.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Replaces match /users/{userId}/{document=**}: overlapping allows cannot
+    // be overridden by a deny, so exclude BOTH reserved trees from this grant.
+    match /users/{userId}/{collectionId}/{document=**} {
+      allow read, write: if isOwner(userId)
+        && collectionId != 'financialReviews'
+        && collectionId != 'financialReviewDecisions';
     }
   }
 }

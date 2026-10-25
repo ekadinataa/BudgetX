@@ -21,6 +21,9 @@ dist-ssr
 !.env.example
 !.env.production
 
+# Hermes agent profile state (session-local, not source)
+.hermes/
+
 # Firebase
 .firebase/
 

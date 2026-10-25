@@ -2326,3 +2326,60 @@ body { font-size: 14px; }
   .cashValue { font-size: 30px; }
   .budgetTiles { grid-template-columns: repeat(12, minmax(0, 1fr)); }
 }
+
+/* Isolated queue surface; shared controls and modal retain redesign behavior. */
+.txReview { margin-bottom: var(--space-stack); border: 1px solid var(--separator); }
+/* Financial summaries must not expose ghosted amounts from the queue beneath. */
+.txReview .modal { --material-sheet: oklch(from var(--surface) l c h / 1); }
+.txReviewList { list-style: none; padding: 0; margin: var(--s4) 0 0; }
+.txReviewList > li + li { border-top: 1px solid var(--separator); }
+.txReviewRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, auto) auto auto;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s4) 0;
+  min-width: 0;
+}
+.txReviewRow > * { min-width: 0; }
+.txReviewIdentity h3 { margin: 0; font-size: var(--t-footnote); font-weight: 600; color: var(--label); }
+.txReviewIdentity p { margin: var(--s1) 0 0; color: var(--label-2); font-size: var(--t-caption1); line-height: 1.5; }
+.txReviewIdentity, .txReviewExplanation, .txReviewNotice, .txReviewError { overflow-wrap: anywhere; }
+.txReviewAmount { font-size: var(--t-footnote); font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.txReviewNotice {
+  padding: var(--s3);
+  margin: var(--s3) 0;
+  background: var(--surface-2);
+  border: 1px solid var(--separator);
+  border-radius: var(--r-sm);
+  color: var(--label-2);
+  font-size: var(--t-caption1);
+  line-height: 1.6;
+}
+.txReviewMuted, .txReviewExplanation { color: var(--label-2); font-size: var(--t-caption1); line-height: 1.6; }
+.txReviewExplanation { grid-column: 1 / -1; margin: 0; }
+.txReviewError, .txReviewIdentity .txReviewError { color: var(--red-ink); font-size: var(--t-footnote); line-height: 1.5; }
+.txReviewError .btnSmallGhost { margin-inline-start: var(--s2); }
+.txReviewSummary { display: grid; gap: var(--s2); margin: var(--s4) 0; }
+.txReviewSummary > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s3); align-items: baseline; }
+.txReviewSummary dt { color: var(--label-2); font-size: var(--t-footnote); overflow-wrap: anywhere; }
+.txReviewSummary dd { margin: 0; text-align: right; font-size: var(--t-footnote); font-weight: 600; overflow-wrap: anywhere; }
+.txReviewDeltas { padding: var(--s3); border-radius: var(--r-sm); background: var(--surface-2); }
+.txReviewDeltas > p { margin: 0; font-size: var(--t-footnote); }
+.txReviewDeltas .txReviewSummary { margin: var(--s2) 0 0; }
+.txReviewActions { flex-wrap: wrap; }
+.txReviewActions button { white-space: normal; }
+.txReviewSelect { text-overflow: ellipsis; }
+.txReview .num, .txReviewSummary .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.txReview button:disabled, .txReviewSelect:disabled { opacity: .5; cursor: not-allowed; }
+.txReview button:focus-visible, .txReviewSelect:focus-visible { outline: 2px solid var(--blue-ink); outline-offset: 3px; }
+
+@media (max-width: 700px) {
+  .txReviewRow { grid-template-columns: minmax(0, 1fr) minmax(0, auto); }
+  .txReviewRow > .badge { justify-self: start; white-space: normal; }
+  .txReviewRow > button { justify-self: end; }
+  .txReviewActions > button { flex: 1 1 140px; }
+}
+@media (pointer: coarse), (max-width: 768px) {
+  .txReview button, .txReviewActions button { min-height: 44px; }
+}

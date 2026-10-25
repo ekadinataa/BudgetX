@@ -171,6 +171,17 @@ Kartu Kredit dan PayLater memisahkan **Plafon** dari **Saldo**:
 
 ## 5. Transaksi
 
+**Perlu Konfirmasi (integrasi email-mesh):** receipt tertahan tampil pada antrean
+di atas daftar transaksi, terpisah dari filter tanggal. Klik **Tinjau**, pilih
+arah/dompet yang tersedia, periksa nominal dan biaya, kemudian konfirmasi
+pencatatan. Keputusan tersimpan belum berarti transaksi tercatat: status
+**Menunggu pencatatan** menunggu processor, sedangkan **Tercatat** mengikuti
+hasil publisher. Penolakan tidak membuat transaksi. Bukti yang berubah perlu
+ditinjau ulang; fakta/biaya yang belum aman tidak dapat dipaksa.
+Mode lokal hanya simulasi tanpa perubahan saldo. Receipt asli memerlukan bridge
+dan rules yang sudah diaktifkan secara terpisah; lihat
+[konfirmasi transaksi](TRANSACTION_CONFIRMATIONS.md).
+
 ### 5.1 Tambah Transaksi
 
 1. Klik tombol **"+"** (FAB di mobile, atau tombol "Tambah" di desktop)

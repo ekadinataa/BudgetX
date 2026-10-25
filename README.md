@@ -12,6 +12,7 @@
 |-------|-----------|
 | 💰 **Dompet** | Kelola banyak rekening (Bank, E-Wallet, Kredit, PayLater, Tunai) |
 | 📊 **Transaksi** | Catat pemasukan, pengeluaran, transfer dengan emoji kategori |
+| ✅ **Konfirmasi receipt** | Antrean review email-mesh, persetujuan per revisi tanpa pencatatan ganda; aktivasi bridge/rules terpisah |
 | 📋 **Budget** | Alokasi anggaran 50/30/20 dengan 3 mode periode |
 | 📝 **Wishlist** | Kelompok rencana pembelian, target anggaran/tanggal, estimasi harga, catatan, dan prioritas; tanpa mengubah saldo/transaksi |
 | 📦 **Barang Berkala** | Track item periodik (skincare, shampo, dll) + biaya amortisasi |

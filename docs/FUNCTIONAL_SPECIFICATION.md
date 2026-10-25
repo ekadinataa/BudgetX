@@ -146,6 +146,15 @@ Sisa Hari Ini = Budget Harian − Total Pengeluaran Hari Ini
 
 **Deskripsi:** Pencatatan, tampilan, filter, edit, dan hapus transaksi keuangan.
 
+**Antrean konfirmasi email-mesh:** receipt yang tertahan ditampilkan terpisah
+dari riwayat dan filter transaksi. Keputusan pengguna berlaku untuk satu
+receipt/revisi, menggunakan pilihan endpoint yang lolos validator. Browser
+hanya menyimpan keputusan; tidak membuat transaksi atau menambah/mengurangi
+saldo. Processor kanonis memvalidasi ulang dan menerbitkan sekali dengan marker
+existing. Penolakan, kondisi offline/error, perubahan revisi,
+dan pergantian UID tidak boleh menyebabkan pencatatan prematur. Detail kontrak
+dan batas rollout: [TRANSACTION_CONFIRMATIONS.md](TRANSACTION_CONFIRMATIONS.md).
+
 **Tipe Transaksi:**
 - **Pemasukan** — Menambah saldo dompet
 - **Pengeluaran** — Mengurangi saldo dompet
