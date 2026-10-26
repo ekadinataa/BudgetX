@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-SOURCE = Path(os.environ.get('MESH_SOURCE', '/home/ekadinataa/budgetx-email-mesh')).resolve()
+SOURCE = Path(os.environ.get('MESH_SOURCE', str(Path(__file__).resolve().parent))).resolve()
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(SOURCE))
 import mesh

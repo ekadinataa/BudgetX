@@ -1,0 +1,48 @@
+{
+  "project_id": "budgetku-app-v1",
+  "uid": "VCqdnx9zvJVrZQSNp6gyGm6Zzhr2",
+  "email": "demo@budgetx.id",
+  "account_id": "akun-1",
+  "mailbox_email": "mailbox@example.invalid",
+  "checkpoint_at": "CHECKPOINT_REQUIRED",
+  "publish_enabled": false,
+  "ops_alert_target": null,
+  "db_path": "__STATE_DIR__/state.sqlite3",
+  "token_path": "__STATE_DIR__/gmail-token.json",
+  "client_secret_path": "__STATE_DIR__/oauth-client.json",
+  "firebase_admin_path": "__STATE_DIR__/firebase-admin.json",
+  "archive_path": "__STATE_DIR__/archive/emails.jsonl",
+  "raw_archive_dir": "__STATE_DIR__/archive/raw",
+  "harvest_dir": "__SOURCE_DIR__",
+  "destination_whitelist_path": "__STATE_DIR__/destination-whitelist.sqlite3",
+  "category_worker_state_path": "__STATE_DIR__/category-worker.sqlite3",
+  "financial_review_state_path": "__STATE_DIR__/financial-review.sqlite3",
+  "recovery_overlap_seconds": 300,
+  "recovery_max_days": 7,
+  "sender_allowlist": {
+    "alerts@example.invalid": "KROM"
+  },
+  "registry": {
+    "wallets": {
+      "KROM": {
+        "id": "__REPLACE_WALLET_ID_KROM__",
+        "type": "bank"
+      }
+    },
+    "aliases": {},
+    "reporter_aliases": {}
+  },
+  "owner_names": [],
+  "categories": [],
+  "category_overrides": {},
+  "destination_category_overrides": {},
+  "destination_tag_overrides": {},
+  "destination_classification_enabled": false,
+  "destination_classification_notify_admin": false,
+  "financial_review_enabled": false,
+  "financial_review_web_enabled": false,
+  "financial_review_admin_chat_id": "790484718",
+  "financial_review_admin_user_ids": [
+    "790484718"
+  ]
+}

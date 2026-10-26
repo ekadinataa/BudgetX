@@ -74,6 +74,29 @@ npm run dev
 
 ---
 
+## Email Mesh — bagian dari BudgetX
+
+Source otomasi email disimpan di [`integrations/email-mesh`](integrations/email-mesh/README.md),
+bersama parser bank, ledger SQLite, publisher Firebase, review receipt, worker kategori,
+watchdog/backup, plugin Hermes opsional, workflow n8n, dan pengujian sintetis.
+
+```bash
+cd integrations/email-mesh
+./scripts/bootstrap.sh
+.venv/bin/python scripts/manage.py check
+env -u HERMES_HOME .venv/bin/python -B -m unittest discover -s . -p 'test_*.py'
+```
+
+Lihat [setup](integrations/email-mesh/docs/setup.md),
+[arsitektur](integrations/email-mesh/docs/architecture.md),
+[operasi dan recovery](integrations/email-mesh/docs/operations.md), dan
+[panduan developer](integrations/email-mesh/docs/development.md).
+Bootstrap siap untuk pengembangan; OAuth, kredensial Admin, mapping wallet, state,
+dan persetujuan aktivasi tetap privat dan disiapkan terpisah. `git pull` tidak
+mengubah runtime, memublikasikan uang, mengaktifkan jadwal, atau melakukan replay.
+
+---
+
 ## 📄 Single File
 
 Build produksi bisa digabung jadi **satu file HTML mandiri** — CSS, JS, logo, dan font
@@ -126,6 +149,8 @@ budgetku/
 │   ├── utils/               # Pure helpers (formatters, calculators)
 │   ├── context/             # Auth + Theme providers
 │   └── data/                # Default data
+├── integrations/email-mesh/ # Python worker, parser, automation, docs dan tests
+├── .github/workflows/       # Offline email-mesh CI
 ├── docs/                    # Documentation
 ├── public/                  # Static assets
 ├── scripts/                 # Build scripts (single-file HTML)

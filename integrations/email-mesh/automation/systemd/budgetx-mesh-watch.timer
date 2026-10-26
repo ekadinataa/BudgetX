@@ -1,0 +1,12 @@
+[Unit]
+Description=BudgetX Email Mesh watchdog, not a financial publisher
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+AccuracySec=15s
+Unit=budgetx-mesh-watch.service
+
+[Install]
+WantedBy=timers.target

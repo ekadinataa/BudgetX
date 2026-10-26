@@ -1,0 +1,12 @@
+[Unit]
+Description=BudgetX Email Mesh read-only health assessment and private backup
+
+[Service]
+Type=oneshot
+# Copy this template, then replace the absolute source path below before install.
+EnvironmentFile=%h/.config/budgetx-email-mesh/runtime.env
+WorkingDirectory=/REPLACE_WITH_ABSOLUTE_CHECKOUT/integrations/email-mesh
+ExecStart=/REPLACE_WITH_ABSOLUTE_CHECKOUT/integrations/email-mesh/.venv/bin/python /REPLACE_WITH_ABSOLUTE_CHECKOUT/integrations/email-mesh/ops.py --config ${BUDGETX_MESH_CONFIG} watch
+UMask=0077
+TimeoutStartSec=120
+NoNewPrivileges=true

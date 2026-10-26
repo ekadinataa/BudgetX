@@ -1,0 +1,212 @@
+{
+  "id": "557357af60f450fa",
+  "name": "BudgetX | 07 Email Mesh - Verify Latest Backup",
+  "description": "Read the latest existing private bundle and run ops.verify_backup: checksums, SQLite integrity, optional databases and table hashes. No backup creation, rotation, restore or notifications.",
+  "active": false,
+  "nodes": [
+    {
+      "id": "d74c838a-a12b-576c-80ea-92e1a98b7650",
+      "name": "Manual Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "f4b2f315-1a3d-5dd2-b374-0a9382a41519",
+      "name": "Safety Mode",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        200
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"mode\": \"preview\"}",
+        "options": {}
+      }
+    },
+    {
+      "id": "9470ab2f-ea60-5f74-ab28-f02efafa106a",
+      "name": "Canonical verify-backup",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        520,
+        200
+      ],
+      "parameters": {
+        "executeOnce": true,
+        "command": "={{ \"case \\\"${BUDGETX_MESH_ROOT-}\\\" in /*) ;; *) exit 64 ;; esac; test -d \\\"$BUDGETX_MESH_ROOT\\\" || exit 64; exec \\\"$BUDGETX_MESH_ROOT/.venv/bin/python\\\" \\\"$BUDGETX_MESH_ROOT/n8n/adapter.py\\\" verify-backup --mode \" + ([\"preview\", \"inspect\", \"live\"].includes($json.mode) ? $json.mode : \"preview\") }}"
+      }
+    },
+    {
+      "id": "2a55ee05-25d9-57d5-8445-59d7023ba357",
+      "name": "Parse Sanitized Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        200
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $json.stdout }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "28506db8-b475-5b81-8d7d-d46a0a7ebef4",
+      "name": "Operation OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ba84de4c-0239-5abd-a2c9-a59c15ff3c91",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1f18f38b-807b-5598-9084-f24202bee0e5",
+      "name": "Result - Sanitized",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        100
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "a6a87424-2553-5701-b667-6d00f41219ec",
+      "name": "Stop - Safe Failure",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        320
+      ],
+      "parameters": {
+        "errorMessage": "={{ $json.error || 'Canonical component failed; inspect private ops state.' }}"
+      }
+    },
+    {
+      "id": "347eef26-aef4-5f53-a571-018cce3e6edc",
+      "name": "Coverage and Safety",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        150,
+        -320
+      ],
+      "parameters": {
+        "content": "## 07 Email Mesh - Verify Latest Backup\n\nRead the latest existing private bundle and run ops.verify_backup: checksums, SQLite integrity, optional databases and table hashes. No backup creation, rotation, restore or notifications.\n\n**COPY ONLY — inactive by default.** Every action defaults to `preview`; explicitly select `inspect` for read-only checks. Do not cut over while the old scheduler is enabled. Live mode additionally requires `BUDGETX_N8N_ALLOW_LIVE=1` on the n8n service. Config, OAuth, Firebase Admin and financial state remain in private host files. These are n8n orchestration workflows reusing the existing Python engine, not a rewrite of ledger logic into JavaScript nodes.",
+        "height": 400,
+        "width": 1160,
+        "color": 5
+      }
+    }
+  ],
+  "connections": {
+    "Manual Run": {
+      "main": [
+        [
+          {
+            "node": "Safety Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Safety Mode": {
+      "main": [
+        [
+          {
+            "node": "Canonical verify-backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Canonical verify-backup": {
+      "main": [
+        [
+          {
+            "node": "Parse Sanitized Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Sanitized Result": {
+      "main": [
+        [
+          {
+            "node": "Operation OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operation OK": {
+      "main": [
+        [
+          {
+            "node": "Result - Sanitized",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop - Safe Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jakarta",
+    "executionTimeout": 450,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": [],
+  "versionId": "6ba436f0-0861-5b67-8c82-abf475af664f"
+}

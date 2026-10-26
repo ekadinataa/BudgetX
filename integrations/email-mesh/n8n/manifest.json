@@ -1,0 +1,69 @@
+{
+  "method": "native n8n orchestration of canonical Python engine",
+  "active": false,
+  "legacy_scheduler_guard": {
+    "job_name": "budgetx-email-mesh-demo",
+    "cron": "*/5 * * * *"
+  },
+  "legacy_watchdog_guard": {
+    "timer": "budgetx-mesh-watch.timer"
+  },
+  "admin_approval_ingress": "existing trusted Telegram plugin; retained, not duplicated",
+  "excluded_maintenance": [
+    "credit migration",
+    "checkpoint reset",
+    "bulk destination apply",
+    "ledger restore"
+  ],
+  "workflows": [
+    {
+      "action": "pipeline",
+      "id": "b84d011fc5b758d8",
+      "name": "BudgetX | 01 Email Mesh - Main Pipeline",
+      "schedule": "*/5 * * * *",
+      "default_mode": "preview"
+    },
+    {
+      "action": "watchdog",
+      "id": "10c2cda67e1e5b37",
+      "name": "BudgetX | 02 Email Mesh - Watchdog and Daily Backup",
+      "schedule": "30 */5 * * * *",
+      "default_mode": "preview"
+    },
+    {
+      "action": "backup",
+      "id": "a6937ed96853581a",
+      "name": "BudgetX | 03 Email Mesh - Manual Verified Backup",
+      "schedule": null,
+      "default_mode": "preview"
+    },
+    {
+      "action": "classification",
+      "id": "dc152c114e44517f",
+      "name": "BudgetX | 04 Email Mesh - Destination Classification and Corrections",
+      "schedule": null,
+      "default_mode": "preview"
+    },
+    {
+      "action": "review",
+      "id": "4a2a4fb45c1e5439",
+      "name": "BudgetX | 05 Email Mesh - Receipt Review Discovery and Notifications",
+      "schedule": null,
+      "default_mode": "preview"
+    },
+    {
+      "action": "status",
+      "id": "fc0d5b6719ee569c",
+      "name": "BudgetX | 06 Email Mesh - Read-only Status",
+      "schedule": null,
+      "default_mode": "preview"
+    },
+    {
+      "action": "verify-backup",
+      "id": "557357af60f450fa",
+      "name": "BudgetX | 07 Email Mesh - Verify Latest Backup",
+      "schedule": null,
+      "default_mode": "preview"
+    }
+  ]
+}

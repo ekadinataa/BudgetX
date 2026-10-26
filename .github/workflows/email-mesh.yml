@@ -1,0 +1,39 @@
+name: Email Mesh Offline Verification
+on:
+  push:
+    paths: ['integrations/email-mesh/**', '.github/workflows/email-mesh.yml']
+  pull_request:
+    paths: ['integrations/email-mesh/**', '.github/workflows/email-mesh.yml']
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.14']
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: integrations/email-mesh/requirements.lock
+      - name: Bootstrap isolated worker
+        working-directory: integrations/email-mesh
+        run: ./scripts/bootstrap.sh
+      - name: Check source and offline suites
+        working-directory: integrations/email-mesh
+        run: |
+          .venv/bin/python -B scripts/manage.py check
+          env -u HERMES_HOME .venv/bin/python -B -m unittest discover -s . -p 'test_*.py' -v
+          env -u HERMES_HOME .venv/bin/python -B -m unittest discover -s n8n -p 'test_*.py' -v
+          env -u HERMES_HOME .venv/bin/python -B -m unittest discover -s hermes-plugin -p 'test_*.py' -v
+      - name: Refuse generated workflow drift
+        working-directory: integrations/email-mesh
+        run: |
+          .venv/bin/python -B n8n/build_workflows.py
+          git diff --exit-code -- n8n

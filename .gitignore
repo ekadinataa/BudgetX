@@ -37,3 +37,25 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Email-mesh runtime/private artifacts (source and synthetic fixtures are tracked)
+integrations/email-mesh/.venv/
+integrations/email-mesh/**/__pycache__/
+integrations/email-mesh/**/*.py[cod]
+integrations/email-mesh/*.sqlite3*
+integrations/email-mesh/*.db*
+integrations/email-mesh/**/config.json
+integrations/email-mesh/**/runtime.env
+integrations/email-mesh/**/token*.json
+integrations/email-mesh/**/gmail-token.json
+integrations/email-mesh/**/client_secret*.json
+integrations/email-mesh/**/oauth-client.json
+integrations/email-mesh/**/firebase-admin*.json
+integrations/email-mesh/**/service-account*.json
+integrations/email-mesh/archive/
+integrations/email-mesh/backups/
+integrations/email-mesh/private/
+integrations/email-mesh/state/
+integrations/email-mesh/n8n/*verification*.json
+integrations/email-mesh/n8n/import-result.json
+integrations/email-mesh/n8n/execution-*.json

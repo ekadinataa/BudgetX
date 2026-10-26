@@ -1,0 +1,212 @@
+{
+  "id": "dc152c114e44517f",
+  "name": "BudgetX | 04 Email Mesh - Destination Classification and Corrections",
+  "description": "category_hook.py: at most one classifier inference, persistent whitelist/backlog, admin-precedence, bounded correction-only publisher and exact readback. This is also called by the main pipeline. Do not schedule it independently or duplicate the main run.",
+  "active": false,
+  "nodes": [
+    {
+      "id": "bb28263e-4d08-5369-903f-2b12b45816e0",
+      "name": "Manual Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "90d47502-15c5-509c-9eea-db646f8c851a",
+      "name": "Safety Mode",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        200
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"mode\": \"preview\"}",
+        "options": {}
+      }
+    },
+    {
+      "id": "bce1b2df-85eb-5a44-9ca9-054a4e913cb1",
+      "name": "Canonical classification",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        520,
+        200
+      ],
+      "parameters": {
+        "executeOnce": true,
+        "command": "={{ \"case \\\"${BUDGETX_MESH_ROOT-}\\\" in /*) ;; *) exit 64 ;; esac; test -d \\\"$BUDGETX_MESH_ROOT\\\" || exit 64; exec \\\"$BUDGETX_MESH_ROOT/.venv/bin/python\\\" \\\"$BUDGETX_MESH_ROOT/n8n/adapter.py\\\" classification --mode \" + ([\"preview\", \"inspect\", \"live\"].includes($json.mode) ? $json.mode : \"preview\") }}"
+      }
+    },
+    {
+      "id": "e964f23f-625b-585e-b8cf-524b056d9701",
+      "name": "Parse Sanitized Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        200
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $json.stdout }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "91ad26de-6dcd-5602-b651-7dedf9c9c6ee",
+      "name": "Operation OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8c77b4a5-ea26-5cf0-8faa-e2cd997487f1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "664a32db-9943-5e5e-b945-59a82d7ee1a8",
+      "name": "Result - Sanitized",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        100
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "e75816f3-81ed-53e7-ad9e-135faecf245d",
+      "name": "Stop - Safe Failure",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        320
+      ],
+      "parameters": {
+        "errorMessage": "={{ $json.error || 'Canonical component failed; inspect private ops state.' }}"
+      }
+    },
+    {
+      "id": "ce61d15f-f880-5768-8367-6217f4bf386a",
+      "name": "Coverage and Safety",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        150,
+        -320
+      ],
+      "parameters": {
+        "content": "## 04 Email Mesh - Destination Classification and Corrections\n\ncategory_hook.py: at most one classifier inference, persistent whitelist/backlog, admin-precedence, bounded correction-only publisher and exact readback. This is also called by the main pipeline. Do not schedule it independently or duplicate the main run.\n\n**COPY ONLY — inactive by default.** Every action defaults to `preview`; explicitly select `inspect` for read-only checks. Do not cut over while the old scheduler is enabled. Live mode additionally requires `BUDGETX_N8N_ALLOW_LIVE=1` on the n8n service. Config, OAuth, Firebase Admin and financial state remain in private host files. These are n8n orchestration workflows reusing the existing Python engine, not a rewrite of ledger logic into JavaScript nodes.",
+        "height": 400,
+        "width": 1160,
+        "color": 5
+      }
+    }
+  ],
+  "connections": {
+    "Manual Run": {
+      "main": [
+        [
+          {
+            "node": "Safety Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Safety Mode": {
+      "main": [
+        [
+          {
+            "node": "Canonical classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Canonical classification": {
+      "main": [
+        [
+          {
+            "node": "Parse Sanitized Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Sanitized Result": {
+      "main": [
+        [
+          {
+            "node": "Operation OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operation OK": {
+      "main": [
+        [
+          {
+            "node": "Result - Sanitized",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop - Safe Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jakarta",
+    "executionTimeout": 450,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": [],
+  "versionId": "6a399112-5f58-50d6-89e9-8b47cdc542f0"
+}
