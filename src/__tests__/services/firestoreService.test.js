@@ -59,6 +59,8 @@ vi.mock('../../data/defaults', () => ({
 // ── Import after mocks ──────────────────────────────────────────────────────
 
 import {
+  createInvestment,
+  updateInvestment,
   getWallets,
   createWallet,
   updateWallet,
@@ -97,6 +99,18 @@ import {
 import { BACKUP_ARRAY_KEYS, BACKUP_EXTRA_KEYS, normalizeBackupData } from '../../utils/backupHelpers';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+it('persists optional deposito opening principal in cloud create/update without wallet writes', async () => {
+  vi.clearAllMocks();
+  addDoc.mockResolvedValueOnce({ id: 'deposit' });
+  const input = { name: 'Superbank', assetType: 'deposito', principal: 10000000, depositDate: '2026-10-01' };
+  const created = await createInvestment(input);
+  expect(created).toMatchObject(input);
+  expect(addDoc).toHaveBeenCalledWith(expect.objectContaining({ _path: 'users/test-user-123/investments' }), expect.objectContaining(input));
+  await updateInvestment('deposit', { principal: 12000000, depositDate: '2026-10-02' });
+  expect(updateDoc).toHaveBeenCalledWith(expect.objectContaining({ _path: 'users/test-user-123/investments/deposit' }), { principal: 12000000, depositDate: '2026-10-02' });
+  expect(writeBatch).not.toHaveBeenCalled();
+});
 
 function makeDocsSnapshot(docs) {
   return {

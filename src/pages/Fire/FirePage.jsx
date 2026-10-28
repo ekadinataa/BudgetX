@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, Legend, ReferenceLine, ResponsiveContainer,
 } from 'recharts';
+import { computePortfolioSummary } from '../../utils/investmentHelpers';
 import { fmtFull, fmt } from '../../utils/formatters';
 import {
   calcFireNumber,
@@ -173,7 +174,7 @@ export default function FirePage({
 
   const calcTotalInvestments = useCallback(() => {
     if (investments.length === 0) return null;
-    return investments.reduce((s, inv) => s + (inv.currentValue || 0), 0);
+    return computePortfolioSummary(investments).totalValue;
   }, [investments]);
 
   // Allocation handler

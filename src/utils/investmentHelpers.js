@@ -50,13 +50,19 @@ export function computeAvgBuyPrice(transactions) {
   return totalCost / totalUnits;
 }
 
-/**
- * Compute metrics for a single investment record.
- * @param {Object} investment - Investment record with transactions array
- * @returns {{ totalUnits: number, avgBuyPrice: number, costBasis: number, currentValue: number, unrealizedGain: number, returnPercentage: number }}
- */
-export function computeInvestmentMetrics(investment) {
+/** Opening capital is a holding, not a wallet transaction; never persist this derived entry. */
+export function getInvestmentTransactions(investment) {
   const txs = investment.transactions || [];
+  if (investment.assetType !== 'deposito' || !(investment.principal > 0)) return txs;
+  return [{
+    id: 'opening-principal', type: 'buy', units: 1,
+    pricePerUnit: investment.principal, totalAmount: investment.principal,
+    date: investment.depositDate,
+  }, ...txs];
+}
+
+export function computeInvestmentMetrics(investment, valuationDate = new Date().toISOString().slice(0, 10)) {
+  const txs = [...getInvestmentTransactions(investment)].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   const totalUnits = computeTotalUnits(txs);
   const avgBuyPrice = computeAvgBuyPrice(txs);
   const costBasis = totalUnits * avgBuyPrice;
@@ -64,16 +70,22 @@ export function computeInvestmentMetrics(investment) {
   // For deposito, auto-calculate currentValue
   let currentValue = investment.currentValue || 0;
   if (investment.assetType === 'deposito' && txs.length > 0) {
-    const buyTx = txs.find((t) => t.type === 'buy');
-    if (buyTx) {
-      const today = new Date().toISOString().slice(0, 10);
-      currentValue = calcDepositoCurrentValue(
-        buyTx.totalAmount || buyTx.pricePerUnit || 0,
-        investment.interestRate || 0,
-        buyTx.date || today,
-        today
-      );
+    const today = valuationDate;
+    const endDate = investment.maturityDate && investment.maturityDate < today ? investment.maturityDate : today;
+    let units = 0;
+    currentValue = 0;
+    for (const tx of txs) {
+      if (tx.type === 'buy') {
+        currentValue += calcDepositoCurrentValue(
+          (tx.units || 0) * (tx.pricePerUnit || 0), investment.interestRate || 0, tx.date || today, endDate,
+        );
+        units += tx.units || 0;
+      } else if (tx.type === 'sell' && units > 0) {
+        currentValue *= Math.max(0, (units - tx.units) / units);
+        units = Math.max(0, units - tx.units);
+      }
     }
+    currentValue = Math.round(currentValue);
   }
 
   const unrealizedGain = currentValue - costBasis;

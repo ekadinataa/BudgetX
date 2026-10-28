@@ -907,6 +907,8 @@ export async function createInvestment(data) {
     createdAt: createdAt || new Date().toISOString().slice(0, 10),
     lastUpdated: lastUpdated || new Date().toISOString().slice(0, 10),
     // Store ALL type-specific fields (learned from debt bug)
+    ...(data.assetType === 'deposito' && data.principal !== undefined
+      ? { principal: data.principal, depositDate: data.depositDate } : {}),
     interestRate: Number(data.interestRate) || 0,
     maturityDate: data.maturityDate || '',
     bankName: data.bankName || '',

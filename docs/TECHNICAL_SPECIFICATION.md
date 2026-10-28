@@ -421,6 +421,8 @@ Delete:   deleteTransaction + revert balance effect
   "coinName": "string | null",
   "fundName": "string | null",
   "managerName": "string | null",
+  "principal": "positive safe integer IDR (optional, deposito opening holding only)",
+  "depositDate": "YYYY-MM-DD (required with principal)",
   "interestRate": "number | null",
   "maturityDate": "string | null",
   "bankName": "string | null",

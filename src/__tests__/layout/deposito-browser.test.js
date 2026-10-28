@@ -1,0 +1,70 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { chromium, localOnly, navigate } from './browser-support';
+import { measureTextContrast } from './contrast-support';
+
+let browser;
+beforeAll(async () => { if (chromium) browser = await chromium.launch({ channel: 'chrome' }); }, 60000);
+afterAll(async () => { await browser?.close(); });
+const URL = globalThis.process?.env?.UAT_URL || 'http://127.0.0.1:5175';
+
+describe.skipIf(!chromium)('deposito nominal in Chrome, local only', () => {
+  it.each([[1280, false], [1280, true], [390, false], [390, true]])('creates, edits and reloads opening nominal without wallet effects at %ipx dark=%s', async (width, darkMode) => {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await localOnly(page);
+    const today = new Date().toISOString().slice(0, 10);
+    const seed = { page: 'invest', darkMode, wallets: [{ id: 'bank', name: 'Bank Uji', type: 'bank', balance: 20000000 }], transactions: [], categories: [], budgets: {}, investments: [] };
+    await page.addInitScript(state => { if (!localStorage.getItem('budgetku_state')) localStorage.setItem('budgetku_state', JSON.stringify(state)); }, seed);
+    const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('budgetku_state')));
+    try {
+      await page.goto(URL, { waitUntil: 'networkidle' });
+      await page.getByRole('button', { name: 'Tambah Investasi', exact: true }).click();
+      let dialog = page.getByRole('dialog');
+      await dialog.locator('input').first().fill('Superbank');
+      await dialog.locator('select').selectOption('deposito');
+      await dialog.getByRole('spinbutton', { name: 'Nominal Deposito (Rp)' }).fill('10000000');
+      await dialog.getByLabel('Tanggal Penempatan').fill(today);
+      await dialog.locator('input[type="number"]').last().fill('7.5');
+      await dialog.locator('input[type="date"]').last().fill('2030-12-31');
+      await dialog.getByRole('button', { name: 'Tambah', exact: true }).click();
+      await dialog.waitFor({ state: 'hidden' });
+      expect(await page.locator('.statValue').nth(1).innerText()).toContain('10.000.000');
+      expect(await page.locator('.investmentPosition').innerText()).toMatch(/Proyeksi bunga: Rp\s*[1-9]/);
+      expect(await page.getByRole('button', { name: 'Jual', exact: true }).count()).toBe(1);
+      await page.getByRole('button', { name: 'Edit investasi Superbank' }).click();
+      dialog = page.getByRole('dialog');
+      expect(await dialog.getByRole('spinbutton', { name: 'Nominal Deposito (Rp)' }).inputValue()).toBe('10000000');
+      await dialog.getByRole('spinbutton', { name: 'Nominal Deposito (Rp)' }).fill('12000000');
+      const layout = await dialog.evaluate(el => ({ overflow: el.scrollWidth > el.clientWidth + 1, left: el.getBoundingClientRect().left, right: el.getBoundingClientRect().right }));
+      expect(layout.overflow).toBe(false); expect(layout.left).toBeGreaterThanOrEqual(0); expect(layout.right).toBeLessThanOrEqual(width);
+      expect((await page.evaluate(measureTextContrast, '.modal')).failures).toEqual([]);
+      await dialog.getByRole('button', { name: 'Simpan Perubahan' }).click();
+      await dialog.waitFor({ state: 'hidden' });
+      await page.reload({ waitUntil: 'networkidle' });
+      await navigate(page, 'invest');
+      expect(await page.locator('.statValue').nth(1).innerText()).toContain('12.000.000');
+      const state = await saved();
+      expect(state.wallets).toEqual(seed.wallets); expect(state.transactions).toEqual([]);
+      expect(state.investments[0]).toMatchObject({ principal: 12000000, depositDate: today, transactions: [] });
+      await navigate(page, 'fire');
+      await page.getByTitle('Auto-fill dari portofolio investasi').click();
+      expect(await page.getByLabel('Aset FIRE Saat Ini', { exact: true }).inputValue()).toBe('12000000');
+      await navigate(page, 'invest');
+      await page.getByRole('button', { name: 'Jual', exact: true }).click();
+      expect(await page.getByRole('dialog').innerText()).toContain('Unit yang dimiliki: 1');
+      const sell = page.getByRole('dialog');
+      await sell.locator('input[type="number"]').nth(0).fill('1');
+      await sell.locator('input[type="number"]').nth(1).fill('12000000');
+      await sell.getByRole('button', { name: 'Konfirmasi Jual' }).click();
+      await sell.waitFor({ state: 'hidden' });
+      expect(await page.locator('.statValue').nth(0).innerText()).toMatch(/Rp\s*0$/);
+      expect(await page.locator('.statValue').nth(1).innerText()).toMatch(/Rp\s*0$/);
+      const redeemed = await saved();
+      expect(redeemed.transactions).toHaveLength(1);
+      expect(redeemed.transactions[0]).toMatchObject({ type: 'income', amount: 12000000, walletId: 'bank' });
+      expect(redeemed.investments[0].transactions).toHaveLength(1);
+      expect(errors).toEqual([]);
+    } finally { await page.close(); }
+  }, 60000);
+});

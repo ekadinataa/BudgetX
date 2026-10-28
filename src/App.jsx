@@ -30,7 +30,7 @@ import { WALLETS_INIT, TRANSACTIONS_INIT, BUDGETS_INIT, CATEGORIES } from './dat
 import { buildDebtTransaction } from './utils/debtHelpers';
 import { DEFAULT_FIRE_SETTINGS } from './utils/fireCalculator';
 import { validateDebt, validatePayment } from './services/debtValidator';
-import { buildInvestmentTransaction, computeTotalUnits } from './utils/investmentHelpers';
+import { buildInvestmentTransaction, computeInvestmentMetrics } from './utils/investmentHelpers';
 import { advanceDueDate, buildSubscriptionTransaction } from './utils/subscriptionHelpers';
 import { validateInvestment, validateInvestmentTransaction, validateCurrentValue } from './services/investmentValidator';
 import * as api from './services/firestoreService';
@@ -1065,7 +1065,7 @@ function App() {
       return;
     }
 
-    const maxUnits = computeTotalUnits(investment.transactions || []);
+    const maxUnits = computeInvestmentMetrics(investment).totalUnits;
     const error = validateInvestmentTransaction(txData, 'sell', maxUnits);
     if (error) {
       showToast(error);

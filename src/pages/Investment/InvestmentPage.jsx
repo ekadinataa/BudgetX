@@ -6,9 +6,7 @@ import {
   computePortfolioSummary,
   filterInvestments,
   sortTransactionsByDate,
-  computeTotalUnits,
   getDaysUntilMaturity,
-  calcDepositoProjectedReturn,
 } from '../../utils/investmentHelpers';
 import NavIcon from '../../components/icons/NavIcon';
 import InvestmentFormModal from './InvestmentFormModal';
@@ -257,22 +255,15 @@ function InvestmentCard({ investment, onEdit, onBuy, onSell, onUpdateValue }) {
   const [showHistory, setShowHistory] = useState(false);
 
   const metrics = computeInvestmentMetrics(investment);
-  const totalUnits = computeTotalUnits(investment.transactions || []);
+  const totalUnits = metrics.totalUnits;
   const isDeposito = investment.assetType === 'deposito';
 
   // Deposito maturity info
   let maturityInfo = null;
   if (isDeposito && investment.maturityDate) {
     const daysLeft = getDaysUntilMaturity(investment.maturityDate, TODAY);
-    const buyTx = (investment.transactions || []).find((t) => t.type === 'buy');
-    const principal = buyTx?.totalAmount || buyTx?.pricePerUnit || 0;
-    const projectedReturn = calcDepositoProjectedReturn(
-      principal,
-      investment.interestRate || 0,
-      buyTx?.date || TODAY,
-      investment.maturityDate
-    );
-    maturityInfo = { daysLeft, projectedReturn, principal };
+    const projectedReturn = computeInvestmentMetrics(investment, investment.maturityDate).unrealizedGain;
+    maturityInfo = { daysLeft, projectedReturn };
   }
 
   const sortedTxs = sortTransactionsByDate(investment.transactions || []);
