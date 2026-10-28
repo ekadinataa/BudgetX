@@ -24,6 +24,18 @@ function makeData() {
 }
 
 describe('Complete JSON backups', () => {
+  it('preserves deposito opening holdings through JSON and ZIP without synthesizing wallet history', () => {
+    const data = makeData();
+    data.investments = [{ id: 'deposit', name: 'Superbank', assetType: 'deposito', principal: 10000000, depositDate: '2026-10-01', interestRate: 7.5, maturityDate: '2026-11-30', currentValue: 0, transactions: [] }];
+    const json = parseAndValidate(JSON.stringify(buildBudgetXJson(data))).data;
+    const zip = parseCsvZip(buildCsvZip(buildCsvStrings(data), data));
+    for (const restored of [json, zip]) {
+      expect(validateEntities(restored)).toEqual({ valid: true });
+      expect(restored.investments).toEqual(data.investments);
+      expect(restored.wallets).toEqual(data.wallets);
+      expect(restored.transactions).toEqual(data.transactions);
+    }
+  });
   it('round-trips every collection, nested history, preferences and FIRE without changing balances', () => {
     const data = makeData();
     const parsed = parseAndValidate(JSON.stringify(buildBudgetXJson(data)));

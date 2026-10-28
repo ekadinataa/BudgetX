@@ -1,3 +1,5 @@
+import { computePortfolioSummary } from './investmentHelpers';
+
 /**
  * Asset Health Helpers — Pure computation functions for financial health overview.
  *
@@ -26,7 +28,7 @@ export function computeNetWorth(wallets, debts, investments, fixedAssets = []) {
 
   const positiveWallets = wallets.filter(w => w.balance > 0).reduce((s, w) => s + w.balance, 0);
   const negativeWallets = wallets.filter(w => w.balance < 0).reduce((s, w) => s + Math.abs(w.balance), 0);
-  const investmentTotal = investments.reduce((s, inv) => s + (inv.currentValue || 0), 0);
+  const investmentTotal = computePortfolioSummary(investments).totalValue;
   const piutangTotal = debts.filter(d => d.type === 'piutang' && d.status === 'active').reduce((s, d) => s + d.remainingAmount, 0);
   const utangTotal = debts.filter(d => d.type === 'utang' && d.status === 'active').reduce((s, d) => s + d.remainingAmount, 0);
   const fixedAssetsTotal = fixedAssets.reduce((s, a) => s + (a.currentValue || 0), 0);

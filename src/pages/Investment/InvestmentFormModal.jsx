@@ -4,6 +4,7 @@ import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { validateInvestment } from '../../services/investmentValidator';
+import { computeInvestmentMetrics } from '../../utils/investmentHelpers';
 
 const ASSET_TYPE_OPTIONS = [
   { value: 'deposito', label: 'Deposito' },
@@ -26,6 +27,9 @@ export default function InvestmentFormModal({ initial, onClose, onSave, onDelete
     name: initial?.name || '',
     assetType: initial?.assetType || 'saham',
     notes: initial?.notes || '',
+    // Opening holding; existing wallet-linked history must never be rewritten here.
+    principal: hasTransactions ? String(computeInvestmentMetrics(initial).costBasis) : String(initial?.principal || ''),
+    depositDate: initial?.depositDate || initial?.transactions?.find(t => t.type === 'buy')?.date || new Date().toISOString().slice(0, 10),
     // Type-specific
     interestRate: initial?.interestRate ? String(initial.interestRate) : '',
     maturityDate: initial?.maturityDate || '',
@@ -43,7 +47,11 @@ export default function InvestmentFormModal({ initial, onClose, onSave, onDelete
 
   const handleSubmit = () => {
     const data = { ...form };
-    const error = validateInvestment(data);
+    if (form.assetType === 'deposito') {
+      if (hasTransactions || (form.principal === '' && initial?.principal === undefined)) { delete data.principal; delete data.depositDate; }
+      else data.principal = Number(form.principal);
+    }
+    const error = validateInvestment({ ...initial, ...data });
     if (error) {
       if (error.includes('Nama')) setErrors({ name: error });
       else if (error.includes('aset')) setErrors({ assetType: error });
@@ -60,6 +68,10 @@ export default function InvestmentFormModal({ initial, onClose, onSave, onDelete
 
     // Type-specific fields
     if (form.assetType === 'deposito') {
+      if (!hasTransactions && form.principal !== '') {
+        result.principal = Number(form.principal);
+        result.depositDate = form.depositDate;
+      }
       result.interestRate = Number(form.interestRate) || 0;
       result.maturityDate = form.maturityDate;
       result.bankName = form.bankName.trim();
@@ -106,6 +118,17 @@ export default function InvestmentFormModal({ initial, onClose, onSave, onDelete
       {/* Type-specific fields */}
       {form.assetType === 'deposito' && (
         <>
+          <div className="formGrid">
+            <Field label="Nominal Deposito (Rp)">
+              <Input aria-label="Nominal Deposito (Rp)" type="number" min="1" step="1" inputMode="numeric" value={form.principal} onChange={set('principal')} placeholder="10000000" disabled={hasTransactions} />
+            </Field>
+            <Field label="Tanggal Penempatan">
+              <Input aria-label="Tanggal Penempatan" type="date" value={form.depositDate} onChange={set('depositDate')} disabled={hasTransactions} />
+            </Field>
+          </div>
+          <p className="cardSub">{hasTransactions
+            ? 'Nominal mengikuti riwayat transaksi. Gunakan Beli/Jual untuk perubahan dana.'
+            : 'Saldo awal deposito yang sudah dimiliki, tanpa mengurangi saldo dompet. Kosongkan jika akan mencatat penempatan dari dompet melalui Beli.'}</p>
           <div className="formGrid">
             <Field label="Bunga per Tahun (%)">
               <Input

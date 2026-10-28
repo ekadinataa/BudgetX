@@ -298,6 +298,7 @@ Average Buy Price = Total Biaya Tersisa / Total Unit Tersisa
 ```
 
 **Fitur Khusus Deposito:**
+- Nominal saldo awal dan tanggal penempatan opsional di form Tambah/Edit; modal dan bunga langsung dihitung tanpa transaksi dompet. Kosongkan untuk memakai alur Beli dari dompet. Saldo awal dikunci setelah terdapat riwayat Beli/Jual agar tidak menggandakan/mengubah transaksi lama.
 - Simpan bunga, tenor, dan tanggal jatuh tempo
 - Hitung proyeksi return: `Pokok × (Bunga% / 100) × (Hari / 365)`
 - Auto-update currentValue berdasarkan bunga yang sudah berjalan

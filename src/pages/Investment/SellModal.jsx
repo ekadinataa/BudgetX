@@ -4,7 +4,7 @@ import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { validateInvestmentTransaction } from '../../services/investmentValidator';
-import { computeTotalUnits } from '../../utils/investmentHelpers';
+import { computeInvestmentMetrics } from '../../utils/investmentHelpers';
 import { fmtFull } from '../../utils/formatters';
 
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -13,7 +13,7 @@ const TODAY = new Date().toISOString().slice(0, 10);
  * SellModal — Record a sell transaction for an investment.
  */
 export default function SellModal({ investment, wallets, onClose, onConfirm }) {
-  const maxUnits = computeTotalUnits(investment.transactions || []);
+  const maxUnits = computeInvestmentMetrics(investment).totalUnits;
 
   const [form, setForm] = useState({
     units: '',

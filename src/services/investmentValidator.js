@@ -26,6 +26,12 @@ export function validateInvestment(data) {
 
   // Type-specific validation
   if (data.assetType === 'deposito') {
+    if (data.principal !== undefined) {
+      if (!Number.isSafeInteger(data.principal) || data.principal <= 0) return 'Nominal deposito harus berupa Rupiah bulat lebih dari 0';
+      const date = data.depositDate;
+      if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) return 'Tanggal penempatan tidak valid';
+      if (data.maturityDate && data.maturityDate < date) return 'Tanggal jatuh tempo tidak boleh sebelum tanggal penempatan';
+    }
     if (data.interestRate !== undefined && data.interestRate !== '' && Number(data.interestRate) < 0) {
       return 'Bunga tidak boleh negatif';
     }

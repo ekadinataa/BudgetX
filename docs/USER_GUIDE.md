@@ -464,7 +464,7 @@ Cicilan yang sudah dibayar ditandai dengan ✓.
 
 | Jenis | Deskripsi | Field Khusus |
 |-------|-----------|--------------|
-| 🏦 Deposito | Tabungan berjangka | Suku bunga, jatuh tempo, nama bank |
+| 🏦 Deposito | Tabungan berjangka | Nominal saldo awal, tanggal penempatan, suku bunga, jatuh tempo, nama bank |
 | 📊 Saham | Saham/ekuitas | Kode saham (ticker) |
 | ₿ Crypto | Cryptocurrency | Nama koin |
 | 🥇 Emas | Logam mulia | — |
@@ -474,6 +474,15 @@ Cicilan yang sudah dibayar ditandai dengan ✓.
 | 📦 Lainnya | Investasi lain | — |
 
 ### 9.2 Catat Pembelian (Beli)
+
+**Saldo awal deposito:** pada Tambah/Edit Investasi, pilih Deposito lalu isi
+**Nominal Deposito (Rp)** dan **Tanggal Penempatan** untuk deposito yang sudah
+Anda miliki. Nominal langsung menjadi modal portofolio dan dasar bunga berjalan;
+tidak membuat transaksi atau mengurangi saldo dompet. Nominal wajib Rupiah bulat
+positif bila diisi. Untuk penempatan baru yang perlu mendebit dompet, kosongkan
+nominal saat membuat investasi lalu gunakan **Beli**. Jangan mencatat dana yang
+sama melalui kedua jalur. Setelah ada riwayat Beli/Jual, nominal mengikuti modal
+tersisa dan kolom saldo awal dikunci; perubahan dana dicatat melalui Beli/Jual.
 
 1. Pada kartu investasi, klik **"Beli"**
 2. Isi:
