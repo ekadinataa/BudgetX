@@ -483,6 +483,10 @@ positif bila diisi. Untuk penempatan baru yang perlu mendebit dompet, kosongkan
 nominal saat membuat investasi lalu gunakan **Beli**. Jangan mencatat dana yang
 sama melalui kedua jalur. Setelah ada riwayat Beli/Jual, nominal mengikuti modal
 tersisa dan kolom saldo awal dikunci; perubahan dana dicatat melalui Beli/Jual.
+Jenis aset juga tidak dapat diganti setelah investasi memiliki nominal awal atau
+riwayat transaksi. Penjualan harus memakai tanggal saat posisi sudah tersedia;
+penjualan backdated yang membuat unit tidak mencukupi akan ditolak tanpa
+mencatat transaksi dompet.
 
 1. Pada kartu investasi, klik **"Beli"**
 2. Isi:

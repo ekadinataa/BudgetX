@@ -22,6 +22,7 @@ const ASSET_TYPE_OPTIONS = [
  */
 export default function InvestmentFormModal({ initial, onClose, onSave, onDelete }) {
   const hasTransactions = initial?.transactions?.length > 0;
+  const hasOpeningHolding = initial?.assetType === 'deposito' && initial.principal > 0;
 
   const [form, setForm] = useState({
     name: initial?.name || '',
@@ -51,7 +52,7 @@ export default function InvestmentFormModal({ initial, onClose, onSave, onDelete
       if (hasTransactions || (form.principal === '' && initial?.principal === undefined)) { delete data.principal; delete data.depositDate; }
       else data.principal = Number(form.principal);
     }
-    const error = validateInvestment({ ...initial, ...data });
+    const error = validateInvestment({ ...initial, ...data }, initial);
     if (error) {
       if (error.includes('Nama')) setErrors({ name: error });
       else if (error.includes('aset')) setErrors({ assetType: error });
@@ -108,7 +109,7 @@ export default function InvestmentFormModal({ initial, onClose, onSave, onDelete
       </Field>
 
       <Field label="Jenis Aset" error={errors.assetType}>
-        <Select value={form.assetType} onChange={set('assetType')} disabled={hasTransactions}>
+        <Select value={form.assetType} onChange={set('assetType')} disabled={hasTransactions || hasOpeningHolding}>
           {ASSET_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}

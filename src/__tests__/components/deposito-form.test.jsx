@@ -1,7 +1,26 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import InvestmentFormModal from '../../pages/Investment/InvestmentFormModal';
+import SellModal from '../../pages/Investment/SellModal';
 afterEach(cleanup);
+
+it('shows an error and never submits a redemption before placement from the sell dialog', () => {
+  const onConfirm = vi.fn();
+  render(<SellModal investment={{ name: 'Uji', assetType: 'deposito', principal: 10000000, depositDate: '2026-10-01', transactions: [] }} wallets={[{ id: 'bank', name: 'Bank' }]} onClose={() => {}} onConfirm={onConfirm} />);
+  const numbers = screen.getAllByRole('spinbutton');
+  fireEvent.change(numbers[0], { target: { value: '1' } });
+  fireEvent.change(numbers[1], { target: { value: '10000000' } });
+  fireEvent.change(document.querySelector('input[type="date"]'), { target: { value: '2026-09-30' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Konfirmasi Jual' }));
+  expect(onConfirm).not.toHaveBeenCalled();
+  expect(screen.getByText(/Unit jual melebihi posisi/)).toBeInTheDocument();
+});
+
+it('locks the asset type of an existing opening deposito even without buy/sell history', () => {
+  render(<InvestmentFormModal initial={{ id: 'opening', name: 'Uji', assetType: 'deposito', principal: 10000000, depositDate: '2026-10-01', transactions: [] }} onClose={() => {}} onSave={vi.fn()} />);
+  expect(screen.getByRole('combobox')).toBeDisabled();
+  expect(screen.getByRole('spinbutton', { name: 'Nominal Deposito (Rp)' })).not.toBeDisabled();
+});
 
 it('validates preserved opening fields when metadata changes after a transaction', () => {
   const onSave = vi.fn();

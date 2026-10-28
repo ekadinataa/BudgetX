@@ -42,7 +42,7 @@ export default function SellModal({ investment, wallets, onClose, onConfirm }) {
       note: form.note.trim(),
     };
 
-    const error = validateInvestmentTransaction(data, 'sell', maxUnits);
+    const error = validateInvestmentTransaction(data, 'sell', maxUnits, investment);
     if (error) {
       if (error.includes('Unit')) setErrors({ units: error });
       else if (error.includes('Harga')) setErrors({ pricePerUnit: error });

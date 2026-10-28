@@ -31,6 +31,13 @@ npm run lint
 npm run build
 ```
 
+## Pengamanan sebelum rilis
+
+- Jenis aset investasi yang sudah memiliki nominal awal deposito atau riwayat Beli/Jual dikunci. Guard bukan hanya atribut UI: App memvalidasi payload hasil merge dengan record original sebelum mengubah state lokal maupun memanggil service cloud.
+- Penjualan memvalidasi seluruh urutan posisi, termasuk opening holding dan kandidat penjualan, dengan urutan tanggal stabil yang sama dengan valuasi. Penjualan sebelum posisi tersedia, tanggal tidak valid, dan penjualan backdated yang membuat penjualan berikutnya kekurangan unit ditolak sebelum transaksi dompet dibuat.
+- Dialog Jual memakai validator yang sama sehingga input ditolak dengan pesan tanpa menutup dialog; penjualan pada tanggal penempatan tetap diizinkan bila unit mencukupi.
+- Regresi mencakup UI, validator murni, handler App lokal/cloud bermock (tidak ada write pada input ditolak), serta Chrome desktop/mobile × light/dark. Tidak ada migrasi ataupun perbaikan otomatis terhadap data pengguna.
+
 ## Temuan di luar lingkup
 
 Skenario pencairan mode lokal memperlihatkan handler transaksi existing menambahkan transaksi income tetapi tidak mengubah field `wallet.balance` di localStorage (`App.jsx` handleCreateTransaction local branch). Pemeriksaan deposito memverifikasi transaksi income dan posisi investasi yang ditutup, **bukan** mengklaim saldo wallet lokal telah dikreditkan. Perilaku umum transaksi/wallet lokal ini tidak diubah dalam tugas penambahan nominal; perlu perbaikan terpisah dengan regresi seluruh jalur transaksi. Cloud accounting tetap menggunakan service transaksi existing dan belum diuji dengan write production.

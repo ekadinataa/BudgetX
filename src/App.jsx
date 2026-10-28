@@ -963,6 +963,14 @@ function App() {
 
   /** Update an investment record */
   const handleUpdateInvestment = async (id, data) => {
+    const investment = investments.find((item) => item.id === id);
+    const error = investment
+      ? validateInvestment({ ...investment, ...data }, investment)
+      : 'Data investasi tidak ditemukan.';
+    if (error) {
+      showToast(error);
+      throw new Error(error);
+    }
     if (IS_LOCAL_MODE) {
       setInvestments((items) => items.map((i) => (i.id === id ? { ...i, ...data } : i)));
       showToast('Investasi berhasil diubah.');
@@ -1066,7 +1074,7 @@ function App() {
     }
 
     const maxUnits = computeInvestmentMetrics(investment).totalUnits;
-    const error = validateInvestmentTransaction(txData, 'sell', maxUnits);
+    const error = validateInvestmentTransaction(txData, 'sell', maxUnits, investment);
     if (error) {
       showToast(error);
       throw new Error(error);

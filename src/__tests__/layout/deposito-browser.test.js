@@ -35,6 +35,7 @@ describe.skipIf(!chromium)('deposito nominal in Chrome, local only', () => {
       await page.getByRole('button', { name: 'Edit investasi Superbank' }).click();
       dialog = page.getByRole('dialog');
       expect(await dialog.getByRole('spinbutton', { name: 'Nominal Deposito (Rp)' }).inputValue()).toBe('10000000');
+      expect(await dialog.locator('select').isDisabled()).toBe(true);
       await dialog.getByRole('spinbutton', { name: 'Nominal Deposito (Rp)' }).fill('12000000');
       const layout = await dialog.evaluate(el => ({ overflow: el.scrollWidth > el.clientWidth + 1, left: el.getBoundingClientRect().left, right: el.getBoundingClientRect().right }));
       expect(layout.overflow).toBe(false); expect(layout.left).toBeGreaterThanOrEqual(0); expect(layout.right).toBeLessThanOrEqual(width);
@@ -56,6 +57,16 @@ describe.skipIf(!chromium)('deposito nominal in Chrome, local only', () => {
       const sell = page.getByRole('dialog');
       await sell.locator('input[type="number"]').nth(0).fill('1');
       await sell.locator('input[type="number"]').nth(1).fill('12000000');
+      const beforeSell = await saved();
+      const beforePlacement = new Date(new Date(today + 'T00:00:00Z').getTime() - 86400000).toISOString().slice(0, 10);
+      await sell.locator('input[type="date"]').fill(beforePlacement);
+      await sell.getByRole('button', { name: 'Konfirmasi Jual' }).click();
+      await sell.getByText(/Unit jual melebihi posisi/).waitFor();
+      const rejected = await saved();
+      expect(rejected.investments).toEqual(beforeSell.investments);
+      expect(rejected.transactions).toEqual(beforeSell.transactions);
+      expect(rejected.wallets).toEqual(beforeSell.wallets);
+      await sell.locator('input[type="date"]').fill(today);
       await sell.getByRole('button', { name: 'Konfirmasi Jual' }).click();
       await sell.waitFor({ state: 'hidden' });
       expect(await page.locator('.statValue').nth(0).innerText()).toMatch(/Rp\s*0$/);

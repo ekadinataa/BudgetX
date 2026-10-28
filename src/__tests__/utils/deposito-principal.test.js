@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { validateInvestment } from '../../services/investmentValidator';
+import { validateInvestment, validateInvestmentTransaction } from '../../services/investmentValidator';
 import { computeNetWorth } from '../../utils/assetHelpers';
 import { computeInvestmentMetrics, computePortfolioSummary } from '../../utils/investmentHelpers';
 
@@ -7,6 +7,26 @@ const deposit = { name: 'Superbank', assetType: 'deposito', principal: 10000000,
 afterEach(() => vi.useRealTimers());
 
 describe('deposito opening principal', () => {
+  it('rejects changing an opening holding to a different asset type at the validation boundary', () => {
+    expect(validateInvestment({ ...deposit, assetType: 'saham' }, deposit)).toMatch(/Jenis aset tidak boleh diubah/);
+    expect(validateInvestment({ ...deposit, name: 'Nama baru' }, deposit)).toBeNull();
+    expect(validateInvestment({ name: 'Kosong', assetType: 'saham' }, { name: 'Kosong', assetType: 'deposito', transactions: [] })).toBeNull();
+  });
+  it('rejects a redemption before the opening holding exists', () => {
+    const sell = { units: 1, pricePerUnit: 10000000, walletId: 'bank', date: '2025-12-31' };
+    expect(validateInvestmentTransaction(sell, 'sell', 1, deposit)).toMatch(/Unit jual melebihi posisi/);
+    expect(validateInvestmentTransaction({ ...sell, date: deposit.depositDate }, 'sell', 1, deposit)).toBeNull();
+    expect(deposit.transactions).toEqual([]);
+  });
+  it('rejects an inserted redemption that would oversell a later existing sale', () => {
+    const investment = { ...deposit, transactions: [{ type: 'sell', date: '2026-03-01', units: 0.75 }] };
+    const sell = { units: 0.5, pricePerUnit: 10000000, walletId: 'bank', date: '2026-02-01' };
+    expect(validateInvestmentTransaction(sell, 'sell', Infinity, investment)).toMatch(/Unit jual melebihi posisi/);
+    expect(validateInvestmentTransaction({ ...sell, units: 0.25 }, 'sell', Infinity, investment)).toBeNull();
+  });
+  it.each(['', '2026-02-30', 'not-a-date'])('rejects a redemption with invalid date %s', date => {
+    expect(validateInvestmentTransaction({ units: 1, pricePerUnit: 10000000, walletId: 'bank', date }, 'sell', 1, deposit)).toMatch(/Tanggal penjualan/);
+  });
   it('projects interest on all remaining capital at maturity, not just the opening holding', () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
     const investment = { ...deposit, transactions: [{ type: 'buy', date: '2026-01-01', units: 1, pricePerUnit: 2000000 }] };
