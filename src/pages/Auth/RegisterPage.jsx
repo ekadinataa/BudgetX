@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import BrandLogo from '../../components/BrandLogo';
 import Field from '../../components/ui/Field';
 import Input from '../../components/ui/Input';
 
@@ -50,8 +51,7 @@ export default function RegisterPage({ onRegister, onNavigate }) {
     <div className="authWrapper">
       <div className="authCard">
         <div className="authLogo">
-          <img src="/logo.png" alt="BudgetX" className="authLogoImg" />
-          <span className="authLogoText">BudgetX</span>
+          <BrandLogo />
         </div>
         <h1 className="authTitle">Daftar</h1>
         <p className="authSubtitle">Buat akun BudgetX baru</p>

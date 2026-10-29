@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import NavIcon from '../icons/NavIcon';
+import BrandLogo from '../BrandLogo';
 import { NAV_ITEMS, NAV_GROUPS } from '../Sidebar/Sidebar';
 
 function Destination({ item, page, navigate, withIcon = false }) {
@@ -32,7 +33,7 @@ export default function Topbar({ page, setPage, onAddTx, user, darkMode, setDark
   const initial = (user?.displayName || user?.email || 'Lokal').slice(0, 2).toUpperCase();
   return <header className="topbar" ref={header}>
     <button className="brandTop" type="button" onClick={() => navigate('dashboard')} aria-label="BudgetX — beranda">
-      <img src="/logo.png" alt="" width={38} height={38} /><span>BudgetX<small>keuangan pribadi</small></span>
+      <BrandLogo /><small>keuangan pribadi</small>
     </button>
     <nav className="topnav" aria-label="Navigasi utama">
       <Destination item={{ id: 'dashboard', label: 'Ringkasan' }} page={page} navigate={navigate} />

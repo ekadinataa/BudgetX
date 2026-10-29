@@ -43,14 +43,13 @@ describe('single-file HTML build', () => {
     expect(html.match(/<link[^>]*\/assets\//g) ?? []).toHaveLength(0)
   })
 
-  it.skipIf(!hasBuild)('points every logo call site at the inlined data URI', async () => {
+  it.skipIf(!hasBuild)('keeps the reference wordmarks embedded in the bundle', async () => {
     const { html, logoRefs } = await buildSingleHtml(dist)
     const { head, code } = parts(html)
 
-    expect(logoRefs).toBeGreaterThan(0)
+    expect(logoRefs).toBe(0)
     expect(head).toContain('window.__BUDGETX_LOGO__ = "data:image/png;base64,')
-    // The call sites become a bare identifier, so quote style does not matter.
-    expect(code.split('__BUDGETX_LOGO__')).toHaveLength(logoRefs + 1)
+    expect(code.match(/data:image\/png;base64,/g)?.length).toBeGreaterThanOrEqual(2)
   })
 
   it.skipIf(!hasBuild)('defines the logo global before the module runs', async () => {
@@ -61,7 +60,7 @@ describe('single-file HTML build', () => {
 
     expect(head.indexOf('window.__BUDGETX_LOGO__')).toBeLessThan(head.length)
     expect(head.indexOf('window.__BUDGETX_LOGO__')).toBeLessThan(code.length)
-    expect(code).toContain('__BUDGETX_LOGO__')
+    expect(code).not.toContain('/logo.png')
   })
 
   it.skipIf(!hasBuild)('keeps the bundle intact — no early </script', async () => {

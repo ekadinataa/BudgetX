@@ -51,14 +51,12 @@ export async function buildSingleHtml(distDir) {
     throw new Error(`Un-inlined local asset reference(s): ${unexpected.join(', ')}`)
   }
 
-  // The app hardcodes `<img src="/logo.png">` in five components (sidebar, mobile
-  // top bar, three auth pages). That path is resolved against the server root, so
-  // it 404s the moment the file stands alone. Rewrite those call sites to a global
-  // holding the data URI — inlining the 55 KB base64 at every site would be worse.
+  // Preserve support for legacy runtime /logo.png references. The supplied
+  // wordmarks now use Vite-imported assets (already inlined), so zero legacy
+  // call sites is valid. The favicon is still inlined from public/logo.png.
   const LOGO_GLOBAL = '__BUDGETX_LOGO__'
   const logoRefs = js.match(/(["'`])\/logo\.png\1/g)?.length ?? 0
   const patchedJs = js.replace(/(["'`])\/logo\.png\1/g, () => LOGO_GLOBAL)
-  if (logoRefs === 0) throw new Error('No /logo.png reference found in the bundle — check the patch.')
   if (patchedJs.includes('/logo.png')) throw new Error('Un-patched /logo.png reference remains.')
 
   const inlinedJs = patchedJs.replace(/<\/script/gi, '<\\/script')
